@@ -100,6 +100,14 @@ class DemoPaymentService(BasePaymentService):
             if confirmed_tickets_count >= event.capacity:
                 raise ValueError("This event is completely sold out. Attendee capacity reached.")
 
+            # Prevent duplicate registration for the same event
+            already_booked = event.tickets.filter(
+                student=user,
+                status=Ticket.Status.CONFIRMED
+            ).exists()
+            if already_booked:
+                raise ValueError(f"You have already registered for '{event.title}'. Duplicate registrations are not permitted.")
+
             # Authoritative pricing
             is_member = (
                 getattr(user, 'membership_status', 'NONE') == 'ACTIVE'
@@ -279,6 +287,16 @@ class DemoPaymentService(BasePaymentService):
                     payment.status = Payment.Status.FAILED
                     payment.save(update_fields=['status'])
                     raise ValueError("Event reached full capacity before checkout finished.")
+
+                # Final duplicate check
+                already_booked = event.tickets.filter(
+                    student=user,
+                    status=Ticket.Status.CONFIRMED
+                ).exists()
+                if already_booked:
+                    payment.status = Payment.Status.FAILED
+                    payment.save(update_fields=['status'])
+                    raise ValueError(f"You have already registered for '{event.title}'. Duplicate registrations are not permitted.")
 
                 tier = payment.metadata.get('tier', 'Standard Pass')
                 ticket_uuid = uuid.uuid4()

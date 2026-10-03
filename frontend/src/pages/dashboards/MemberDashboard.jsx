@@ -507,6 +507,9 @@ export const MemberDashboard = () => {
             const serverMapped = rawTickets.map((t) => ({
               id: t.ticket_id || t.id,
               ticket_id: t.ticket_id || t.id,
+              event: t.event?.id || t.event,
+              eventId: t.event?.id || t.event,
+              event_id: t.event?.id || t.event,
               eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
               date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
               venue: t.venue || t.event_details?.venue || 'Campus Center',
@@ -524,11 +527,7 @@ export const MemberDashboard = () => {
               transferredTo: t.transferredTo || t.transferred_to || ''
             }));
 
-            setTicketsList((prev) => {
-              const serverIds = new Set(serverMapped.map((s) => s.id));
-              const filteredPrev = prev.filter((p) => !serverIds.has(p.id));
-              return [...serverMapped, ...filteredPrev];
-            });
+            setTicketsList(serverMapped);
           }
         }
       } catch (err) {
@@ -564,17 +563,84 @@ export const MemberDashboard = () => {
     reader.readAsDataURL(file);
   };
 
+  // Helper to check if an event is actively open for volunteer applications
+  // Volunteer applications are NOT available on the day of the event or in the past
+  const isVolunteerOpportunityOpen = (evt) => {
+    if (!evt) return false;
+    const hasVolunteers = Boolean(evt.volunteers_required || evt.volunteersRequired);
+    if (!hasVolunteers) return false;
+
+    const dateStr = evt.rawDate || evt.date;
+    if (dateStr) {
+      try {
+        let evtYear, evtMonth, evtDay;
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+          const parts = dateStr.slice(0, 10).split('-');
+          evtYear = parseInt(parts[0], 10);
+          evtMonth = parseInt(parts[1], 10) - 1;
+          evtDay = parseInt(parts[2], 10);
+        } else {
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return true;
+          evtYear = d.getFullYear();
+          evtMonth = d.getMonth();
+          evtDay = d.getDate();
+        }
+
+        const today = new Date();
+        const eventDateOnly = new Date(evtYear, evtMonth, evtDay, 0, 0, 0, 0);
+        const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+
+        // If event is on or before today, volunteer opportunity is closed
+        if (eventDateOnly <= todayDateOnly) {
+          return false;
+        }
+      } catch (e) {
+        console.warn('Error checking volunteer event date:', e);
+      }
+    }
+    return true;
+  };
+
   // Open Volunteer Modal with role prefill
   const openVolunteerApplication = (evt) => {
+    if (!isVolunteerOpportunityOpen(evt)) {
+      showToast('Volunteer applications are closed on the day of the event.', 'warning');
+      return;
+    }
     setApplyVolunteerModalEvent(evt);
     const availableRoles = evt.roles_list || evt.volunteer_roles_required || [];
     setVolunteerPreferredRole(availableRoles[0] || 'Registration Desk');
     setVolunteerMotivation('');
     setVolunteerExperience('');
   };
+  // Check if current student already registered for an event
+  const isEventRegistered = (eventId, eventTitle) => {
+    if (!eventId && !eventTitle) return false;
+    return ticketsList.some((tck) => {
+      if (tck.status === 'Cancelled') return false;
+      const tckEventId = tck.event?.id || tck.eventId || tck.event_id || (typeof tck.event === 'number' ? tck.event : null);
+      if (eventId && tckEventId && String(tckEventId) === String(eventId)) {
+        return true;
+      }
+      const tckTitle = (tck.eventTitle || tck.event_details?.title || (typeof tck.event === 'string' ? tck.event : '') || '').toLowerCase().trim();
+      const targetTitle = String(eventTitle || '').toLowerCase().trim();
+      if (targetTitle && tckTitle && (tckTitle === targetTitle || tckTitle.includes(targetTitle) || targetTitle.includes(tckTitle))) {
+        return true;
+      }
+      return false;
+    });
+  };
+
   const handleBuyTicketSubmit = (e) => {
     e.preventDefault();
     if (!buyTicketModalEvent) return;
+
+    if (isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title)) {
+      alert(`You already have a confirmed admission ticket for "${buyTicketModalEvent.title}". Each student is allowed only one pass per event.`);
+      setBuyTicketModalEvent(null);
+      return;
+    }
 
     const isMemberEligible = isEligibleForMemberPrice();
     const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
@@ -1063,7 +1129,7 @@ export const MemberDashboard = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-bold text-slate-900 mt-1">
-                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
+                    {eventsList.filter(isVolunteerOpportunityOpen).length}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {activeVolunteerWork.length} active • {volunteerApplications.length} applied
@@ -1166,12 +1232,22 @@ export const MemberDashboard = () => {
                               <span className="text-xs font-semibold text-slate-900">{evt.nonMemberPrice || evt.memberPrice || 'Free'}</span>
                             </div>
 
-                            <button
-                              onClick={() => setBuyTicketModalEvent(evt)}
-                              className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
-                            >
-                              Reserve
-                            </button>
+                            {isEventRegistered(evt.id, evt.title) ? (
+                              <button
+                                onClick={() => handleTabSelect('tickets')}
+                                className="px-3 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Booked</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setBuyTicketModalEvent(evt)}
+                                className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
+                              >
+                                Reserve
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1667,7 +1743,7 @@ export const MemberDashboard = () => {
             {filteredEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEvents.map(evt => {
-                  const hasVolunteers = evt.volunteers_required || evt.volunteersRequired;
+                  const hasVolunteers = isVolunteerOpportunityOpen(evt);
                   return (
                     <div
                       key={evt.id}
@@ -1778,13 +1854,24 @@ export const MemberDashboard = () => {
                           >
                             View Details
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setBuyTicketModalEvent(evt)}
-                            className="flex-1 py-1.5 px-3 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition text-center"
-                          >
-                            Buy Ticket
-                          </button>
+                          {isEventRegistered(evt.id, evt.title) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTabSelect('tickets')}
+                              className="flex-1 py-1.5 px-3 rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Registered (View Pass)</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setBuyTicketModalEvent(evt)}
+                              className="flex-1 py-1.5 px-3 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition text-center cursor-pointer"
+                            >
+                              Buy Ticket
+                            </button>
+                          )}
                         </div>
 
                         {/* Apply as Volunteer Button if volunteers_required */}
@@ -2178,7 +2265,7 @@ export const MemberDashboard = () => {
                 >
                   <span>1. Opportunities</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${volunteerSubTab === 'opportunities' ? 'bg-white/20 text-white' : 'bg-canvas text-text-muted'}`}>
-                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
+                    {eventsList.filter(isVolunteerOpportunityOpen).length}
                   </span>
                 </button>
 
@@ -2226,10 +2313,10 @@ export const MemberDashboard = () => {
                   </span>
                 </div>
 
-                {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length > 0 ? (
+                {eventsList.filter(isVolunteerOpportunityOpen).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {eventsList
-                      .filter(e => e.volunteers_required || e.volunteersRequired)
+                      .filter(isVolunteerOpportunityOpen)
                       .map(opp => {
                         const roles = opp.roles_list || opp.volunteer_roles_required || ['Registration Desk', 'Hospitality'];
                         return (
@@ -3619,6 +3706,16 @@ export const MemberDashboard = () => {
             </div>
 
             <form onSubmit={handleBuyTicketSubmit} className="space-y-3">
+              {isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title) && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Already Registered</p>
+                    <p className="text-[11px] text-amber-800">You already hold an active admission pass for this event. Each student is limited to one pass per event.</p>
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] text-slate-500">
                 A verified QR admission ticket will be generated into your "My Tickets" tab.
               </p>
@@ -3631,13 +3728,27 @@ export const MemberDashboard = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`flex-1 h-9 rounded-lg text-white text-xs font-semibold transition flex items-center justify-center cursor-pointer shadow-2xs ${isEligibleForMemberPrice() ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-zinc-900 hover:bg-black'
-                    }`}
-                >
-                  {isEligibleForMemberPrice() ? 'Confirm (Member Rate)' : 'Confirm & Purchase'}
-                </button>
+                {isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuyTicketModalEvent(null);
+                      handleTabSelect('tickets');
+                    }}
+                    className="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>View Confirmed Pass</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className={`flex-1 h-9 rounded-lg text-white text-xs font-semibold transition flex items-center justify-center cursor-pointer shadow-2xs ${isEligibleForMemberPrice() ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-zinc-900 hover:bg-black'
+                      }`}
+                  >
+                    {isEligibleForMemberPrice() ? 'Confirm (Member Rate)' : 'Confirm & Purchase'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -3706,7 +3817,7 @@ export const MemberDashboard = () => {
             </div>
 
             {/* Volunteer Opportunity Info if required */}
-            {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+            {isVolunteerOpportunityOpen(viewEventDetailsModal) && (
               <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
                 <div className="flex items-center gap-1.5 text-primary font-bold">
                   <HeartHandshake className="w-4 h-4" />
@@ -3726,7 +3837,7 @@ export const MemberDashboard = () => {
               >
                 Close
               </button>
-              {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+              {isVolunteerOpportunityOpen(viewEventDetailsModal) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -3739,17 +3850,31 @@ export const MemberDashboard = () => {
                   <HeartHandshake className="w-3.5 h-3.5" /> Apply as Volunteer
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  const evt = viewEventDetailsModal;
-                  setViewEventDetailsModal(null);
-                  setBuyTicketModalEvent(evt);
-                }}
-                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-xs"
-              >
-                Buy Ticket
-              </button>
+              {isEventRegistered(viewEventDetailsModal.id, viewEventDetailsModal.title) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewEventDetailsModal(null);
+                    handleTabSelect('tickets');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>Already Registered • View Pass</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const evt = viewEventDetailsModal;
+                    setViewEventDetailsModal(null);
+                    setBuyTicketModalEvent(evt);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-xs cursor-pointer"
+                >
+                  Buy Ticket
+                </button>
+              )}
             </div>
           </div>
         </div>

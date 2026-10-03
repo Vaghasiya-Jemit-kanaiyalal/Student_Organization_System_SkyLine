@@ -1,5 +1,5 @@
 /**
- * Shared Finance Data Model & Mock Ledger for ConnectU Treasurer Portal
+ * Shared Finance Data Model & Skyline Treasurer Ledger
  * Currency: Indian Rupee (INR - ₹)
  */
 
@@ -47,7 +47,7 @@ export const INITIAL_FINANCE_DATA = {
       amount: 35000,
       date: '2026-10-05',
       displayDate: '05 Oct 2026',
-      source: 'ConnectU Registration Desk',
+      source: 'Skyline Registration Desk',
       status: 'Cleared',
       month: 'October'
     },

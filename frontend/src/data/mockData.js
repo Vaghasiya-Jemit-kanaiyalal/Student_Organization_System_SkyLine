@@ -1,5 +1,5 @@
 /**
- * Mock Data for ConnectU University Student Organization Management System
+ * Reference Data for Skyline Student Organization Management System
  * Classical & Modern University Theme
  */
 

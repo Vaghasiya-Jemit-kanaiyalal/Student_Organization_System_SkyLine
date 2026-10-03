@@ -152,3 +152,33 @@ class DynamicQRTicketVerificationTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertTrue(res.data.get('is_valid'))
         self.assertEqual(res.data.get('ticket', {}).get('ticket_id'), self.ticket_1.ticket_id)
+
+    def test_duplicate_ticket_purchase_rejected_in_ticket_buy_view(self):
+        """TicketBuyView prevents student from buying/reserving another ticket for same event."""
+        self.client.force_authenticate(user=self.student_1)
+        res = self.client.post(f'/api/events/{self.event_hackathon.id}/buy-ticket/')
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(res.data.get('already_registered'))
+        self.assertIn('already registered', res.data.get('error', '').lower())
+
+    def test_duplicate_ticket_rejected_in_demo_payment(self):
+        """Demo payment service prevents creating payment for an event student already holds a ticket for."""
+        self.client.force_authenticate(user=self.student_1)
+        res = self.client.post('/api/payments/demo/create/', {
+            'payment_type': 'EVENT_TICKET',
+            'event_id': self.event_hackathon.id,
+            'quantity': 1
+        })
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('already registered', res.data.get('error', '').lower())
+
+    def test_database_level_unique_confirmed_ticket_constraint(self):
+        """PostgreSQL partial unique constraint prevents duplicate confirmed tickets."""
+        from django.db import IntegrityError
+        with self.assertRaises(IntegrityError):
+            Ticket.objects.create(
+                student=self.student_1,
+                event=self.event_hackathon,
+                tier='Member Pass',
+                status=Ticket.Status.CONFIRMED
+            )

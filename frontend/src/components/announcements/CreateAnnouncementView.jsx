@@ -16,7 +16,6 @@ import {
   Search,
   Check
 } from 'lucide-react';
-import { CLUB_MEMBERS_ADMIN } from '../../data/mockData';
 import { announcementsApi } from '../../services/api';
 
 /**
