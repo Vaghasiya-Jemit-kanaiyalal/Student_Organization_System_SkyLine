@@ -86,6 +86,7 @@ export const Navbar = () => {
   const treasurerNavTabs = [
     { id: 'overview', label: 'Fiscal Ledger', icon: LayoutDashboard },
     { id: 'reimbursements', label: 'Reimbursements', badge: 3, icon: CreditCard },
+    { id: 'merch', label: 'Merch Revenue', icon: ShoppingBag },
     { id: 'reports', label: 'Audit Reports', icon: FileText },
     { id: 'bank', label: 'Bank Verification', icon: Building2 },
   ];
