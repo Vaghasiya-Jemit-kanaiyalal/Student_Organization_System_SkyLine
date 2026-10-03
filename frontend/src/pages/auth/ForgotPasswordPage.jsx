@@ -15,6 +15,7 @@ export const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [resetUrl, setResetUrl] = useState(null);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -33,10 +34,13 @@ export const ForgotPasswordPage = () => {
 
     setIsLoading(true);
     try {
-      await authApi.forgotPassword(email.trim().toLowerCase());
+      const res = await authApi.forgotPassword(email.trim().toLowerCase());
+      if (res?.debug_reset_url) {
+        setResetUrl(res.debug_reset_url);
+      }
       setIsSubmitted(true);
     } catch {
-      // Still show the generic success to prevent email enumeration and network leak
+      // Still show generic success to prevent email enumeration
       setIsSubmitted(true);
     } finally {
       setIsLoading(false);
@@ -83,6 +87,21 @@ export const ForgotPasswordPage = () => {
               </p>
             </div>
 
+            {resetUrl && (
+              <div className="p-3.5 rounded-lg bg-emerald-500/10 border border-emerald-300 text-xs space-y-2">
+                <p className="text-[11.5px] font-semibold text-emerald-900">
+                  Direct Password Reset Link:
+                </p>
+                <Link
+                  to={resetUrl}
+                  className="w-full h-9 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Open Password Reset Page</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )}
+
             <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5">
               <div className="flex items-center gap-1.5 font-semibold text-zinc-900">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -104,6 +123,7 @@ export const ForgotPasswordPage = () => {
             </div>
           </div>
         ) : (
+
           <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
             <p className="text-xs text-slate-600 leading-relaxed">
               Enter your registered university email address. We will send a secure link to reset your account password.
