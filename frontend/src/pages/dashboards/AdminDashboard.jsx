@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import MemberManagementPage from '../admin/MemberManagementPage';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
 import {
@@ -38,6 +39,14 @@ export const AdminDashboard = () => {
   const initialTab = queryParams.get('tab') || 'overview';
 
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
   const [memberRoster, setMemberRoster] = useState(CLUB_MEMBERS_ADMIN);
   const [events, setEvents] = useState(CAMPUS_EVENTS);
   const [announcements, setAnnouncements] = useState(ANNOUNCEMENTS);
@@ -193,7 +202,7 @@ export const AdminDashboard = () => {
 
   const tabs = [
     { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'members', label: 'Member Roster', icon: Users, badge: memberRoster.length },
+    { id: 'members', label: 'Member Management', icon: Users },
     { id: 'events', label: 'Events Management', icon: Calendar, badge: events.length },
     { id: 'announcements', label: 'Broadcasts', icon: Megaphone },
     { id: 'merchandise', label: 'Merchandise Stock', icon: ShoppingBag },
@@ -274,19 +283,17 @@ export const AdminDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded text-xs font-semibold transition-campus ${
-                    isActive
+                  className={`flex items-center space-x-2 px-3.5 py-2 rounded text-xs font-semibold transition-campus ${isActive
                       ? 'bg-primary text-white shadow-sm'
                       : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                  }`}
+                    }`}
                 >
                   <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-accent' : 'text-text-muted'}`} />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && (
                     <span
-                      className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
-                      }`}
+                      className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
+                        }`}
                     >
                       {tab.badge}
                     </span>
@@ -414,112 +421,10 @@ export const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Tab 2: MEMBERS ROSTER */}
+        {/* Tab 2: MEMBERS MANAGEMENT */}
         {activeTab === 'members' && (
           <div className="space-y-4">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Society Membership Roster
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official list of student members, committee officers, and appointed treasurers
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setIsAddMemberModalOpen(true)}
-                    className="px-3 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Add Member</span>
-                  </button>
-                  <button
-                    onClick={() => setIsCreateTreasurerModalOpen(true)}
-                    className="px-3 py-1.5 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition flex items-center gap-1.5"
-                  >
-                    <ShieldPlus className="w-3.5 h-3.5" />
-                    <span>Appoint Treasurer</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-text-muted" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by student name, email, or Student ID..."
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <select
-                  value={filterDues}
-                  onChange={(e) => setFilterDues(e.target.value)}
-                  className="px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="ALL">All Dues Statuses</option>
-                  <option value="PAID">Paid Only</option>
-                  <option value="PENDING">Pending Dues</option>
-                </select>
-              </div>
-
-              {/* Members Table */}
-              <div className="overflow-x-auto rounded border border-border">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
-                    <tr>
-                      <th className="py-2.5 px-3">Student Name</th>
-                      <th className="py-2.5 px-3">Student ID</th>
-                      <th className="py-2.5 px-3">University Email</th>
-                      <th className="py-2.5 px-3">Society Role</th>
-                      <th className="py-2.5 px-3">Dues Status</th>
-                      <th className="py-2.5 px-3">Attendance</th>
-                      <th className="py-2.5 px-3">Join Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredRoster.map((mem) => (
-                      <tr key={mem.id} className="hover:bg-ivory-50 transition">
-                        <td className="py-2.5 px-3 font-semibold text-text-primary">{mem.name}</td>
-                        <td className="py-2.5 px-3 font-mono text-primary font-medium">{mem.studentId}</td>
-                        <td className="py-2.5 px-3 text-text-secondary">{mem.email}</td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              mem.role.includes('Treasurer')
-                                ? 'bg-accent-light text-accent-700 border border-accent-300'
-                                : mem.role.includes('Lead')
-                                ? 'bg-primary-light text-primary font-bold'
-                                : 'bg-ivory-200 text-text-secondary'
-                            }`}
-                          >
-                            {mem.role}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                              mem.duesStatus === 'PAID'
-                                ? 'bg-status-success-bg text-status-success border border-status-success/30'
-                                : 'bg-status-warning-bg text-status-warning border border-status-warning/30'
-                            }`}
-                          >
-                            {mem.duesStatus}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-text-primary font-mono">{mem.attendance}</td>
-                        <td className="py-2.5 px-3 text-text-muted">{mem.joinDate}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <MemberManagementPage />
           </div>
         )}
 

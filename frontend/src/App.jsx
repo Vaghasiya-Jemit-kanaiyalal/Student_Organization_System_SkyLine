@@ -18,6 +18,7 @@ import { SessionExpiredPage } from './pages/auth/SessionExpiredPage';
 import { MemberDashboard } from './pages/dashboards/MemberDashboard';
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
 import { TreasurerDashboard } from './pages/dashboards/TreasurerDashboard';
+import MemberManagementPage from './pages/admin/MemberManagementPage';
 
 // Index root router redirector
 const RootRedirector = () => {
@@ -100,6 +101,15 @@ export const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN']}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/members"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <MemberManagementPage />
                   </ProtectedRoute>
                 }
               />
