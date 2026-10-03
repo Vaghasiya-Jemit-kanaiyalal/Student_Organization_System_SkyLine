@@ -80,18 +80,18 @@ export const AllEventsView = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search and Filters Controls Bar */}
-      <div className="bg-surface rounded-xl border border-border p-4 shadow-subtle grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="bg-white rounded-lg border border-slate-200 p-3 shadow-2xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
         {/* Search Input */}
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-text-muted" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search events by title or venue..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full h-8 pl-8 pr-2.5 text-xs rounded-lg border border-slate-200 bg-white text-zinc-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           />
         </div>
 
@@ -100,7 +100,7 @@ export const AllEventsView = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-zinc-900 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           >
             <option value="ALL">All Event Statuses</option>
             <option value="Published & Active">Published & Active</option>
@@ -114,7 +114,7 @@ export const AllEventsView = ({
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-zinc-900 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           >
             <option value="ALL">All Event Types</option>
             <option value="Competition & Exhibition">Competition & Exhibition</option>
@@ -134,7 +134,7 @@ export const AllEventsView = ({
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-zinc-900 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           >
             <option value="ALL">All Dates</option>
             <option value="UPCOMING">Upcoming Events</option>
@@ -144,7 +144,7 @@ export const AllEventsView = ({
 
       {/* SQUARE BOX EVENTS GRID */}
       {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredEvents.map((evt) => {
             const rsvpPercent = Math.min(
               100,
@@ -154,33 +154,33 @@ export const AllEventsView = ({
             return (
               <div
                 key={evt.id}
-                className="bg-surface rounded-xl border border-border shadow-subtle hover:shadow-card transition-campus overflow-hidden flex flex-col justify-between group"
+                className="bg-white rounded-lg border border-slate-200 shadow-2xs hover:border-slate-300 transition overflow-hidden flex flex-col justify-between group"
               >
                 <div>
                   {/* Square Box Cover Image Container */}
-                  <div className="relative h-48 w-full overflow-hidden bg-ivory-200">
+                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
                     <img
                       src={
                         evt.image ||
                         "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"
                       }
                       alt={evt.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-campus duration-300"
+                      className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
                     />
 
                     {/* Top Category & Status Badges */}
-                    <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-10">
-                      <span className="bg-surface/90 text-primary text-[11px] font-semibold px-2.5 py-1 rounded border border-border shadow-xs backdrop-blur-xs">
+                    <div className="absolute top-2.5 left-2.5 right-2.5 flex justify-between items-center z-10">
+                      <span className="bg-zinc-900/90 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow-2xs backdrop-blur-xs font-mono">
                         {evt.category}
                       </span>
 
                       <span
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded backdrop-blur-xs shadow-xs ${
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur-xs shadow-2xs ${
                           evt.status === 'Cancelled'
-                            ? 'bg-status-error-bg text-status-error border border-status-error/30'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
                             : evt.status === 'Draft'
-                            ? 'bg-status-warning-bg text-status-warning border border-status-warning/30'
-                            : 'bg-status-success-bg text-status-success border border-status-success/30'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                         }`}
                       >
                         {evt.status || 'Published & Active'}
@@ -188,50 +188,50 @@ export const AllEventsView = ({
                     </div>
                   </div>
 
-                  {/* Square Card Body Content */}
-                  <div className="p-5 space-y-3">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition leading-snug">
+                  {/* Card Body Content */}
+                  <div className="p-3.5 space-y-2.5">
+                    <div className="space-y-0.5">
+                      <h3 className="text-sm font-bold text-zinc-900 group-hover:text-emerald-700 transition leading-snug">
                         {evt.title}
                       </h3>
                       {evt.createdDate && (
-                        <p className="text-[10px] text-text-muted">
+                        <p className="text-[10px] text-slate-400">
                           Created on {evt.createdDate}
                         </p>
                       )}
                     </div>
 
                     {/* Date & Location Specs */}
-                    <div className="space-y-1.5 text-xs text-text-secondary pt-1">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                        <span>{formatEventDateTime(evt)}</span>
+                    <div className="space-y-1 text-xs text-slate-600">
+                      <div className="flex items-center space-x-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                        <span className="text-[11px]">{formatEventDateTime(evt)}</span>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-3.5 h-3.5 text-accent flex-shrink-0" />
-                        <span className="truncate">{evt.venue || evt.location}</span>
+                      <div className="flex items-center space-x-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
+                        <span className="text-[11px] truncate">{evt.venue || evt.location}</span>
                       </div>
                     </div>
 
                     {/* Pricing Tag */}
-                    <div className="pt-1">
-                      <span className="inline-block px-2.5 py-1 rounded bg-ivory-100 border border-border text-[11px] font-semibold text-accent">
+                    <div className="pt-0.5">
+                      <span className="inline-block px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800 font-mono">
                         {evt.price}
                       </span>
                     </div>
 
                     {/* RSVP Capacity Progress Bar */}
-                    <div className="pt-2 space-y-1">
-                      <div className="flex justify-between text-[11px] text-text-secondary">
-                        <span>RSVPs & Attendance</span>
-                        <span className="font-semibold text-text-primary">
-                          {evt.attendees} / {evt.capacity} ({rsvpPercent}%)
+                    <div className="pt-1 space-y-1">
+                      <div className="flex justify-between text-[11px] text-slate-500">
+                        <span>Capacity ({rsvpPercent}%)</span>
+                        <span className="font-semibold text-zinc-900 font-mono">
+                          {evt.attendees} / {evt.capacity}
                         </span>
                       </div>
-                      <div className="w-full bg-ivory-200 h-2 rounded-full overflow-hidden">
+                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                         <div
-                          className="bg-primary h-full rounded-full transition-all duration-300"
+                          className="bg-emerald-600 h-full rounded-full transition-all duration-300"
                           style={{ width: `${rsvpPercent}%` }}
                         />
                       </div>
@@ -239,20 +239,20 @@ export const AllEventsView = ({
                   </div>
                 </div>
 
-                {/* Square Card Footer Action Buttons */}
-                <div className="p-4 bg-ivory-50 border-t border-border flex items-center justify-between gap-2">
-                  <div className="flex items-center space-x-2">
+                {/* Card Footer Action Buttons */}
+                <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => setViewingEvent(evt)}
-                      className="px-3 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition-campus flex items-center gap-1"
+                      className="h-8 px-2.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-zinc-800 transition flex items-center gap-1"
                     >
-                      <Eye className="w-3.5 h-3.5 text-text-muted" />
+                      <Eye className="w-3.5 h-3.5 text-slate-400" />
                       <span>View</span>
                     </button>
 
                     <button
                       onClick={() => onNavigateToTickets(evt.id)}
-                      className="px-3 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus"
+                      className="h-8 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-2xs transition"
                     >
                       <span>Manage Tickets</span>
                     </button>
@@ -262,7 +262,7 @@ export const AllEventsView = ({
                     <button
                       onClick={() => setViewingAttendeesEvent(evt)}
                       title="View Attendees Roster"
-                      className="p-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-status-success transition"
+                      className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-emerald-700 flex items-center justify-center transition"
                     >
                       <Users className="w-3.5 h-3.5" />
                     </button>
@@ -271,7 +271,7 @@ export const AllEventsView = ({
                       <button
                         onClick={() => handleCancelEvent(evt.id)}
                         title="Cancel Event"
-                        className="p-1.5 rounded bg-surface hover:bg-status-error-bg border border-border text-status-error transition"
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 flex items-center justify-center transition"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                       </button>
@@ -283,7 +283,7 @@ export const AllEventsView = ({
           })}
         </div>
       ) : (
-        <div className="p-12 text-center text-text-muted text-xs bg-surface rounded-xl border border-border">
+        <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-lg border border-slate-200">
           No events match your current search or filter parameters.
         </div>
       )}

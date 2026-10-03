@@ -259,17 +259,17 @@ export const MemberManagementPage = () => {
       )}
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-4">
 
         {/* 1. Module Header */}
-        <div className="bg-white rounded-xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <div className="flex items-center space-x-2.5">
-              <span className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-100">
-                <Users className="w-5 h-5" />
+              <span className="p-1.5 rounded-md bg-zinc-100 text-zinc-800 border border-zinc-200">
+                <Users className="w-4 h-4" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
                   Member Management
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -279,10 +279,10 @@ export const MemberManagementPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-2">
             <button
               onClick={handleExportCSV}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition flex items-center gap-1.5"
+              className="h-8 px-3 text-xs font-semibold text-zinc-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export {activeSubPage === 'all' ? 'Members' : 'Renewals'}</span>
@@ -291,20 +291,20 @@ export const MemberManagementPage = () => {
         </div>
 
         {/* 2. Sub-Page Navigation Tabs */}
-        <div className="border-b border-slate-200 bg-white rounded-xl p-1.5 shadow-xs flex items-center space-x-2">
+        <div className="border border-slate-200 bg-white rounded-lg p-1 shadow-2xs flex items-center space-x-1">
           <button
             onClick={() => handleTabChange('all')}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-xs font-bold transition ${
+            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${
               activeSubPage === 'all'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                ? 'bg-zinc-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-zinc-900 hover:bg-slate-100'
             }`}
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-3.5 h-3.5" />
             <span>1. ALL MEMBERS</span>
             <span
-              className={`ml-1.5 px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                activeSubPage === 'all' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
+              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                activeSubPage === 'all' ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {allMembersStats.total}
@@ -313,17 +313,17 @@ export const MemberManagementPage = () => {
 
           <button
             onClick={() => handleTabChange('renewals')}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-lg text-xs font-bold transition ${
+            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${
               activeSubPage === 'renewals'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                ? 'bg-zinc-900 text-white shadow-2xs'
+                : 'text-slate-600 hover:text-zinc-900 hover:bg-slate-100'
             }`}
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-3.5 h-3.5" />
             <span>2. RENEWALS</span>
             <span
-              className={`ml-1.5 px-2 py-0.2 rounded-full text-[10px] font-bold ${
-                activeSubPage === 'renewals' ? 'bg-blue-700 text-white' : 'bg-amber-100 text-amber-800'
+              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                activeSubPage === 'renewals' ? 'bg-zinc-800 text-white' : 'bg-amber-100 text-amber-800'
               }`}
             >
               {renewalsStats.dueForRenewal} Due
@@ -335,58 +335,58 @@ export const MemberManagementPage = () => {
         {/* SUB-PAGE 1: ALL MEMBERS PAGE                               */}
         {/* ========================================================== */}
         {activeSubPage === 'all' && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-4 animate-fadeIn">
 
             {/* Statistics Cards - All Members */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-              <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Members</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.total}</p>
-                <span className="text-[11px] text-blue-600 font-medium">100% Student Roster</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Total Members</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">{allMembersStats.total}</p>
+                <span className="text-[11px] text-zinc-600 font-medium">100% Student Roster</span>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Members</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">{allMembersStats.active}</p>
-                <span className="text-[11px] text-emerald-600 font-medium">Good Standing</span>
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Active Members</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">{allMembersStats.active}</p>
+                <span className="text-[11px] text-emerald-700 font-medium">Good Standing</span>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Expired Members</p>
-                <p className="text-2xl font-bold text-rose-600 mt-1">{allMembersStats.expired}</p>
-                <span className="text-[11px] text-rose-600 font-medium">Lapsed Dues</span>
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Expired Members</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-rose-700 mt-1">{allMembersStats.expired}</p>
+                <span className="text-[11px] text-rose-700 font-medium">Lapsed Dues</span>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Annual Memberships</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.annual}</p>
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Annual Memberships</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">{allMembersStats.annual}</p>
                 <span className="text-[11px] text-slate-500 font-medium">Full Collegiate Term</span>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Semester Memberships</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.semester}</p>
+              <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Semester Memberships</p>
+                <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">{allMembersStats.semester}</p>
                 <span className="text-[11px] text-slate-500 font-medium">Single Semester Term</span>
               </div>
             </div>
 
             {/* Search & Filters Card - All Members */}
-            <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3.5">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
                 {/* Search Inputs */}
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
                     value={allSearchTerm}
                     onChange={(e) => setAllSearchTerm(e.target.value)}
                     placeholder="Search by Student Name, Student ID, or University Email..."
-                    className="w-full pl-9 pr-8 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50/50 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                    className="w-full h-8 pl-8 pr-8 text-xs rounded-md border border-slate-200 bg-slate-50/50 text-zinc-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
                   />
                   {allSearchTerm && (
                     <button
                       onClick={() => setAllSearchTerm('')}
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-zinc-600"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -394,8 +394,8 @@ export const MemberManagementPage = () => {
                 </div>
 
                 {/* Dropdowns */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-medium">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center space-x-1 text-xs text-slate-500 font-medium">
                     <Filter className="w-3.5 h-3.5" />
                     <span>Filter:</span>
                   </div>
@@ -404,7 +404,7 @@ export const MemberManagementPage = () => {
                   <select
                     value={allTypeFilter}
                     onChange={(e) => setAllTypeFilter(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:border-blue-500 font-medium"
+                    className="h-8 px-2.5 text-xs rounded-md border border-slate-200 bg-white text-zinc-800 focus:outline-none focus:border-emerald-600 font-medium"
                   >
                     <option value="ALL">All Membership Types</option>
                     <option value="Annual">Annual</option>
@@ -415,7 +415,7 @@ export const MemberManagementPage = () => {
                   <select
                     value={allStatusFilter}
                     onChange={(e) => setAllStatusFilter(e.target.value)}
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:border-blue-500 font-medium"
+                    className="h-8 px-2.5 text-xs rounded-md border border-slate-200 bg-white text-zinc-800 focus:outline-none focus:border-emerald-600 font-medium"
                   >
                     <option value="ALL">All Statuses</option>
                     <option value="Active">Active Only (Green)</option>
@@ -429,7 +429,7 @@ export const MemberManagementPage = () => {
                         setAllTypeFilter('ALL');
                         setAllStatusFilter('ALL');
                       }}
-                      className="text-xs text-blue-600 hover:underline px-2 py-1 font-semibold"
+                      className="text-xs text-emerald-700 hover:underline px-2 py-1 font-semibold"
                     >
                       Reset Filters
                     </button>
@@ -438,69 +438,65 @@ export const MemberManagementPage = () => {
               </div>
 
               {/* Member Table */}
-              <div className="overflow-x-auto rounded-lg border border-slate-200/90">
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
                     <tr>
-                      <th className="py-3 px-3.5">Student Name</th>
-                      <th className="py-3 px-3.5">Student ID</th>
-                      <th className="py-3 px-3.5">University Email</th>
-                      <th className="py-3 px-3.5">Membership Type</th>
-                      <th className="py-3 px-3.5">Membership Status</th>
-                      <th className="py-3 px-3.5">Join Date</th>
-                      <th className="py-3 px-3.5">Expiry Date</th>
-                      <th className="py-3 px-3.5 text-right">Actions</th>
+                      <th className="py-2.5 px-3">Student Name</th>
+                      <th className="py-2.5 px-3">Student ID</th>
+                      <th className="py-2.5 px-3">University Email</th>
+                      <th className="py-2.5 px-3">Membership Type</th>
+                      <th className="py-2.5 px-3">Membership Status</th>
+                      <th className="py-2.5 px-3">Join Date</th>
+                      <th className="py-2.5 px-3">Expiry Date</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredAllMembers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-slate-400">
+                        <td colSpan={8} className="py-8 text-center text-slate-400">
                           No registered members found matching the selected filter criteria.
                         </td>
                       </tr>
                     ) : (
                       filteredAllMembers.map((member) => (
-                        <tr key={member.id} className="hover:bg-blue-50/20 transition-colors group">
+                        <tr key={member.id} className="hover:bg-slate-50/80 transition-colors group">
                           {/* Student Name */}
-                          <td className="py-3.5 px-3.5">
-                            <span className="font-semibold text-slate-900 group-hover:text-blue-600 transition">
+                          <td className="py-2.5 px-3">
+                            <span className="font-semibold text-zinc-900 group-hover:text-emerald-700 transition">
                               {member.name}
                             </span>
                           </td>
 
                           {/* Student ID */}
-                          <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-600 font-medium">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 font-medium">
                             {member.studentId}
                           </td>
 
                           {/* University Email */}
-                          <td className="py-3.5 px-3.5 text-slate-600">
+                          <td className="py-2.5 px-3 text-slate-600">
                             {member.email}
                           </td>
 
                           {/* Membership Type (Annual / Semester) */}
-                          <td className="py-3.5 px-3.5">
+                          <td className="py-2.5 px-3">
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                member.membershipType === 'Annual'
-                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}
+                              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-800 border border-zinc-200"
                             >
                               {member.membershipType}
                             </span>
                           </td>
 
                           {/* Membership Status (Active Green / Expired Red) */}
-                          <td className="py-3.5 px-3.5">
+                          <td className="py-2.5 px-3">
                             {member.membershipStatus === 'Active' ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5"></span>
                                 Active
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
                                 Expired
                               </span>
@@ -508,31 +504,31 @@ export const MemberManagementPage = () => {
                           </td>
 
                           {/* Join Date */}
-                          <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-500">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
                             {member.joinDate}
                           </td>
 
                           {/* Expiry Date */}
-                          <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-500">
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
                             {member.expiryDate}
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-3.5 text-right">
-                            <div className="flex items-center justify-end space-x-1.5">
+                          <td className="py-2.5 px-3 text-right">
+                            <div className="flex items-center justify-end space-x-1">
                               {/* View Details */}
                               <button
                                 onClick={() => setSelectedMemberDetails(member)}
-                                className="px-2 py-1 text-slate-700 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 rounded text-[11px] font-semibold transition"
+                                className="px-2 py-0.5 text-zinc-700 hover:text-zinc-900 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold transition"
                                 title="View Member Details Modal"
                               >
-                                View Details
+                                View
                               </button>
 
                               {/* Edit Member */}
                               <button
                                 onClick={() => setEditingMember(member)}
-                                className="px-2 py-1 text-slate-700 hover:text-emerald-600 bg-white hover:bg-emerald-50 border border-slate-200 rounded text-[11px] font-semibold transition"
+                                className="px-2 py-0.5 text-zinc-700 hover:text-zinc-900 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold transition"
                                 title="Edit Member Information"
                               >
                                 Edit
@@ -541,7 +537,7 @@ export const MemberManagementPage = () => {
                               {/* Renew Membership */}
                               <button
                                 onClick={() => setRenewingMember(member)}
-                                className="px-2 py-1 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded text-[11px] font-semibold transition"
+                                className="px-2 py-0.5 text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded text-[11px] font-semibold transition"
                                 title="Renew Membership"
                               >
                                 Renew
@@ -550,10 +546,10 @@ export const MemberManagementPage = () => {
                               {/* Suspend Membership */}
                               <button
                                 onClick={() => handleToggleSuspend(member.id)}
-                                className={`px-2 py-1 rounded text-[11px] font-semibold border transition ${
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${
                                   member.membershipStatus === 'Active'
-                                    ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
-                                    : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                                    ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                                    : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
                                 }`}
                                 title={member.membershipStatus === 'Active' ? 'Suspend Membership' : 'Activate Membership'}
                               >
@@ -687,84 +683,80 @@ export const MemberManagementPage = () => {
                         const renewalStatus = getRenewalStatus(member.expiryDate);
 
                         return (
-                          <tr key={member.id} className="hover:bg-blue-50/20 transition-colors group">
+                          <tr key={member.id} className="hover:bg-slate-50/80 transition-colors group">
                             {/* Student Name */}
-                            <td className="py-3.5 px-3.5 font-semibold text-slate-900 group-hover:text-blue-600 transition">
+                            <td className="py-2.5 px-3 font-semibold text-zinc-900 group-hover:text-emerald-700 transition">
                               {member.name}
                             </td>
 
                             {/* Student ID */}
-                            <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-600 font-medium">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 font-medium">
                               {member.studentId}
                             </td>
 
                             {/* Membership Type */}
-                            <td className="py-3.5 px-3.5">
+                            <td className="py-2.5 px-3">
                               <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                  member.membershipType === 'Annual'
-                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                    : 'bg-slate-100 text-slate-700 border border-slate-200'
-                                }`}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-100 text-zinc-800 border border-zinc-200"
                               >
                                 {member.membershipType}
                               </span>
                             </td>
 
                             {/* Renewal Count */}
-                            <td className="py-3.5 px-3.5 font-mono font-bold text-slate-800">
+                            <td className="py-2.5 px-3 font-mono font-bold text-zinc-900">
                               {member.totalRenewals} {member.totalRenewals === 1 ? 'time' : 'times'}
                             </td>
 
                             {/* Current Status (Active, Expiring Soon, Expired) */}
-                            <td className="py-3.5 px-3.5">
+                            <td className="py-2.5 px-3">
                               {renewalStatus === 'Active' && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5"></span>
                                   Active
                                 </span>
                               )}
                               {renewalStatus === 'Expiring Soon' && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mr-1.5"></span>
                                   Expiring Soon
                                 </span>
                               )}
                               {renewalStatus === 'Expired' && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600 mr-1.5"></span>
                                   Expired
                                 </span>
                               )}
                             </td>
 
                             {/* Last Renewal Date */}
-                            <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-500">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
                               {member.lastRenewalDate || 'Initial Term'}
                             </td>
 
                             {/* Expiry Date */}
-                            <td className="py-3.5 px-3.5 font-mono text-[11px] text-slate-500">
+                            <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
                               {member.expiryDate}
                             </td>
 
                             {/* Actions */}
-                            <td className="py-3.5 px-3.5 text-right">
-                              <div className="flex items-center justify-end space-x-1.5">
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="flex items-center justify-end space-x-1">
                                 {/* Renew Membership */}
                                 <button
                                   onClick={() => setRenewingMember(member)}
-                                  className="px-2.5 py-1 text-white bg-blue-600 hover:bg-blue-700 rounded text-[11px] font-semibold shadow-2xs transition"
+                                  className="px-2 py-0.5 text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded text-[11px] font-semibold transition"
                                 >
-                                  Renew Membership
+                                  Renew
                                 </button>
 
                                 {/* View Renewal History */}
                                 <button
                                   onClick={() => setRenewalHistoryMember(member)}
-                                  className="px-2.5 py-1 text-slate-700 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 rounded text-[11px] font-semibold transition"
+                                  className="px-2 py-0.5 text-zinc-700 hover:text-zinc-900 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold transition"
                                 >
-                                  View Renewal History
+                                  History
                                 </button>
                               </div>
                             </td>
@@ -867,24 +859,24 @@ export const MemberManagementPage = () => {
               </div>
 
               {/* Event Participation History */}
-              <div className="space-y-2.5">
-                <div className="flex items-center space-x-2 font-bold text-slate-900">
-                  <Calendar className="w-4 h-4 text-blue-600" />
+              <div className="space-y-2">
+                <div className="flex items-center space-x-1.5 font-bold text-zinc-900 text-xs">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Event Participation History ({selectedMemberDetails.eventHistory?.length || 0})</span>
                 </div>
                 {!selectedMemberDetails.eventHistory || selectedMemberDetails.eventHistory.length === 0 ? (
-                  <p className="text-slate-400 py-3 text-center bg-slate-50 rounded-lg border border-slate-200/60">
+                  <p className="text-slate-400 py-2.5 text-center bg-slate-50 rounded-lg border border-slate-200/60 text-xs">
                     No event attendance recorded yet.
                   </p>
                 ) : (
-                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden text-xs">
                     {selectedMemberDetails.eventHistory.map((evt) => (
-                      <div key={evt.id} className="p-3 flex justify-between items-center bg-white hover:bg-slate-50">
+                      <div key={evt.id} className="p-2.5 flex justify-between items-center bg-white hover:bg-slate-50">
                         <div>
                           <p className="font-semibold text-slate-800">{evt.name}</p>
                           <p className="text-[11px] text-slate-500">{evt.date} • {evt.role}</p>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                           {evt.checkIn}
                         </span>
                       </div>
@@ -894,19 +886,19 @@ export const MemberManagementPage = () => {
               </div>
 
               {/* Volunteer Participation History */}
-              <div className="space-y-2.5">
-                <div className="flex items-center space-x-2 font-bold text-slate-900">
-                  <HeartHandshake className="w-4 h-4 text-emerald-600" />
+              <div className="space-y-2">
+                <div className="flex items-center space-x-1.5 font-bold text-zinc-900 text-xs">
+                  <HeartHandshake className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Volunteer Participation History ({selectedMemberDetails.volunteerHistory?.length || 0})</span>
                 </div>
                 {!selectedMemberDetails.volunteerHistory || selectedMemberDetails.volunteerHistory.length === 0 ? (
-                  <p className="text-slate-400 py-3 text-center bg-slate-50 rounded-lg border border-slate-200/60">
+                  <p className="text-slate-400 py-2.5 text-center bg-slate-50 rounded-lg border border-slate-200/60 text-xs">
                     No volunteer service records logged.
                   </p>
                 ) : (
-                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden text-xs">
                     {selectedMemberDetails.volunteerHistory.map((vol) => (
-                      <div key={vol.id} className="p-3 flex justify-between items-center bg-white hover:bg-slate-50">
+                      <div key={vol.id} className="p-2.5 flex justify-between items-center bg-white hover:bg-slate-50">
                         <div>
                           <p className="font-semibold text-slate-800">{vol.project}</p>
                           <p className="text-[11px] text-slate-500">Supervisor: {vol.supervisor} • Date: {vol.date}</p>
@@ -921,19 +913,19 @@ export const MemberManagementPage = () => {
               </div>
 
               {/* Certificates Earned */}
-              <div className="space-y-2.5">
-                <div className="flex items-center space-x-2 font-bold text-slate-900">
-                  <Award className="w-4 h-4 text-amber-500" />
+              <div className="space-y-2">
+                <div className="flex items-center space-x-1.5 font-bold text-zinc-900 text-xs">
+                  <Award className="w-3.5 h-3.5 text-zinc-700" />
                   <span>Certificates Earned ({selectedMemberDetails.certificates?.length || 0})</span>
                 </div>
                 {!selectedMemberDetails.certificates || selectedMemberDetails.certificates.length === 0 ? (
-                  <p className="text-slate-400 py-3 text-center bg-slate-50 rounded-lg border border-slate-200/60">
+                  <p className="text-slate-400 py-2.5 text-center bg-slate-50 rounded-lg border border-slate-200/60 text-xs">
                     No certificates earned yet.
                   </p>
                 ) : (
-                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden">
+                  <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 overflow-hidden text-xs">
                     {selectedMemberDetails.certificates.map((cert) => (
-                      <div key={cert.id} className="p-3 flex justify-between items-center bg-white hover:bg-slate-50">
+                      <div key={cert.id} className="p-2.5 flex justify-between items-center bg-white hover:bg-slate-50">
                         <div>
                           <p className="font-semibold text-slate-800">{cert.title}</p>
                           <p className="text-[10px] font-mono text-slate-400">
@@ -952,10 +944,10 @@ export const MemberManagementPage = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setSelectedMemberDetails(null)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shadow-xs"
+                className="h-8 px-4 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs"
               >
                 Close Details
               </button>
@@ -968,21 +960,21 @@ export const MemberManagementPage = () => {
       {/* MODAL 2: EDIT MEMBER MODAL                                 */}
       {/* ========================================================== */}
       {editingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs">
-          <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-fadeIn">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs">
+          <div className="max-w-lg w-full bg-white rounded-lg shadow-xl border border-slate-200 p-4 sm:p-5 space-y-3.5 animate-fadeIn">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
+              <h3 className="text-sm font-bold text-zinc-900">
                 Edit Member: {editingMember.name}
               </h3>
               <button
                 onClick={() => setEditingMember(null)}
                 className="text-slate-400 hover:text-slate-600"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">Student Full Name</label>
                 <input
@@ -990,7 +982,7 @@ export const MemberManagementPage = () => {
                   required
                   value={editingMember.name}
                   onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 font-medium"
                 />
               </div>
 
@@ -1002,7 +994,7 @@ export const MemberManagementPage = () => {
                     required
                     value={editingMember.studentId}
                     onChange={(e) => setEditingMember({ ...editingMember, studentId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 font-mono focus:outline-none focus:border-blue-500"
+                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 font-mono focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                   />
                 </div>
                 <div>
@@ -1012,7 +1004,7 @@ export const MemberManagementPage = () => {
                     required
                     value={editingMember.email}
                     onChange={(e) => setEditingMember({ ...editingMember, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                   />
                 </div>
               </div>
@@ -1024,7 +1016,7 @@ export const MemberManagementPage = () => {
                     type="text"
                     value={editingMember.phone}
                     onChange={(e) => setEditingMember({ ...editingMember, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500"
+                    className="w-full h-8 px-2.5 rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                   />
                 </div>
                 <div>
@@ -1032,7 +1024,7 @@ export const MemberManagementPage = () => {
                   <select
                     value={editingMember.membershipType}
                     onChange={(e) => setEditingMember({ ...editingMember, membershipType: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                    className="w-full h-8 px-2 rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 font-medium bg-white"
                   >
                     <option value="Annual">Annual</option>
                     <option value="Semester">Semester</option>
@@ -1045,7 +1037,7 @@ export const MemberManagementPage = () => {
                 <select
                   value={editingMember.membershipStatus}
                   onChange={(e) => setEditingMember({ ...editingMember, membershipStatus: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 font-medium"
+                  className="w-full h-8 px-2 rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 font-medium bg-white"
                 >
                   <option value="Active">Active (Green)</option>
                   <option value="Expired">Expired (Red)</option>
@@ -1056,13 +1048,13 @@ export const MemberManagementPage = () => {
                 <button
                   type="button"
                   onClick={() => setEditingMember(null)}
-                  className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+                  className="h-8 px-3.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs"
+                  className="h-8 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-xs"
                 >
                   Save Changes
                 </button>
@@ -1076,13 +1068,13 @@ export const MemberManagementPage = () => {
       {/* MODAL 3: RENEW MEMBERSHIP CONFIRMATION MODAL               */}
       {/* ========================================================== */}
       {renewingMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs">
-          <div className="max-w-md w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-fadeIn">
-            <div className="flex items-center space-x-3 text-blue-600">
-              <div className="p-2.5 bg-blue-50 rounded-full">
-                <RotateCw className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-xl border border-slate-200 p-4 sm:p-5 space-y-3.5 animate-fadeIn">
+            <div className="flex items-center space-x-3 text-emerald-800">
+              <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                <RotateCw className="w-4 h-4 text-emerald-700" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-sm font-bold text-zinc-900">
                 Renew Membership
               </h3>
             </div>
@@ -1094,21 +1086,21 @@ export const MemberManagementPage = () => {
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1 text-slate-700">
               <p>Current Type: <strong>{renewingMember.membershipType}</strong></p>
               <p>Current Expiry: <span className="font-mono text-slate-500">{renewingMember.expiryDate}</span></p>
-              <p>Renewal Cost: <strong>${renewingMember.membershipType === 'Annual' ? '45.00' : '25.00'}</strong></p>
+              <p>Renewal Cost: <strong className="text-emerald-700">${renewingMember.membershipType === 'Annual' ? '45.00' : '25.00'}</strong></p>
             </div>
 
             <div className="flex justify-end space-x-2 pt-2">
               <button
                 type="button"
                 onClick={() => setRenewingMember(null)}
-                className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs"
+                className="h-8 px-3.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => handleConfirmRenew(renewingMember.id, renewingMember.membershipType === 'Annual' ? 12 : 6)}
-                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs"
+                className="h-8 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shadow-xs"
               >
                 Confirm & Extend Term
               </button>
@@ -1121,14 +1113,14 @@ export const MemberManagementPage = () => {
       {/* MODAL 4: VIEW RENEWAL HISTORY MODAL                        */}
       {/* ========================================================== */}
       {renewalHistoryMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs">
-          <div className="max-w-xl w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-fadeIn">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs">
+          <div className="max-w-xl w-full bg-white rounded-lg shadow-xl border border-slate-200 p-4 sm:p-5 space-y-3.5 animate-fadeIn">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-sm font-bold text-zinc-900">
                   Renewal History: {renewalHistoryMember.name}
                 </h3>
-                <p className="text-xs text-slate-500 font-mono">
+                <p className="text-[11px] text-slate-500 font-mono">
                   Student ID: {renewalHistoryMember.studentId} • Total Renewals: {renewalHistoryMember.totalRenewals}
                 </p>
               </div>
@@ -1136,34 +1128,34 @@ export const MemberManagementPage = () => {
                 onClick={() => setRenewalHistoryMember(null)}
                 className="text-slate-400 hover:text-slate-600"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {!renewalHistoryMember.renewalHistory || renewalHistoryMember.renewalHistory.length === 0 ? (
-              <p className="py-8 text-center text-slate-400 text-xs">
+              <p className="py-6 text-center text-slate-400 text-xs">
                 No past renewal transactions found for this student.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                     <tr>
-                      <th className="py-2.5 px-3">Renewal Ref</th>
-                      <th className="py-2.5 px-3">Date</th>
-                      <th className="py-2.5 px-3">Plan</th>
-                      <th className="py-2.5 px-3">Fee</th>
-                      <th className="py-2.5 px-3">Approved By</th>
+                      <th className="py-2 px-3">Renewal Ref</th>
+                      <th className="py-2 px-3">Date</th>
+                      <th className="py-2 px-3">Plan</th>
+                      <th className="py-2 px-3">Fee</th>
+                      <th className="py-2 px-3">Approved By</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {renewalHistoryMember.renewalHistory.map((ren) => (
-                      <tr key={ren.id}>
-                        <td className="py-2.5 px-3 font-mono font-medium text-blue-700">{ren.id}</td>
-                        <td className="py-2.5 px-3 font-mono text-slate-500">{ren.renewalDate}</td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-800">{ren.plan}</td>
-                        <td className="py-2.5 px-3 font-bold text-slate-900">${ren.amount.toFixed(2)}</td>
-                        <td className="py-2.5 px-3 text-slate-500">{ren.approvedBy}</td>
+                      <tr key={ren.id} className="hover:bg-slate-50">
+                        <td className="py-2 px-3 font-mono font-medium text-zinc-900">{ren.id}</td>
+                        <td className="py-2 px-3 font-mono text-slate-500">{ren.renewalDate}</td>
+                        <td className="py-2 px-3 font-semibold text-slate-800">{ren.plan}</td>
+                        <td className="py-2 px-3 font-bold font-mono text-emerald-800">${ren.amount.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-slate-500">{ren.approvedBy}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1175,7 +1167,7 @@ export const MemberManagementPage = () => {
               <button
                 type="button"
                 onClick={() => setRenewalHistoryMember(null)}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs shadow-xs"
+                className="h-8 px-4 rounded-lg bg-zinc-900 hover:bg-black text-white font-semibold text-xs shadow-xs"
               >
                 Close History
               </button>

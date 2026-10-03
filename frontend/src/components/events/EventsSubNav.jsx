@@ -14,7 +14,7 @@ export const EventsSubNav = ({ activeSubTab, setActiveSubTab }) => {
   ];
 
   return (
-    <div className="bg-surface rounded-lg border border-border p-1.5 shadow-subtle mb-6">
+    <div className="bg-white rounded-lg border border-slate-200 p-1 shadow-2xs">
       <div className="flex flex-wrap sm:flex-nowrap gap-1">
         {subNavItems.map((item) => {
           const Icon = item.icon;
@@ -23,13 +23,13 @@ export const EventsSubNav = ({ activeSubTab, setActiveSubTab }) => {
             <button
               key={item.id}
               onClick={() => setActiveSubTab(item.id)}
-              className={`flex-1 min-w-[120px] flex items-center justify-center space-x-2 px-4 py-2.5 rounded-md text-xs font-semibold transition-campus ${
+              className={`flex-1 min-w-[120px] flex items-center justify-center space-x-2 h-8 px-3 rounded-md text-xs font-semibold transition ${
                 isActive
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
+                  ? 'bg-zinc-900 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-zinc-900 hover:bg-slate-50'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-accent' : 'text-text-muted'}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
               <span>{item.label}</span>
             </button>
           );

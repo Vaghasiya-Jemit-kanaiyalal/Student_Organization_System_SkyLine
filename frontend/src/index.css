@@ -5,25 +5,25 @@
 @layer base {
   :root {
     /* 3-Level Contrast System */
-    --level-1-navy: #0F2942;       /* Deep Navy Navigation & Brand Identity */
-    --level-2-canvas: #F4F5F7;     /* Very Light Cool Gray Page Background */
+    --level-1-navy: #090D14;       /* Deep Black / Zinc Navigation & Brand */
+    --level-2-canvas: #F8FAFC;     /* Clean Soft Light Gray Page Background */
     --level-3-surface: #FFFFFF;    /* Pure White Cards & Content Surfaces */
     
-    --action-blue: #1557B0;        /* Controlled Medium Blue (Active tabs, buttons, links) */
-    --action-blue-hover: #104A96;
+    --action-blue: #059669;        /* Emerald Action Accent */
+    --action-blue-hover: #047857;
     
-    --text-primary: #142033;       /* High-Readability Dark Navy Text */
-    --text-secondary: #4A5568;     /* Slate Body Text */
-    --text-muted: #8C97A8;
-    --border-color: #D9E2EC;
+    --text-primary: #0F172A;       /* High-Readability Deep Slate Text */
+    --text-secondary: #475569;     /* Slate Body Text */
+    --text-muted: #94A3B8;
+    --border-color: #E2E8F0;
     
-    --status-success: #159947;
-    --status-error: #D92D20;
+    --status-success: #059669;
+    --status-error: #DC2626;
   }
 
   body {
-    background-color: #F4F5F7 !important;
-    color: #4A5568;
+    background-color: #F8FAFC !important;
+    color: #475569;
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 14px;
     line-height: 1.5;
@@ -47,7 +47,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #142033;
+    color: #0F172A;
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.35;
@@ -56,15 +56,15 @@
   label, .form-label {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-weight: 500;
-    color: #142033;
+    color: #0F172A;
   }
 }
 
-/* Level 1: Deep Navy Header, Top Ribbon, and Left Hero Section */
+/* Level 1: Deep Black Header, Top Ribbon, and Left Hero Section */
 .bg-primary, 
 .bg-gradient-to-b.from-primary.to-primary-hover,
 .hero-gradient-bg {
-  background: #0F2942 !important;
+  background: #090D14 !important;
 }
 
 /* Hero Section Subtle Gradient */
@@ -72,46 +72,46 @@
 div.lg\:col-span-5.bg-gradient-to-b {
   background: linear-gradient(
     135deg,
-    #0F2942 0%,
-    #123552 50%,
-    #15466A 100%
+    #090D14 0%,
+    #111827 50%,
+    #18181B 100%
   ) !important;
 }
 
-/* Level 2: Very Light Cool Gray Page Background */
+/* Level 2: Clean Off-White Page Background */
 .bg-ivory, .bg-ivory-100 {
-  background-color: #F4F5F7 !important;
+  background-color: #F8FAFC !important;
 }
 
 /* Level 3: Pure White Content Surfaces & Form Inputs */
 .bg-surface, input, select, textarea {
   background-color: #FFFFFF !important;
-  border-color: #D9E2EC;
+  border-color: #E2E8F0;
 }
 
-/* Controlled Medium Blue: Active Tabs, Links, & Primary Buttons */
+/* Controlled Emerald: Active Tabs, Links, & Primary Buttons */
 .btn-primary, 
 button[type="submit"].bg-primary,
 button.bg-primary {
-  background-color: #1557B0 !important;
+  background-color: #059669 !important;
   color: #FFFFFF !important;
-  border-radius: 9px !important;
+  border-radius: 8px !important;
   font-weight: 600 !important;
-  box-shadow: 0 6px 16px rgba(21, 87, 176, 0.18) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
 .btn-primary:hover, 
 button[type="submit"].bg-primary:hover,
 button.bg-primary:hover {
-  background-color: #104A96 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(16, 74, 150, 0.22) !important;
+  background-color: #047857 !important;
+  transform: translateY(-0.5px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Active tab state */
 .tab-btn.active, .nav-link.active {
-  color: #1557B0 !important;
-  border-bottom: 2px solid #1557B0 !important;
+  color: #059669 !important;
+  border-bottom: 2px solid #059669 !important;
   font-weight: 600 !important;
 }
 

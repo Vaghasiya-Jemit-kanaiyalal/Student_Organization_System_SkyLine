@@ -113,12 +113,12 @@ export const Navbar = () => {
     return hasClub ? 'Club Member' : 'Student';
   };
 
-  const isStudent = user?.role !== 'ADMIN' && user?.role !== 'TREASURER';
+  const isGreenTheme = user?.role !== 'TREASURER';
 
   return (
     <header
       className={`sticky top-0 z-40 text-white transition-colors ${
-        isStudent
+        isGreenTheme
           ? 'bg-[#0B0F17] border-b border-zinc-800 shadow-xs'
           : 'bg-[#0F2942] border-b border-[#1A3A5A]'
       }`}
@@ -133,7 +133,7 @@ export const Navbar = () => {
             <span className="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
               Skyline
             </span>
-            <span className={`text-[10px] font-medium tracking-normal -mt-0.5 ${isStudent ? 'text-zinc-400' : 'text-slate-300'}`}>
+            <span className={`text-[10px] font-medium tracking-normal -mt-0.5 ${isGreenTheme ? 'text-zinc-400' : 'text-slate-300'}`}>
               Campus Organizations
             </span>
           </div>
@@ -146,11 +146,11 @@ export const Navbar = () => {
               const Icon = tab.icon;
               const isTabActive = location.pathname.startsWith(currentBasePath) && activeTab === tab.id;
 
-              const activeClass = isStudent
+              const activeClass = isGreenTheme
                 ? 'bg-emerald-600 text-white shadow-xs font-semibold'
                 : 'bg-[#1D70B8] text-white shadow-xs font-semibold';
 
-              const inactiveClass = isStudent
+              const inactiveClass = isGreenTheme
                 ? 'text-zinc-300 hover:text-white hover:bg-white/10'
                 : 'text-slate-300 hover:text-white hover:bg-white/10';
 
@@ -162,10 +162,10 @@ export const Navbar = () => {
                     isTabActive ? activeClass : inactiveClass
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isTabActive ? 'text-white' : isStudent ? 'text-zinc-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isTabActive ? 'text-white' : isGreenTheme ? 'text-zinc-400' : 'text-slate-400'}`} />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-400 text-slate-900">
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
                       {tab.badge}
                     </span>
                   )}
@@ -182,11 +182,11 @@ export const Navbar = () => {
             <button
               type="button"
               onClick={() => setTreasurerModalOpen(true)}
-              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md bg-[#163656] hover:bg-[#1E446C] text-xs font-medium text-slate-200 border border-[#234A74] transition"
+              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md bg-zinc-800/90 hover:bg-zinc-800 text-xs font-medium text-zinc-200 border border-zinc-700 transition cursor-pointer"
               title="Manage Active Treasurer"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#58A6FF]" />
-              <span className="text-[11px] text-slate-400">Treasurer:</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px] text-zinc-400">Treasurer:</span>
               <span className="text-[11px] font-semibold text-white max-w-[90px] truncate">
                 {currentTreasurer?.name?.split(' ')[0] || 'Marcus'}
               </span>
@@ -198,7 +198,7 @@ export const Navbar = () => {
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center space-x-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-md hover:bg-white/10 transition text-left"
+                className="flex items-center space-x-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-md hover:bg-white/10 transition text-left cursor-pointer"
               >
                 <img
                   src={user.avatar}
@@ -209,7 +209,7 @@ export const Navbar = () => {
                   <span className="text-xs font-semibold text-white max-w-[130px] truncate">
                     {user.name}
                   </span>
-                  <span className={`text-[10px] truncate ${isStudent ? 'text-emerald-400 font-medium' : 'text-slate-300'}`}>
+                  <span className={`text-[10px] truncate ${isGreenTheme ? 'text-emerald-400 font-medium' : 'text-slate-300'}`}>
                     {getUserRoleLabel()}
                   </span>
                 </div>
@@ -222,7 +222,7 @@ export const Navbar = () => {
                     <p className="font-semibold text-slate-900 truncate">{user.name}</p>
                     <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                     <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      isStudent ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-700'
+                      isGreenTheme ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-700'
                     }`}>
                       {getUserRoleLabel()}
                     </span>
@@ -255,7 +255,7 @@ export const Navbar = () => {
             <Link
               to="/login"
               className={`inline-flex items-center px-3.5 py-1.5 text-white text-xs font-semibold rounded-md transition shadow-xs ${
-                isStudent ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1D70B8] hover:bg-[#1557B0]'
+                isGreenTheme ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1D70B8] hover:bg-[#1557B0]'
               }`}
             >
               <span>Sign In</span>
@@ -267,7 +267,7 @@ export const Navbar = () => {
       {/* Mobile Navigation Sub-Bar */}
       {isAuthenticated && user && (
         <div className={`lg:hidden px-3 py-1.5 overflow-x-auto no-scrollbar ${
-          isStudent ? 'bg-[#080C14] border-t border-zinc-800' : 'bg-[#0C2135] border-t border-[#163656]'
+          isGreenTheme ? 'bg-[#080C14] border-t border-zinc-800' : 'bg-[#0C2135] border-t border-[#163656]'
         }`}>
           <nav className="flex space-x-1 min-w-max">
             {currentTabs.map((tab) => {
@@ -280,8 +280,8 @@ export const Navbar = () => {
                   to={`${currentBasePath}?tab=${tab.id}`}
                   className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition ${
                     isTabActive
-                      ? isStudent ? 'bg-emerald-600 text-white font-semibold' : 'bg-[#1D70B8] text-white font-semibold'
-                      : isStudent ? 'text-zinc-300 hover:text-white' : 'text-slate-300 hover:text-white'
+                      ? isGreenTheme ? 'bg-emerald-600 text-white font-semibold' : 'bg-[#1D70B8] text-white font-semibold'
+                      : isGreenTheme ? 'text-zinc-300 hover:text-white' : 'text-slate-300 hover:text-white'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
