@@ -28,7 +28,14 @@ export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  const activeTab = searchParams.get('tab') || 'overview';
+  const rawTab = searchParams.get('tab') || 'overview';
+  const normalizeTabId = (t) => {
+    if (t === 'roster') return 'members';
+    if (t === 'broadcasts' || t === 'broadcast') return 'announcements';
+    if (t === 'store') return 'merchandise';
+    return t;
+  };
+  const activeTab = normalizeTabId(rawTab);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -74,13 +81,12 @@ export const Navbar = () => {
   // Compact tab definitions fitting cleanly without horizontal scroll
   const adminNavTabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'roster', label: 'Roster', badge: 5, icon: Users },
+    { id: 'members', label: 'Member Management', badge: 5, icon: Users },
     { id: 'events', label: 'Events', badge: 4, icon: Calendar },
-    { id: 'broadcasts', label: 'Broadcasts', icon: Megaphone },
-    { id: 'store', label: 'Merch', icon: ShoppingBag },
+    { id: 'announcements', label: 'Announcement', icon: Megaphone },
+    { id: 'merchandise', label: 'Merch', icon: ShoppingBag },
     { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign },
     { id: 'volunteers', label: 'Volunteers', icon: HeartHandshake },
-    { id: 'reports', label: 'Reports', icon: FileText },
   ];
 
   const treasurerNavTabs = [

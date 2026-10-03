@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnnouncementsSubNav } from './AnnouncementsSubNav';
 import { AllAnnouncementsView } from './AllAnnouncementsView';
 import { CreateAnnouncementView } from './CreateAnnouncementView';
@@ -12,10 +12,17 @@ import { ScheduledAnnouncementsView } from './ScheduledAnnouncementsView';
  */
 export const AnnouncementsManagementModule = ({
   announcements,
-  setAnnouncements
+  setAnnouncements,
+  initialSubTab = 'all'
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('all');
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab || 'all');
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // Active scheduled count for sub-nav badge
   const scheduledCount = announcements.filter((a) => a.status === 'Scheduled').length;
