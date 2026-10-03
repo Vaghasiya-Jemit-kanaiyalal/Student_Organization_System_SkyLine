@@ -53,6 +53,12 @@ import {
 } from 'lucide-react';
 import { StudentMerchStore } from '../../components/merchandise/StudentMerchStore';
 
+const getUserTicketStorageKey = (u) => {
+  if (!u) return null;
+  const identifier = u.email || u.id || u.studentId || u.student_id;
+  return identifier ? `skyline_my_tickets_${identifier}` : null;
+};
+
 export const MemberDashboard = () => {
   const { user, buyClubMembership, renewMembership, updateUserProfile } = useAuth();
   const { products, getProductPricing, placeOrder, getProductTotalStock } = useMerchandise();
@@ -183,19 +189,19 @@ export const MemberDashboard = () => {
 
   // Student Profile State
   const [studentProfile, setStudentProfile] = useState(() => ({
-    name: user?.name || user?.fullName || 'Rohan Sharma',
-    studentId: user?.studentId || user?.student_id || 'STU-2026-905',
-    email: user?.email || 'rohan.sharma@studentorg.edu',
-    phone: user?.phone || '+1 (555) 234-8910',
+    name: user?.name || user?.fullName || user?.full_name || 'Student',
+    studentId: user?.studentId || user?.student_id || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
     department: user?.department || 'Computer Science & Software Engineering',
-    semester: user?.semester || 'Semester 4 • 2026',
+    semester: user?.semester || 'Semester 1 • 2026',
     membershipStatus: membershipStatus,
     membershipType: isMember ? (membershipType === 'SEMESTER' ? 'Semester' : 'Annual') : 'None',
     membershipBadge: membershipBadge,
     membershipStartDate: user?.membership_start_date || user?.membershipStartDate || (isMember ? '2026-09-01' : 'N/A'),
     membershipEndDate: user?.membership_end_date || user?.membershipEndDate || (isMember ? '2027-08-31' : 'N/A'),
     avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-    bio: 'Undergraduate student passionate about robotics, software architecture, and campus leadership.'
+    bio: 'Campus student member.'
   }));
 
   // Sync profile when user changes
@@ -208,7 +214,7 @@ export const MemberDashboard = () => {
 
       setStudentProfile((prev) => ({
         ...prev,
-        name: user.name || user.fullName || prev.name,
+        name: user.name || user.fullName || user.full_name || prev.name,
         studentId: user.studentId || user.student_id || prev.studentId,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
@@ -230,13 +236,17 @@ export const MemberDashboard = () => {
   // Events State
   const [eventsList, setEventsList] = useState([]);
 
-  // Tickets State with localStorage persistence (empty by default until reserved)
+  // Tickets State with user-scoped persistence
   const [ticketsList, setTicketsList] = useState(() => {
     try {
-      const saved = localStorage.getItem('skyline_my_tickets_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+      localStorage.removeItem('skyline_my_tickets_v1');
+      const key = getUserTicketStorageKey(user);
+      if (key) {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
       }
     } catch (e) {
       console.warn('Failed reading saved tickets:', e);
@@ -244,14 +254,41 @@ export const MemberDashboard = () => {
     return [];
   });
 
-  // Sync ticketsList to localStorage
+  // Sync ticketsList to user-scoped localStorage
   useEffect(() => {
+    const key = getUserTicketStorageKey(user);
+    if (!key) return;
     try {
-      localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(ticketsList));
+      localStorage.setItem(key, JSON.stringify(ticketsList));
     } catch (e) {
       console.warn('Failed saving tickets:', e);
     }
-  }, [ticketsList]);
+  }, [ticketsList, user?.email, user?.id]);
+
+  // Immediately clear and reset all private user data when switching logged-in accounts
+  useEffect(() => {
+    try {
+      localStorage.removeItem('skyline_my_tickets_v1');
+    } catch (e) {}
+
+    const key = getUserTicketStorageKey(user);
+    if (key) {
+      try {
+        const saved = localStorage.getItem(key);
+        setTicketsList(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        setTicketsList([]);
+      }
+    } else {
+      setTicketsList([]);
+    }
+
+    setVolunteerApplications([]);
+    setActiveVolunteerWork([]);
+    setCertificatesList([]);
+    setUserTransactions([]);
+    setMerchandiseOrders([]);
+  }, [user?.id, user?.email]);
 
   // Volunteer Applications & Assignments State
   const [volunteerApplications, setVolunteerApplications] = useState([]);
@@ -436,98 +473,96 @@ export const MemberDashboard = () => {
 
         if (appsRes) {
           const rawApps = Array.isArray(appsRes) ? appsRes : appsRes?.results || [];
-          if (rawApps.length > 0) {
-            const mappedApps = rawApps.map((a) => ({
-              id: a.id,
-              eventName: a.event_details?.title || `Event #${a.event}`,
-              roleApplied: a.preferred_role,
-              preferred_role: a.preferred_role,
-              appliedDate: new Date(a.applied_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-              status: a.status,
-              feedback: a.admin_feedback || (a.status === 'Approved' ? 'Application Approved. Assignment active.' : a.status === 'Pending' ? 'Application received and under review.' : 'Application declined.'),
-            }));
-            setVolunteerApplications(mappedApps);
-          }
+          const mappedApps = rawApps.map((a) => ({
+            id: a.id,
+            eventName: a.event_details?.title || `Event #${a.event}`,
+            roleApplied: a.preferred_role,
+            preferred_role: a.preferred_role,
+            appliedDate: new Date(a.applied_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            status: a.status,
+            feedback: a.admin_feedback || (a.status === 'Approved' ? 'Application Approved. Assignment active.' : a.status === 'Pending' ? 'Application received and under review.' : 'Application declined.'),
+          }));
+          setVolunteerApplications(mappedApps);
         }
 
         if (activeRes) {
           const rawActive = Array.isArray(activeRes) ? activeRes : activeRes?.results || [];
-          if (rawActive.length > 0) {
-            const mappedActive = rawActive.map((item) => ({
-              id: item.id,
-              event: item.event_details?.title || `Event #${item.event}`,
-              assignedRole: item.assigned_role,
-              duration: item.duration || '4 Hours',
-              status: item.status || 'Active',
-              notes: item.notes,
-              approvedDate: new Date(item.approved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            }));
-            setActiveVolunteerWork(mappedActive);
-          }
+          const mappedActive = rawActive.map((item) => ({
+            id: item.id,
+            event: item.event_details?.title || `Event #${item.event}`,
+            assignedRole: item.assigned_role,
+            duration: item.duration || '4 Hours',
+            status: item.status || 'Active',
+            notes: item.notes,
+            approvedDate: new Date(item.approved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          }));
+          setActiveVolunteerWork(mappedActive);
         }
 
         if (certsRes) {
           const rawCerts = Array.isArray(certsRes) ? certsRes : certsRes?.results || [];
-          if (rawCerts.length > 0) {
-            const mappedCerts = rawCerts.map((c) => ({
-              id: c.certificate_id,
-              title: `${c.volunteer_role} Certificate of Service`,
-              eventName: c.event_name || c.event_title || c.event_details?.title || 'Campus Event',
-              volunteerRole: c.volunteer_role,
-              studentName: c.student_name || studentProfile.name,
-              duration: c.duration,
-              issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-              authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
-              credentialHash: c.verification_hash || `sha256-${String(c.certificate_id || '').toLowerCase()}`,
-            }));
-            setCertificatesList(mappedCerts);
-          }
+          const mappedCerts = rawCerts.map((c) => ({
+            id: c.certificate_id,
+            title: `${c.volunteer_role} Certificate of Service`,
+            eventName: c.event_name || c.event_title || c.event_details?.title || 'Campus Event',
+            volunteerRole: c.volunteer_role,
+            studentName: c.student_name || studentProfile.name,
+            duration: c.duration,
+            issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
+            credentialHash: c.verification_hash || `sha256-${String(c.certificate_id || '').toLowerCase()}`,
+          }));
+          setCertificatesList(mappedCerts);
         }
 
         if (announcementsRes) {
           const rawAnc = Array.isArray(announcementsRes) ? announcementsRes : announcementsRes?.results || [];
-          if (rawAnc.length > 0) {
-            const mappedAnc = rawAnc.map((anc) => ({
-              id: anc.id,
-              title: anc.title,
-              category: anc.category || 'General',
-              publishedDate: anc.publishedDate || anc.sentDate || (anc.created_at ? new Date(anc.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-              author: anc.author || 'Office of Student Affairs',
-              summary: anc.summary || (anc.content ? (anc.content.length > 180 ? anc.content.slice(0, 180) + '...' : anc.content) : ''),
-              fullContent: anc.fullContent || anc.content || '',
-              priority: anc.priority || 'Normal',
-            }));
-            setAnnouncementsList(mappedAnc);
-          }
+          const mappedAnc = rawAnc.map((anc) => ({
+            id: anc.id,
+            title: anc.title,
+            category: anc.category || 'General',
+            publishedDate: anc.publishedDate || anc.sentDate || (anc.created_at ? new Date(anc.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+            author: anc.author || 'Office of Student Affairs',
+            summary: anc.summary || (anc.content ? (anc.content.length > 180 ? anc.content.slice(0, 180) + '...' : anc.content) : ''),
+            fullContent: anc.fullContent || anc.content || '',
+            priority: anc.priority || 'Normal',
+          }));
+          setAnnouncementsList(mappedAnc);
         }
 
         if (ticketsRes) {
           const rawTickets = Array.isArray(ticketsRes) ? ticketsRes : ticketsRes?.results || [];
-          if (rawTickets.length > 0) {
-            const serverMapped = rawTickets.map((t) => ({
-              id: t.ticket_id || t.id,
-              ticket_id: t.ticket_id || t.id,
-              event: t.event?.id || t.event,
-              eventId: t.event?.id || t.event,
-              event_id: t.event?.id || t.event,
-              eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
-              date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
-              venue: t.venue || t.event_details?.venue || 'Campus Center',
-              seat: t.seat || 'Member Pass • Row B, Seat #15',
-              gate: t.gate || 'Main Entrance (Gate 1)',
-              pricePaid: t.pricePaid || (Number(t.price_paid) === 0 ? '₹0.00 (Member Pass)' : `₹${Number(t.price_paid).toFixed(2)}`),
-              purchaseDate: t.purchaseDate || (t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-              status: t.status || 'Confirmed',
-              tier: t.tier || 'Member Pass',
-              category: t.category || t.event_details?.event_type || 'Campus Event',
-              qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
-              qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
-              qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
-              image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
-              transferredTo: t.transferredTo || t.transferred_to || ''
-            }));
+          const serverMapped = rawTickets.map((t) => ({
+            id: t.ticket_id || t.id,
+            ticket_id: t.ticket_id || t.id,
+            event: t.event?.id || t.event,
+            eventId: t.event?.id || t.event,
+            event_id: t.event?.id || t.event,
+            eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
+            date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
+            venue: t.venue || t.event_details?.venue || 'Campus Center',
+            seat: t.seat || 'Member Pass • Row B, Seat #15',
+            gate: t.gate || 'Main Entrance (Gate 1)',
+            pricePaid: t.pricePaid || (Number(t.price_paid) === 0 ? '₹0.00 (Member Pass)' : `₹${Number(t.price_paid).toFixed(2)}`),
+            purchaseDate: t.purchaseDate || (t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+            status: t.status || 'Confirmed',
+            tier: t.tier || 'Member Pass',
+            category: t.category || t.event_details?.event_type || 'Campus Event',
+            qrCodeData: t.qrCodeData || t.qr_code_data || (t.qr_token || ''),
+            qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
+            qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
+            image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
+            transferredTo: t.transferredTo || t.transferred_to || ''
+          }));
 
-            setTicketsList(serverMapped);
+          setTicketsList(serverMapped);
+          const key = getUserTicketStorageKey(user);
+          if (key) {
+            try {
+              localStorage.setItem(key, JSON.stringify(serverMapped));
+            } catch (e) {
+              console.warn('Error saving user tickets to localStorage:', e);
+            }
           }
         }
       } catch (err) {
@@ -538,7 +573,7 @@ export const MemberDashboard = () => {
     fetchMemberData();
     loadMerchandiseOrders();
     loadUserTransactions();
-  }, [studentProfile.name]);
+  }, [user?.id, user?.email]);
 
   // Handle Photo Upload
   const handleAvatarFileChange = (e) => {
