@@ -114,6 +114,95 @@ export const eventsApi = {
     const res = await apiClient.delete(`/events/${id}/`);
     return res.data;
   },
+  buyTicket: async (id, data = {}) => {
+    const res = await apiClient.post(`/events/${id}/buy-ticket/`, data);
+    return res.data;
+  },
+};
+
+export const paymentsApi = {
+  createEventPayment: async (eventId, data = {}) => {
+    const res = await apiClient.post(`/events/${eventId}/create-payment/`, data);
+    return res.data;
+  },
+  verifyRazorpayPayment: async (data) => {
+    const res = await apiClient.post('/payments/razorpay/verify/', data);
+    return res.data;
+  },
+};
+
+export const ticketsApi = {
+  getMyTickets: async (params = {}) => {
+    const res = await apiClient.get('/tickets/my-tickets/', { params });
+    return res.data;
+  },
+  getById: async (ticketId) => {
+    const res = await apiClient.get(`/tickets/${ticketId}/`);
+    return res.data;
+  },
+  getPdfUrl: (ticketId) => {
+    const baseURL = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api';
+    return `${baseURL}/tickets/${ticketId}/pdf/`;
+  },
+  downloadPdf: async (ticketId) => {
+    const res = await apiClient.get(`/tickets/${ticketId}/pdf/`, { responseType: 'blob' });
+    return res.data;
+  },
+  verifyQr: async (qrToken, eventId = null) => {
+    const res = await apiClient.post('/tickets/verify-qr/', { qr_token: qrToken, event_id: eventId });
+    return res.data;
+  },
+  checkIn: async (ticketId) => {
+    const res = await apiClient.post(`/tickets/${ticketId}/check-in/`);
+    return res.data;
+  },
+  buyTicket: async (eventId, data = {}) => {
+    const res = await apiClient.post(`/events/${eventId}/buy-ticket/`, data);
+    return res.data;
+  },
+  transferTicket: async (ticketId, data) => {
+    const res = await apiClient.post(`/tickets/${ticketId}/transfer/`, data);
+    return res.data;
+  },
+  cancelTicket: async (ticketId) => {
+    const res = await apiClient.post(`/tickets/${ticketId}/cancel/`);
+    return res.data;
+  }
+};
+
+export const merchandiseApi = {
+  getProducts: async () => {
+    const res = await apiClient.get('/merchandise/products/');
+    return res.data;
+  },
+  getOrders: async (params = {}) => {
+    const res = await apiClient.get('/merchandise/orders/', { params });
+    return res.data;
+  },
+  createPayment: async (data) => {
+    const res = await apiClient.post('/merchandise/orders/create-payment/', data);
+    return res.data;
+  },
+  getById: async (orderId) => {
+    const res = await apiClient.get(`/merchandise/orders/${orderId}/`);
+    return res.data;
+  },
+  getPdfUrl: (orderId) => {
+    const baseURL = apiClient.defaults.baseURL || 'http://127.0.0.1:8000/api';
+    return `${baseURL}/merchandise/orders/${orderId}/pdf/`;
+  },
+  downloadPdf: async (orderId) => {
+    const res = await apiClient.get(`/merchandise/orders/${orderId}/pdf/`, { responseType: 'blob' });
+    return res.data;
+  },
+  verifyQr: async (qrToken) => {
+    const res = await apiClient.post('/merchandise/orders/verify-qr/', { qr_token: qrToken });
+    return res.data;
+  },
+  collect: async (orderId) => {
+    const res = await apiClient.post(`/merchandise/orders/${orderId}/collect/`);
+    return res.data;
+  }
 };
 
 export const volunteerApi = {

@@ -45,6 +45,15 @@ def api_root(request):
                 "transactions": request.build_absolute_uri("/api/finance/transactions/"),
                 "reimbursements": request.build_absolute_uri("/api/finance/reimbursements/"),
             },
+            "payments_and_merchandise": {
+                "razorpay_verify": request.build_absolute_uri("/api/payments/razorpay/verify/"),
+                "razorpay_webhook": request.build_absolute_uri("/api/payments/razorpay/webhook/"),
+                "merchandise_products": request.build_absolute_uri("/api/merchandise/products/"),
+                "merchandise_orders": request.build_absolute_uri("/api/merchandise/orders/"),
+                "merchandise_verify_qr": request.build_absolute_uri("/api/merchandise/orders/verify-qr/"),
+                "tickets_list": request.build_absolute_uri("/api/tickets/"),
+                "tickets_verify_qr": request.build_absolute_uri("/api/tickets/verify-qr/"),
+            },
             "django_admin": request.build_absolute_uri("/admin/"),
         }
     })
@@ -53,6 +62,8 @@ def api_root(request):
 def favicon_view(request):
     return HttpResponse(status=204)  # No content for favicon
 
+
+from finance.urls import payment_urlpatterns
 
 urlpatterns = [
     # Root API Landing View
@@ -74,6 +85,14 @@ urlpatterns = [
     # Events & Volunteer APIs
     path('api/', include('volunteers.urls')),
 
-    # Finance APIs
+    # Finance, Payment & Merchandise APIs
     path('api/finance/', include('finance.urls')),
+    path('api/', include(payment_urlpatterns)),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

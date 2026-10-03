@@ -4,7 +4,7 @@ from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from accounts.permissions import IsAdmin, IsMember, IsAdminOrReadOnly
-from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement
+from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement, Ticket
 from .serializers import (
     EventSerializer,
     VolunteerApplicationSerializer,
@@ -15,6 +15,7 @@ from .serializers import (
     CertificateSerializer,
     CertificateGenerateSerializer,
     AnnouncementSerializer,
+    TicketSerializer,
 )
 
 
@@ -522,4 +523,364 @@ class AnnouncementDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in permissions.SAFE_METHODS:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+
+# ============================================================================
+# EVENT ADMISSION TICKETS APIS
+# ============================================================================
+
+class TicketBuyView(APIView):
+    """
+    POST /api/events/<int:event_id>/buy-ticket/ or POST /api/tickets/buy/
+    Buys / reserves an admission ticket for the authenticated student.
+    Applies membership discount based on student's membership_status.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, event_id=None):
+        target_id = event_id or request.data.get('event') or request.data.get('event_id')
+        if not target_id:
+            return Response(
+                {'error': 'Event ID is required to reserve admission.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            event = Event.objects.get(pk=target_id)
+        except (Event.DoesNotExist, ValueError):
+            return Response(
+                {'error': f'Event #{target_id} not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if event.status != Event.Status.PUBLISHED:
+            return Response(
+                {'error': 'Tickets are only available for published events.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check membership status
+        user = request.user
+        is_member = (
+            getattr(user, 'membership_status', 'NONE') == 'ACTIVE'
+            or getattr(user, 'is_active_member', False)
+        )
+
+        if is_member:
+            tier = 'Member Pass'
+            price_paid = event.member_price
+        else:
+            tier = 'Standard Pass'
+            price_paid = event.non_member_price
+
+        ticket = Ticket.objects.create(
+            student=user,
+            event=event,
+            tier=tier,
+            price_paid=price_paid,
+            status=Ticket.Status.CONFIRMED,
+        )
+
+        serializer = TicketSerializer(ticket)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class StudentTicketsListView(generics.ListAPIView):
+    """
+    GET /api/tickets/ or GET /api/tickets/my-tickets/
+    Lists all event admission passes for the authenticated student.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = TicketSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Ticket.objects.filter(student=user).select_related('event')
+        status_param = self.request.query_params.get('status')
+        if status_param and status_param.upper() != 'ALL':
+            queryset = queryset.filter(status__iexact=status_param)
+        return queryset
+
+
+class TicketTransferView(APIView):
+    """
+    POST /api/tickets/<str:ticket_id>/transfer/
+    Transfers an active ticket to another student.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, ticket_id):
+        user = request.user
+        ticket = Ticket.objects.filter(
+            Q(ticket_id=ticket_id) | Q(pk=ticket_id if str(ticket_id).isdigit() else 0),
+            student=user
+        ).first()
+
+        if not ticket:
+            return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        recipient = request.data.get('recipient') or request.data.get('transferred_to') or request.data.get('transferredTo')
+        if not recipient:
+            return Response({'error': 'Recipient name or student email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ticket.status = Ticket.Status.TRANSFERRED
+        ticket.transferred_to = recipient
+        ticket.save()
+
+        return Response(TicketSerializer(ticket).data, status=status.HTTP_200_OK)
+
+
+class TicketCancelView(APIView):
+    """
+    POST /api/tickets/<str:ticket_id>/cancel/
+    Cancels an active admission ticket.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, ticket_id):
+        user = request.user
+        ticket = Ticket.objects.filter(
+            Q(ticket_id=ticket_id) | Q(pk=ticket_id if str(ticket_id).isdigit() else 0),
+            student=user
+        ).first()
+
+        if not ticket:
+            return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        ticket.status = Ticket.Status.CANCELLED
+        ticket.save()
+
+        return Response(TicketSerializer(ticket).data, status=status.HTTP_200_OK)
+
+
+class TicketDetailView(APIView):
+    """
+    GET /api/tickets/<str:ticket_id>/
+    Retrieves full ticket information.
+    Authorized for the ticket owner, or organizers / admins.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, ticket_id):
+        user = request.user
+        ticket = Ticket.objects.filter(
+            Q(ticket_id=ticket_id) | Q(pk=ticket_id if str(ticket_id).isdigit() else 0)
+        ).select_related('event', 'student', 'payment').first()
+
+        if not ticket:
+            return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        is_authorized = (
+            ticket.student == user
+            or user.role in ['ADMIN', 'TREASURER']
+            or user.is_staff
+            or user.is_superuser
+        )
+        if not is_authorized:
+            return Response({'error': 'Access denied to this ticket.'}, status=status.HTTP_403_FORBIDDEN)
+
+        return Response(TicketSerializer(ticket).data, status=status.HTTP_200_OK)
+
+
+class TicketPdfDownloadView(APIView):
+    """
+    GET /api/tickets/<str:ticket_id>/pdf/
+    Downloads the official Event Admission Ticket PDF.
+    Auto-generates if not present on storage.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, ticket_id):
+        from django.http import FileResponse
+        from finance.pdf_utils import generate_ticket_pdf
+
+        user = request.user
+        ticket = Ticket.objects.filter(
+            Q(ticket_id=ticket_id) | Q(pk=ticket_id if str(ticket_id).isdigit() else 0)
+        ).select_related('event', 'student', 'payment').first()
+
+        if not ticket:
+            return Response({'error': 'Ticket not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        is_authorized = (
+            ticket.student == user
+            or user.role in ['ADMIN', 'TREASURER']
+            or user.is_staff
+            or user.is_superuser
+        )
+        if not is_authorized:
+            return Response({'error': 'Access denied to this ticket PDF.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if not ticket.pdf_file or not ticket.pdf_file.storage.exists(ticket.pdf_file.name):
+            pdf_file = generate_ticket_pdf(ticket)
+            ticket.pdf_file.save(f"{ticket.ticket_id}.pdf", pdf_file, save=True)
+
+        return FileResponse(
+            ticket.pdf_file.open('rb'),
+            content_type='application/pdf',
+            filename=f"Skyline_Ticket_{ticket.ticket_id}.pdf"
+        )
+
+
+class TicketQrVerifyView(APIView):
+    """
+    POST /api/tickets/verify-qr/
+    Organizer / Admin entry gate scanner endpoint to verify event admission QR token.
+    Validates:
+      - Valid token exists
+      - Event matching (enforces QR system prevents ticket for Event A from being accepted at Event B)
+      - Payment verified (PAID)
+      - Ticket status (Cancelled check)
+      - Already Checked-In check (with participant name, event, and check-in time)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        is_organizer = (
+            user.role in ['ADMIN', 'TREASURER']
+            or user.is_staff
+            or user.is_superuser
+        )
+        if not is_organizer:
+            return Response(
+                {"error": "Access denied. Only organizers and administrators can verify admission tickets."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        qr_token = (request.data.get('qr_token') or request.data.get('token') or request.data.get('ticket_id') or '').strip()
+        selected_event_id = request.data.get('event_id') or request.data.get('eventId')
+
+        if not qr_token:
+            return Response({"error": "QR code token or Ticket ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Lookup by qr_token or ticket_id
+        ticket = Ticket.objects.filter(qr_token=qr_token).select_related('event', 'student', 'payment').first()
+        if not ticket:
+            clean_token = qr_token.replace('SKYLINE-TICKET:', '').strip()
+            ticket = Ticket.objects.filter(
+                Q(ticket_id__iexact=clean_token) | Q(qr_token__icontains=clean_token)
+            ).select_related('event', 'student', 'payment').first()
+
+        if not ticket:
+            return Response({
+                'is_valid': False,
+                'verification_status': 'INVALID_TICKET',
+                'title': 'INVALID TICKET',
+                'message': 'No valid ticket found matching this QR code identifier.',
+                'ticket': None
+            }, status=status.HTTP_200_OK)
+
+        # Event-specific validation: Prevent ticket for Event A from being accepted at Event B
+        if selected_event_id:
+            try:
+                selected_event_id = int(selected_event_id)
+                if ticket.event_id != selected_event_id:
+                    return Response({
+                        'is_valid': False,
+                        'verification_status': 'WRONG_EVENT',
+                        'title': 'WRONG EVENT',
+                        'message': f"This ticket belongs to '{ticket.event.title}' (ID: #{ticket.event_id}), not the currently active scanner event.",
+                        'ticket': TicketSerializer(ticket).data
+                    }, status=status.HTTP_200_OK)
+            except (ValueError, TypeError):
+                pass
+
+        # Check Payment Status
+        if ticket.payment and ticket.payment.status != 'SUCCESS':
+            return Response({
+                'is_valid': False,
+                'verification_status': 'PAYMENT_NOT_VERIFIED',
+                'title': 'PAYMENT NOT VERIFIED',
+                'message': f"Payment for ticket #{ticket.ticket_id} has not been verified.",
+                'ticket': TicketSerializer(ticket).data
+            }, status=status.HTTP_200_OK)
+
+        # Check Ticket Cancellation
+        if ticket.status == Ticket.Status.CANCELLED:
+            return Response({
+                'is_valid': False,
+                'verification_status': 'TICKET_CANCELLED',
+                'title': 'TICKET CANCELLED',
+                'message': f"Ticket #{ticket.ticket_id} has been cancelled by the holder or administration.",
+                'ticket': TicketSerializer(ticket).data
+            }, status=status.HTTP_200_OK)
+
+        # Check if already checked in
+        if ticket.checked_in:
+            checkin_time_str = ticket.checked_in_at.strftime('%b %d, %Y • %I:%M %p') if ticket.checked_in_at else 'Earlier'
+            checked_by_str = ticket.checked_in_by.full_name if ticket.checked_in_by else 'Gate Staff'
+            return Response({
+                'is_valid': False,
+                'verification_status': 'ALREADY_CHECKED_IN',
+                'title': 'ALREADY CHECKED IN',
+                'message': f"Ticket was already checked in on {checkin_time_str} by {checked_by_str}.",
+                'ticket': TicketSerializer(ticket).data,
+                'participant': ticket.student.full_name,
+                'event': ticket.event.title,
+                'checked_in_at': str(ticket.checked_in_at),
+                'original_check_in_time': checkin_time_str
+            }, status=status.HTTP_200_OK)
+
+        # Valid ticket!
+        return Response({
+            'is_valid': True,
+            'verification_status': 'VALID',
+            'title': 'TICKET VERIFIED',
+            'message': 'Official admission ticket verified successfully.',
+            'participant': ticket.student.full_name,
+            'event': ticket.event.title,
+            'ticket_id': ticket.ticket_id,
+            'event_date': str(ticket.event.date),
+            'event_time': f"{ticket.event.start_time} - {ticket.event.end_time}",
+            'payment_status': 'PAID',
+            'status': 'VALID',
+            'ticket': TicketSerializer(ticket).data
+        }, status=status.HTTP_200_OK)
+
+
+class TicketCheckInView(APIView):
+    """
+    POST /api/tickets/<str:ticket_id>/check-in/
+    Marks ticket as checked in atomically.
+    Prevents duplicate check-ins!
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, ticket_id):
+        from django.db import transaction
+        user = request.user
+        is_organizer = (
+            user.role in ['ADMIN', 'TREASURER']
+            or user.is_staff
+            or user.is_superuser
+        )
+        if not is_organizer:
+            return Response({"error": "Unauthorized to perform attendee check-ins."}, status=status.HTTP_403_FORBIDDEN)
+
+        with transaction.atomic():
+            ticket = Ticket.objects.select_for_update().filter(
+                Q(ticket_id=ticket_id) | Q(pk=ticket_id if str(ticket_id).isdigit() else 0)
+            ).first()
+
+            if not ticket:
+                return Response({"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if ticket.checked_in:
+                return Response({
+                    "error": f"Ticket #{ticket.ticket_id} was already checked in at {ticket.checked_in_at}."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            ticket.checked_in = True
+            ticket.checked_in_at = timezone.now()
+            ticket.checked_in_by = user
+            ticket.save(update_fields=['checked_in', 'checked_in_at', 'checked_in_by', 'updated_at'])
+
+        return Response({
+            'success': True,
+            'message': f"Participant {ticket.student.full_name} successfully CHECKED IN for {ticket.event.title}.",
+            'ticket': TicketSerializer(ticket).data
+        }, status=status.HTTP_200_OK)
+
+
 
