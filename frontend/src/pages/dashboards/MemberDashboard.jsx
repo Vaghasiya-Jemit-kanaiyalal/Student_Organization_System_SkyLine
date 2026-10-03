@@ -121,7 +121,7 @@ export const MemberDashboard = () => {
   }, [user]);
 
   // Events Master State
-  const [eventsList] = useState([
+  const [eventsList, setEventsList] = useState([
     {
       id: 'evt-1',
       clubId: 'club-robotics',
@@ -324,8 +324,20 @@ export const MemberDashboard = () => {
     }
   ]);
 
+  // Active Volunteer Assignments State
+  const [activeVolunteerWork, setActiveVolunteerWork] = useState([
+    {
+      id: 'vol-act-1',
+      event: 'SkyLine Annual Robotics Showcase 2026',
+      assignedRole: 'Hardware Demo Assistant',
+      duration: '4 Hours',
+      status: 'Active',
+      notes: 'Please check in at Booth #3 at 1:30 PM.'
+    }
+  ]);
+
   // Certificates State
-  const [certificatesList] = useState([
+  const [certificatesList, setCertificatesList] = useState([
     {
       id: 'CERT-2026-ROB-104',
       title: 'Outstanding Technical Service & Showcase Marshal',
