@@ -10,6 +10,10 @@ class EventSerializer(serializers.ModelSerializer):
     volunteer_slots_remaining = serializers.IntegerField(read_only=True)
     roles_list = serializers.ListField(read_only=True)
     volunteer_roles_required = serializers.CharField(required=False, allow_blank=True)
+    user_ticket_price = serializers.SerializerMethodField()
+    is_member_discount_applied = serializers.SerializerMethodField()
+    discount_savings = serializers.SerializerMethodField()
+    pricing_message = serializers.SerializerMethodField()
 
     def to_internal_value(self, data):
         mutable_data = data.copy() if hasattr(data, 'copy') else dict(data)
@@ -17,6 +21,30 @@ class EventSerializer(serializers.ModelSerializer):
         if isinstance(roles, list):
             mutable_data['volunteer_roles_required'] = ', '.join([str(r).strip() for r in roles if str(r).strip()])
         return super().to_internal_value(mutable_data)
+
+    def get_user_ticket_price(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            if getattr(request.user, 'is_active_member', False):
+                return float(obj.member_ticket_price)
+        return float(obj.non_member_ticket_price or obj.ticket_price)
+
+    def get_is_member_discount_applied(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            return getattr(request.user, 'is_active_member', False)
+        return False
+
+    def get_discount_savings(self, obj):
+        non_member = float(obj.non_member_ticket_price or obj.ticket_price or 0)
+        member = float(obj.member_ticket_price or 0)
+        return max(0, non_member - member)
+
+    def get_pricing_message(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated and getattr(request.user, 'is_active_member', False):
+            return "Member Discount Applied"
+        return "Become a member to unlock discounted pricing."
 
     class Meta:
         model = Event
@@ -32,6 +60,12 @@ class EventSerializer(serializers.ModelSerializer):
             'end_time',
             'capacity',
             'ticket_price',
+            'member_ticket_price',
+            'non_member_ticket_price',
+            'user_ticket_price',
+            'is_member_discount_applied',
+            'discount_savings',
+            'pricing_message',
             'image',
             'volunteers_required',
             'volunteer_count_required',

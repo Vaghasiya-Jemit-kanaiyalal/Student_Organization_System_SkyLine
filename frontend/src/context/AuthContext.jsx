@@ -6,6 +6,24 @@ const API_BASE = 'http://127.0.0.1:8000/api';
 
 const normalizeUser = (u) => {
   if (!u) return null;
+  const rawStatus = String(u.membership_status || u.membershipStatus || (u.memberships?.length > 0 ? 'ACTIVE' : 'NONE')).toUpperCase();
+  const rawEndDate = u.membership_end_date || u.membershipEndDate;
+  const todayStr = new Date().toISOString().split('T')[0];
+  // Automatically discard membership if finish duration has passed
+  const isFinished = rawEndDate && rawEndDate < todayStr;
+  const membershipStatus = (rawStatus === 'ACTIVE' && isFinished) ? 'EXPIRED' : rawStatus;
+
+  const rawType = u.membership_type || u.membershipType || (u.memberships?.[0]?.membership_type);
+  const membershipType = rawType ? String(rawType).toUpperCase() : (membershipStatus === 'ACTIVE' ? 'ANNUAL' : null);
+  const isMember = membershipStatus === 'ACTIVE';
+
+  let badge = 'Student';
+  if (isMember) {
+    badge = membershipType === 'SEMESTER' ? 'Semester Member' : 'Annual Member';
+  } else if (membershipStatus === 'EXPIRED') {
+    badge = 'Student';
+  }
+
   return {
     ...u,
     id: u.id,
@@ -13,21 +31,30 @@ const normalizeUser = (u) => {
     fullName: u.full_name || u.name || 'Student',
     studentId: u.student_id || u.studentId || '',
     student_id: u.student_id || u.studentId || '',
-    role: u.role || 'MEMBER',
+    role: u.role || 'STUDENT',
     email: u.email,
-    department: u.department || 'General Undergraduate Studies',
-    semester: u.semester || 'Academic Year 2026',
+    membership_status: membershipStatus,
+    membershipStatus: membershipStatus,
+    membership_type: membershipType,
+    membershipType: membershipType,
+    membership_start_date: u.membership_start_date || u.membershipStartDate || null,
+    membership_end_date: u.membership_end_date || u.membershipEndDate || null,
+    membershipBadge: badge,
+    is_active_member: isMember,
+    isActiveMember: isMember,
+    department: u.department || 'Computer Science & Software Engineering',
+    semester: u.semester || 'Semester 4 • 2026',
+    phone: u.phone || '+1 (555) 234-8910',
     avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
     joinedDate: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 2026',
     status: u.is_active !== false ? 'ACTIVE' : 'INACTIVE',
     memberships: u.memberships || [],
-    volunteerHours: u.volunteerHours || 0,
-    ticketsCount: u.ticketsCount || 0
+    volunteerHours: u.volunteerHours || 18,
+    ticketsCount: u.ticketsCount || 2
   };
 };
 
 export const AuthProvider = ({ children }) => {
-  // Current authenticated user state
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('connectu_active_user');
@@ -51,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
 
-  // Sync active user to /api/auth/me/ upon initial load if token exists
+  // Sync active user from /api/auth/me/ upon load
   useEffect(() => {
     const fetchCurrentUser = async () => {
       const savedToken = localStorage.getItem('connectu_jwt_token');
@@ -71,7 +98,6 @@ export const AuthProvider = ({ children }) => {
           setUser(normalized);
           localStorage.setItem('connectu_active_user', JSON.stringify(normalized));
         } else if (response.status === 401) {
-          // Token expired
           logout();
         }
       } catch (err) {
@@ -84,12 +110,11 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Universal Login Handler
-   * Supports immediate mock student credentials & connects to backend
    */
   const login = async (email, password, rememberMe = true) => {
     const cleanEmail = email.trim().toLowerCase();
 
-    // Direct Instant Student Login (No DB check required)
+    // Direct Instant Student Login for Yug (Annual Member)
     if (cleanEmail === 'yug@gmail.com' && password === 'Yug@123') {
       const studentUser = normalizeUser({
         id: 'stu-yug-01',
@@ -99,7 +124,11 @@ export const AuthProvider = ({ children }) => {
         studentId: 'STU-2026-9901',
         student_id: 'STU-2026-9901',
         email: 'yug@gmail.com',
-        role: 'MEMBER',
+        role: 'STUDENT',
+        membership_status: 'ACTIVE',
+        membership_type: 'ANNUAL',
+        membership_start_date: '2026-09-01',
+        membership_end_date: '2027-08-31',
         department: 'Computer Science & Software Engineering',
         semester: 'Semester 4 • 2026',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
@@ -108,10 +137,14 @@ export const AuthProvider = ({ children }) => {
         memberships: [
           {
             id: 'mem-skyline-01',
-            clubName: 'SkyLine Robotics & Software Society',
-            tier: 'Standard Member',
+            club_name_snapshot: 'Skyline Robotics & AI Society',
+            clubName: 'Skyline Robotics & AI Society',
+            membership_type: 'ANNUAL',
             status: 'ACTIVE',
-            expiryDate: 'Dec 31, 2026'
+            fee: 499.00,
+            start_date: '2026-09-01',
+            end_date: '2027-08-31',
+            expiryDate: 'Aug 31, 2027'
           }
         ],
         volunteerHours: 18,
@@ -130,7 +163,7 @@ export const AuthProvider = ({ children }) => {
       return {
         success: true,
         user: studentUser,
-        role: 'MEMBER'
+        role: 'STUDENT'
       };
     }
 
@@ -195,8 +228,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Member Self-Registration
-   * Connects to Django DRF backend: POST /api/auth/register/
+   * Member / Student Self-Registration
    */
   const registerMember = async ({ name, studentId, email, password }) => {
     try {
@@ -241,7 +273,6 @@ export const AuthProvider = ({ children }) => {
       const accessToken = data.access;
       const refreshToken = data.refresh;
 
-      // Save tokens so user is immediately authenticated
       if (accessToken) {
         setUser(normalized);
         setToken(accessToken);
@@ -290,7 +321,7 @@ export const AuthProvider = ({ children }) => {
     const refreshToken = localStorage.getItem('connectu_refresh_token') || sessionStorage.getItem('connectu_refresh_token');
     const savedToken = token || localStorage.getItem('connectu_jwt_token');
 
-    if (refreshToken && savedToken) {
+    if (refreshToken && savedToken && !savedToken.startsWith('mock-')) {
       try {
         await fetch(`${API_BASE}/auth/logout/`, {
           method: 'POST',
@@ -315,9 +346,6 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('connectu_refresh_token');
   };
 
-  /**
-   * Simulate Session Expiration
-   */
   const triggerSessionExpired = () => {
     logout();
     setSessionExpiredNotice(true);
@@ -336,9 +364,18 @@ export const AuthProvider = ({ children }) => {
     } else if (targetRole === 'TREASURER') {
       demoEmail = 'treasurer@treasurer.gmail.com';
       demoPass = 'TreasurerPassword123!';
-    } else {
+    } else if (targetRole === 'SEMESTER_MEMBER') {
       demoEmail = 'alex.rivera@studentorg.edu';
       demoPass = 'MemberPassword123!';
+    } else if (targetRole === 'EXPIRED_MEMBER') {
+      demoEmail = 'sarah.chen@studentorg.edu';
+      demoPass = 'MemberPassword123!';
+    } else if (targetRole === 'NON_MEMBER') {
+      demoEmail = 'rohan.sharma@studentorg.edu';
+      demoPass = 'MemberPassword123!';
+    } else {
+      demoEmail = 'student@university.edu';
+      demoPass = 'password123';
     }
 
     const res = await login(demoEmail, demoPass, true);
@@ -349,38 +386,93 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Purchase / Join a Club Membership
+   * Purchase / Join a Club Membership (SEMESTER or ANNUAL)
    */
-  const buyClubMembership = (club, plan = 'Annual', amount = 35.00, paymentMethod = 'Student Account (Bursar)') => {
+  const buyClubMembership = async (club, plan = 'ANNUAL', amount = 499.00, paymentMethod = 'Student Account (Bursar)') => {
     if (!user) return { success: false, error: 'User is not logged in.' };
 
-    const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    const receiptCode = `RCP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    const normalizedPlan = String(plan).toUpperCase().includes('SEMESTER') ? 'SEMESTER' : 'ANNUAL';
+    const savedToken = token || localStorage.getItem('connectu_jwt_token');
+
+    const targetClubId = (typeof club === 'string' ? club : club?.id) || 'club-robotics';
+    const targetClubName = (typeof club === 'object' ? club?.name : null) || 'Skyline Student Association';
+
+    // Attempt backend sync
+    if (savedToken && !savedToken.startsWith('mock-')) {
+      try {
+        const response = await fetch(`${API_BASE}/membership/purchase/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${savedToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            club_id: targetClubId,
+            membership_type: normalizedPlan,
+            payment_method: paymentMethod
+          })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const updatedUser = normalizeUser(data.user);
+          setUser(updatedUser);
+          localStorage.setItem('connectu_active_user', JSON.stringify(updatedUser));
+          return { success: true, membership: data.membership, user: updatedUser };
+        } else {
+          const errorData = await response.json().catch(() => null);
+          console.warn('Backend membership purchase failed with status:', response.status, errorData);
+        }
+      } catch (err) {
+        console.warn('Backend purchase call failed, using client-side fallback:', err);
+      }
+    }
+
+    // Client-side state fallback
+    const today = new Date();
+    const expiryDate = new Date();
+    if (normalizedPlan === 'ANNUAL') {
+      expiryDate.setFullYear(today.getFullYear() + 1);
+    } else {
+      expiryDate.setMonth(today.getMonth() + 6);
+    }
+
+    const todayStr = today.toISOString().split('T')[0];
+    const expiryStr = expiryDate.toISOString().split('T')[0];
+    const receiptCode = `RCP-${today.getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const newMembership = {
-      clubId: club.id,
-      clubName: club.name,
-      plan: `${plan} Membership`,
-      amount: typeof amount === 'number' ? `$${amount.toFixed(2)}` : amount,
-      rawAmount: typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.]/g, '')),
-      role: 'Active Member',
-      duesPaid: true,
-      paymentMethod: paymentMethod,
-      paymentDate: todayStr,
-      receiptId: receiptCode,
-      status: 'Paid & Active',
-      expiryDate: plan === 'Annual' ? 'June 30, 2027' : 'Dec 31, 2026'
+      id: `mem-${Math.floor(1000 + Math.random() * 9000)}`,
+      club: targetClubId,
+      clubId: targetClubId,
+      club_id: targetClubId,
+      club_name_snapshot: targetClubName,
+      clubName: targetClubName,
+      membership_type: normalizedPlan,
+      fee: typeof amount === 'number' ? amount : 499.00,
+      start_date: todayStr,
+      end_date: expiryStr,
+      status: 'ACTIVE',
+      payment_method: paymentMethod,
+      transaction_id: receiptCode,
+      expiryDate: expiryDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
     };
 
-    const existingMemberships = (user.memberships || []).filter(m => m.clubId !== club.id);
+    const existingMemberships = (user.memberships || []).filter(m => {
+      const mClubId = m.clubId || m.club_id || (typeof m.club === 'object' ? m.club?.id : m.club);
+      return mClubId !== targetClubId;
+    });
     const updatedMemberships = [newMembership, ...existingMemberships];
 
-    const updatedUser = {
+    const updatedUser = normalizeUser({
       ...user,
+      membership_status: 'ACTIVE',
+      membershipStatus: 'ACTIVE',
+      membership_type: normalizedPlan,
+      membershipType: normalizedPlan,
+      membership_start_date: todayStr,
+      membership_end_date: expiryStr,
       memberships: updatedMemberships,
-      membershipStatus: 'Active',
-      membershipType: `${club.shortName || club.name} (${plan})`
-    };
+    });
 
     setUser(updatedUser);
     localStorage.setItem('connectu_active_user', JSON.stringify(updatedUser));
@@ -388,14 +480,45 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Update User Profile (e.g. avatar, name, department)
+   * Renew Membership
    */
-  const updateUserProfile = (updatedFields) => {
+  const renewMembership = async (plan = 'ANNUAL', paymentMethod = 'Student Account (Bursar)') => {
+    return buyClubMembership(user?.memberships?.[0] || { id: 'club-robotics', name: 'Skyline Robotics & AI Society' }, plan, plan === 'ANNUAL' ? 499.00 : 299.00, paymentMethod);
+  };
+
+  /**
+   * Update User Profile
+   */
+  const updateUserProfile = async (updatedFields) => {
     if (!user) return;
-    const updated = {
+    const savedToken = token || localStorage.getItem('connectu_jwt_token');
+
+    if (savedToken && !savedToken.startsWith('mock-')) {
+      try {
+        const response = await fetch(`${API_BASE}/auth/me/`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${savedToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedFields)
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const normalized = normalizeUser(data);
+          setUser(normalized);
+          localStorage.setItem('connectu_active_user', JSON.stringify(normalized));
+          return normalized;
+        }
+      } catch (err) {
+        console.warn('Backend profile update failed:', err);
+      }
+    }
+
+    const updated = normalizeUser({
       ...user,
       ...updatedFields
-    };
+    });
     setUser(updated);
     localStorage.setItem('connectu_active_user', JSON.stringify(updated));
     return updated;
@@ -415,8 +538,8 @@ export const AuthProvider = ({ children }) => {
         triggerSessionExpired,
         quickSwitchRole,
         buyClubMembership,
+        renewMembership,
         updateUserProfile,
-        users: []
       }}
     >
       {children}
@@ -431,3 +554,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+export default AuthContext;

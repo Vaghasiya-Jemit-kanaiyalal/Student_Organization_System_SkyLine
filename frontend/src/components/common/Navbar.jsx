@@ -59,11 +59,12 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  // Student navigation items specified in prompt (no arbitrary badges)
+  // Student navigation items specified in prompt
   const studentNavTabs = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'membership', label: 'Clubs & Memberships', icon: Users },
     { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'merchandise', label: 'Merchandise', icon: ShoppingBag },
     { id: 'tickets', label: 'My Tickets', icon: Ticket },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
     { id: 'certificates', label: 'Certificates', icon: Award },
@@ -105,12 +106,21 @@ export const Navbar = () => {
       ? '/treasurer/dashboard'
       : '/member/dashboard';
 
-  // Format user role label cleanly
+  // Format user role label cleanly according to membership specifications
   const getUserRoleLabel = () => {
     if (user?.role === 'ADMIN') return 'Club Administrator';
     if (user?.role === 'TREASURER') return 'Treasury Officer';
-    const hasClub = user?.memberships && user.memberships.length > 0;
-    return hasClub ? 'Club Member' : 'Student';
+    
+    // Student membership status check
+    const status = String(user?.membership_status || user?.membershipStatus || '').toUpperCase();
+    const type = String(user?.membership_type || user?.membershipType || '').toUpperCase();
+    const isMember = status === 'ACTIVE' || (user?.memberships && user.memberships.length > 0 && user.memberships.some(m => m.status === 'ACTIVE' || m.duesPaid));
+
+    if (isMember) {
+      if (type.includes('SEMESTER')) return 'Semester Member';
+      return 'Annual Member';
+    }
+    return 'Student';
   };
 
   const isGreenTheme = user?.role !== 'TREASURER';

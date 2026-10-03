@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from accounts.permissions import IsTreasurer, IsAdmin
+from accounts.permissions import IsTreasurer, IsTreasurerOrAdminReadOnly
 from .models import Transaction, ReimbursementRequest
 from .serializers import (
     TransactionSerializer,
@@ -15,9 +15,9 @@ from .serializers import (
 class FinanceDashboardView(APIView):
     """
     GET /api/finance/
-    Protected: Only Treasurer or Admin can access finance dashboard summary.
+    Protected: Treasurer full access; Admin read-only summary.
     """
-    permission_classes = [IsTreasurer]
+    permission_classes = [IsTreasurerOrAdminReadOnly]
 
     def get(self, request):
         total_income = Transaction.objects.filter(
@@ -50,11 +50,16 @@ class FinanceDashboardView(APIView):
 
 class TransactionListCreateView(generics.ListCreateAPIView):
     """
-    GET /api/finance/transactions/ -> List transactions (Treasurer/Admin)
-    POST /api/finance/transactions/ -> Record a transaction (Treasurer/Admin)
+    GET /api/finance/transactions/ -> List transactions (Treasurer; Admin read-only)
+    POST /api/finance/transactions/ -> Record a transaction (Treasurer only)
     """
-    permission_classes = [IsTreasurer]
+    permission_classes = [IsTreasurerOrAdminReadOnly]
     serializer_class = TransactionSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsTreasurer()]
+        return super().get_permissions()
 
     def get_queryset(self):
         queryset = Transaction.objects.select_related('recorded_by').all()

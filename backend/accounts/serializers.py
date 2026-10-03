@@ -1,3 +1,5 @@
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -6,13 +8,82 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .models import Club, ClubMembership
+
 User = get_user_model()
+
+
+class ClubSerializer(serializers.ModelSerializer):
+    """
+    Serializer for University Clubs and Student Organizations.
+    """
+    class Meta:
+        model = Club
+        fields = [
+            'id',
+            'name',
+            'short_name',
+            'tagline',
+            'description',
+            'category',
+            'badge',
+            'faculty_advisor',
+            'meeting_schedule',
+            'banner_image',
+            'semester_fee',
+            'annual_fee',
+            'available_spots',
+            'total_spots',
+            'benefits',
+            'is_active',
+            'created_at',
+        ]
+
+
+class ClubMembershipSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Club Memberships held by Students.
+    """
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_id = serializers.CharField(source='student.student_id', read_only=True)
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    club_id = serializers.CharField(source='club.id', read_only=True, default='')
+    club_name = serializers.CharField(source='club.name', read_only=True, default='')
+
+    class Meta:
+        model = ClubMembership
+        fields = [
+            'id',
+            'student',
+            'student_name',
+            'student_id',
+            'student_email',
+            'club',
+            'club_id',
+            'club_name',
+            'club_name_snapshot',
+            'membership_type',
+            'fee',
+            'start_date',
+            'end_date',
+            'status',
+            'payment_method',
+            'transaction_id',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'student', 'transaction_id', 'created_at', 'updated_at']
 
 
 class UserSerializer(serializers.ModelSerializer):
     """
-    Standard User representation serializer.
+    Comprehensive User representation serializer.
+    Includes student membership properties, badge, and active memberships list.
     """
+    membership_badge = serializers.CharField(read_only=True)
+    is_active_member = serializers.BooleanField(read_only=True)
+    memberships = ClubMembershipSerializer(source='club_memberships', many=True, read_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -21,18 +92,32 @@ class UserSerializer(serializers.ModelSerializer):
             'student_id',
             'email',
             'role',
+            'membership_status',
+            'membership_type',
+            'membership_start_date',
+            'membership_end_date',
+            'membership_badge',
+            'is_active_member',
+            'department',
+            'semester',
+            'phone',
+            'avatar',
+            'memberships',
             'is_active',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'role', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'role', 'is_active', 'created_at', 'updated_at',
+            'membership_badge', 'is_active_member', 'memberships'
+        ]
 
 
 class MemberRegisterSerializer(serializers.ModelSerializer):
     """
-    Serializer for Member self-registration.
+    Serializer for Student self-registration.
     Requires Full Name, Student ID, University Email, and Password.
-    Role is strictly set to MEMBER.
+    Initial membership status is NONE.
     """
     password = serializers.CharField(
         write_only=True,
@@ -59,7 +144,7 @@ class MemberRegisterSerializer(serializers.ModelSerializer):
 
     def validate_student_id(self, value):
         if not value or not value.strip():
-            raise serializers.ValidationError("Student ID is required for member registration.")
+            raise serializers.ValidationError("Student ID is required for registration.")
         value = value.strip().upper()
         if User.objects.filter(student_id__iexact=value).exists():
             raise serializers.ValidationError("A student with this Student ID is already registered.")
@@ -84,16 +169,201 @@ class MemberRegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm', None)
         password = validated_data.pop('password')
         
-        # Enforce MEMBER role upon self-registration
+        # Enforce STUDENT role and NONE membership upon registration
         user = User.objects.create_user(
             email=validated_data['email'],
             password=password,
             full_name=validated_data['full_name'],
             student_id=validated_data['student_id'],
-            role=User.Role.MEMBER,
+            role=User.Role.STUDENT,
+            membership_status=User.MembershipStatus.NONE,
             is_active=True
         )
         return user
+
+
+class PurchaseMembershipSerializer(serializers.Serializer):
+    """
+    Serializer for Student Purchasing / Joining Club Membership.
+    """
+    club_id = serializers.CharField(required=False, allow_blank=True)
+    membership_type = serializers.ChoiceField(
+        choices=ClubMembership.MembershipType.choices,
+        default=ClubMembership.MembershipType.ANNUAL
+    )
+    payment_method = serializers.CharField(required=False, default='Student ID Account (Bursar)')
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if user.role not in (User.Role.STUDENT, User.Role.MEMBER):
+            raise serializers.ValidationError('Only students can purchase organization membership.')
+        user.check_and_update_membership_expiry()
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        club_id = validated_data.get('club_id')
+        membership_type = validated_data.get('membership_type', ClubMembership.MembershipType.ANNUAL)
+        payment_method = validated_data.get('payment_method', 'Student ID Account (Bursar)')
+
+        club = None
+        fee = 499.00 if membership_type == ClubMembership.MembershipType.ANNUAL else 299.00
+        club_name = "Skyline Student Association"
+
+        if club_id:
+            try:
+                club = Club.objects.get(id=club_id)
+                fee = club.annual_fee if membership_type == ClubMembership.MembershipType.ANNUAL else club.semester_fee
+                club_name = club.name
+            except Club.DoesNotExist:
+                pass
+
+        start_date = timezone.now().date()
+        if membership_type == ClubMembership.MembershipType.ANNUAL:
+            end_date = start_date + timedelta(days=365)
+        else:
+            end_date = start_date + timedelta(days=180)
+
+        # Deactivate any previous active memberships for this club
+        if club:
+            ClubMembership.objects.filter(student=user, club=club, status=ClubMembership.Status.ACTIVE).update(
+                status=ClubMembership.Status.EXPIRED
+            )
+
+        # Create new ClubMembership
+        membership = ClubMembership.objects.create(
+            student=user,
+            club=club,
+            club_name_snapshot=club_name,
+            membership_type=membership_type,
+            fee=fee,
+            start_date=start_date,
+            end_date=end_date,
+            status=ClubMembership.Status.ACTIVE,
+            payment_method=payment_method
+        )
+
+        user.membership_status = User.MembershipStatus.ACTIVE
+        user.membership_type = membership_type
+        user.membership_start_date = start_date
+        user.membership_end_date = end_date
+        user.save(update_fields=[
+            'membership_status',
+            'membership_type',
+            'membership_start_date',
+            'membership_end_date'
+        ])
+
+        return membership
+
+
+class RenewMembershipSerializer(serializers.Serializer):
+    """
+    Serializer for Student renewing an existing membership.
+    """
+    membership_type = serializers.ChoiceField(
+        choices=ClubMembership.MembershipType.choices,
+        default=ClubMembership.MembershipType.ANNUAL
+    )
+    club_id = serializers.CharField(required=False, allow_blank=True)
+    payment_method = serializers.CharField(required=False, default='Student ID Account (Bursar)')
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if user.role not in (User.Role.STUDENT, User.Role.MEMBER):
+            raise serializers.ValidationError('Only students can renew organization membership.')
+        user.check_and_update_membership_expiry()
+        return attrs
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        membership_type = validated_data.get('membership_type', ClubMembership.MembershipType.ANNUAL)
+        club_id = validated_data.get('club_id')
+        payment_method = validated_data.get('payment_method', 'Student ID Account (Bursar)')
+
+        club = None
+        fee = 499.00 if membership_type == ClubMembership.MembershipType.ANNUAL else 299.00
+        club_name = "Skyline Student Association"
+
+        if club_id:
+            try:
+                club = Club.objects.get(id=club_id)
+                fee = club.annual_fee if membership_type == ClubMembership.MembershipType.ANNUAL else club.semester_fee
+                club_name = club.name
+            except Club.DoesNotExist:
+                pass
+
+        start_date = timezone.now().date()
+        if membership_type == ClubMembership.MembershipType.ANNUAL:
+            end_date = start_date + timedelta(days=365)
+        else:
+            end_date = start_date + timedelta(days=180)
+
+        # Deactivate any previous active memberships for this club
+        if club:
+            ClubMembership.objects.filter(student=user, club=club, status=ClubMembership.Status.ACTIVE).update(
+                status=ClubMembership.Status.EXPIRED
+            )
+
+        membership = ClubMembership.objects.create(
+            student=user,
+            club=club,
+            club_name_snapshot=club_name,
+            membership_type=membership_type,
+            fee=fee,
+            start_date=start_date,
+            end_date=end_date,
+            status=ClubMembership.Status.ACTIVE,
+            payment_method=payment_method
+        )
+
+        user.membership_status = User.MembershipStatus.ACTIVE
+        user.membership_type = membership_type
+        user.membership_start_date = start_date
+        user.membership_end_date = end_date
+        user.save(update_fields=[
+            'membership_status',
+            'membership_type',
+            'membership_start_date',
+            'membership_end_date'
+        ])
+
+        return membership
+
+
+class AdminUpdateMembershipSerializer(serializers.Serializer):
+    """
+    Admin serializer to manually adjust student membership status, type, and dates.
+    """
+    membership_status = serializers.ChoiceField(
+        choices=User.MembershipStatus.choices,
+        required=False,
+    )
+    membership_type = serializers.ChoiceField(choices=User.MembershipType.choices, required=False, allow_null=True)
+    membership_start_date = serializers.DateField(required=False, allow_null=True)
+    membership_end_date = serializers.DateField(required=False, allow_null=True)
+
+    def update(self, instance, validated_data):
+        if not validated_data:
+            raise serializers.ValidationError('No membership fields provided to update.')
+
+        status_val = validated_data.get('membership_status', instance.membership_status)
+        type_val = validated_data.get('membership_type', instance.membership_type)
+        start_date = validated_data.get('membership_start_date', instance.membership_start_date)
+        end_date = validated_data.get('membership_end_date', instance.membership_end_date)
+
+        if status_val == User.MembershipStatus.ACTIVE and not start_date:
+            start_date = timezone.now().date()
+        if status_val == User.MembershipStatus.ACTIVE and not end_date:
+            days = 365 if type_val == User.MembershipType.ANNUAL else 180
+            end_date = (start_date or timezone.now().date()) + timedelta(days=days)
+
+        instance.membership_status = status_val
+        instance.membership_type = type_val
+        instance.membership_start_date = start_date
+        instance.membership_end_date = end_date
+        instance.save()
+        return instance
 
 
 class CreateTreasurerSerializer(serializers.ModelSerializer):
@@ -149,46 +419,39 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     1. Authenticates user by email & password.
     2. Validates user is active.
     3. Validates that Treasurer accounts use @treasurer.gmail.com.
-    4. Returns access token, refresh token, role, and user profile data.
+    4. Returns access token, refresh token, role, and full user profile data with membership status.
     """
     username_field = 'email'
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Add custom claims to the JWT payload
         token['full_name'] = user.full_name
         token['email'] = user.email
         token['role'] = user.role
         token['student_id'] = user.student_id
+        token['membership_status'] = user.membership_status
+        token['membership_type'] = user.membership_type
+        token['membership_badge'] = user.membership_badge
         return token
 
     def validate(self, attrs):
-        # Authenticate using default SimpleJWT method
         data = super().validate(attrs)
 
-        # Check if user account is active
         if not self.user.is_active:
             raise serializers.ValidationError({"detail": "User account is disabled."})
 
-        # Treasurer role email domain restriction
         if self.user.role == User.Role.TREASURER:
             if not self.user.email.lower().endswith('@treasurer.gmail.com'):
                 raise serializers.ValidationError({
                     "detail": "Treasurer can only login with an email ending in @treasurer.gmail.com."
                 })
 
-        # Append custom payload to response
+        # Check and update expiry if needed
+        self.user.check_and_update_membership_expiry()
+
         data['role'] = self.user.role
-        data['user'] = {
-            'id': self.user.id,
-            'full_name': self.user.full_name,
-            'email': self.user.email,
-            'student_id': self.user.student_id,
-            'role': self.user.role,
-            'is_active': self.user.is_active,
-            'created_at': self.user.created_at,
-        }
+        data['user'] = UserSerializer(self.user).data
         return data
 
 
@@ -232,7 +495,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
             user = User.objects.get(email__iexact=value, is_active=True)
             self.context['user'] = user
         except User.DoesNotExist:
-            # We still return the email for security (to prevent email enumeration)
             self.context['user'] = None
         return value
 
@@ -271,9 +533,18 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating user profile.
+    Serializer for updating student / user profile information.
     """
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'student_id', 'role']
+        fields = [
+            'full_name',
+            'department',
+            'semester',
+            'phone',
+            'avatar',
+            'email',
+            'student_id',
+            'role'
+        ]
         read_only_fields = ['email', 'student_id', 'role']

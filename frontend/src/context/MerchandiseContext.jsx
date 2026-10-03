@@ -2,14 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const MerchandiseContext = createContext(null);
 
-// Initial default merchandise for Skyline Student Association
+// Initial default merchandise with Regular Price and Member Price
 const DEFAULT_PRODUCTS = [
   {
     id: 'mch-101',
     name: 'Skyline SSA Heavyweight Crest Hoodie',
     type: 'Hoodie',
     category: 'Hoodies',
-    price: 38.00,
+    regularPrice: 1000.00,
+    memberPrice: 800.00,
+    price: 1000.00,
     tag: 'Official Skyline',
     description: 'Collegiate heavyweight fleece hoodie with embroidered Skyline Student Association crest, warm front pouch pocket, and ribbed cuffs.',
     image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
@@ -26,7 +28,9 @@ const DEFAULT_PRODUCTS = [
     name: 'Skyline Club Signature Cotton T-Shirt',
     type: 'T-Shirt',
     category: 'T-Shirts',
-    price: 20.00,
+    regularPrice: 500.00,
+    memberPrice: 350.00,
+    price: 500.00,
     tag: 'Bestseller',
     description: '100% ring-spun organic cotton breathable T-shirt featuring the Skyline modern club emblem on the chest and athletic fit.',
     image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
@@ -44,7 +48,9 @@ const DEFAULT_PRODUCTS = [
     name: 'Skyline Athletic Zip-Up Tech Hoodie',
     type: 'Hoodie',
     category: 'Hoodies',
-    price: 44.00,
+    regularPrice: 1200.00,
+    memberPrice: 950.00,
+    price: 1200.00,
     tag: 'New Release',
     description: 'Performance stretch thermal zip-up hoodie with Skyline Association badge, zippered phone pocket, and athletic drawstrings.',
     image: 'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=600&q=80',
@@ -61,7 +67,9 @@ const DEFAULT_PRODUCTS = [
     name: 'Skyline Vintage Campus Graphic T-Shirt',
     type: 'T-Shirt',
     category: 'T-Shirts',
-    price: 22.00,
+    regularPrice: 600.00,
+    memberPrice: 450.00,
+    price: 600.00,
     tag: 'Heritage Edition',
     description: 'Retro washed collegiate tee with distressed Skyline Student Association typography and ultra-soft pre-shrunk cotton.',
     image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=600&q=80',
@@ -84,8 +92,8 @@ const DEFAULT_ORDERS = [
     image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
     size: 'M',
     quantity: 1,
-    unitPrice: 38.00,
-    totalPrice: 38.00,
+    unitPrice: 800.00,
+    totalPrice: 800.00,
     memberId: 'usr-member-001',
     memberName: 'Sophia Montgomery',
     studentId: 'STU-2026-8842',
@@ -95,7 +103,7 @@ const DEFAULT_ORDERS = [
     paymentDate: '2026-10-01 14:32',
     fulfillmentStatus: 'READY_FOR_PICKUP',
     orderDate: 'Oct 01, 2026 • 2:32 PM',
-    notes: 'Order placed via Mobile Web'
+    notes: 'Order placed with Member Discount (Saved ₹200)'
   },
   {
     id: 'ORD-2026-902',
@@ -105,8 +113,8 @@ const DEFAULT_ORDERS = [
     image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
     size: 'L',
     quantity: 2,
-    unitPrice: 20.00,
-    totalPrice: 40.00,
+    unitPrice: 350.00,
+    totalPrice: 700.00,
     memberId: 'mem-105',
     memberName: 'Julian Chen',
     studentId: 'STU-2026-9021',
@@ -117,27 +125,6 @@ const DEFAULT_ORDERS = [
     fulfillmentStatus: 'COLLECTED',
     orderDate: 'Oct 02, 2026 • 9:15 AM',
     notes: 'Picked up at Student Union desk'
-  },
-  {
-    id: 'ORD-2026-903',
-    productId: 'mch-101',
-    productName: 'Skyline SSA Heavyweight Crest Hoodie',
-    productType: 'Hoodie',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
-    size: 'XL',
-    quantity: 1,
-    unitPrice: 38.00,
-    totalPrice: 38.00,
-    memberId: 'mem-104',
-    memberName: 'Elena Rostova',
-    studentId: 'STU-2026-6733',
-    memberEmail: 'elena.r@university.edu',
-    paymentStatus: 'PENDING',
-    paymentMethod: 'Cash upon Pickup',
-    paymentDate: null,
-    fulfillmentStatus: 'ORDERED',
-    orderDate: 'Oct 03, 2026 • 11:20 AM',
-    notes: 'Reserved online; payment pending at club counter'
   }
 ];
 
@@ -176,33 +163,70 @@ export const MerchandiseProvider = ({ children }) => {
     }
   }, [orders]);
 
-  // Helper to compute total remaining stock across all sizes for a product
   const getProductTotalStock = (product) => {
     if (!product || !product.sizeStock) return 0;
     return Object.values(product.sizeStock).reduce((sum, count) => sum + (Number(count) || 0), 0);
   };
 
-  // Add new hoodie or t-shirt product
+  /**
+   * Pricing Calculator based on Student Membership Status
+   */
+  const getProductPricing = (product, isMember = false) => {
+    const regular = parseFloat(product.regularPrice || product.price || 1000);
+    const member = parseFloat(product.memberPrice || regular * 0.8);
+    const savings = Math.max(0, regular - member);
+
+    if (isMember) {
+      return {
+        price: member,
+        regularPrice: regular,
+        memberPrice: member,
+        savings: savings,
+        isMemberDiscountApplied: true,
+        message: `You saved ₹${savings}`,
+        badge: 'Member Price'
+      };
+    }
+
+    return {
+      price: regular,
+      regularPrice: regular,
+      memberPrice: member,
+      savings: savings,
+      isMemberDiscountApplied: false,
+      message: 'Member discount available',
+      badge: 'Regular Price'
+    };
+  };
+
   const addProduct = (newProduct) => {
+    const regular = parseFloat(newProduct.regularPrice || newProduct.price) || 1000.00;
+    const member = parseFloat(newProduct.memberPrice) || (regular * 0.8);
+
     const productWithId = {
       ...newProduct,
       id: `mch-${Date.now().toString().slice(-4)}`,
-      price: parseFloat(newProduct.price) || 0,
+      regularPrice: regular,
+      memberPrice: member,
+      price: regular,
       sizeStock: newProduct.sizeStock || { S: 10, M: 20, L: 15, XL: 5 }
     };
     setProducts((prev) => [productWithId, ...prev]);
     return productWithId;
   };
 
-  // Update existing product
   const updateProduct = (id, updatedFields) => {
     setProducts((prev) =>
       prev.map((item) => {
         if (item.id === id) {
+          const regular = updatedFields.regularPrice !== undefined ? parseFloat(updatedFields.regularPrice) : (updatedFields.price !== undefined ? parseFloat(updatedFields.price) : item.regularPrice || item.price);
+          const member = updatedFields.memberPrice !== undefined ? parseFloat(updatedFields.memberPrice) : (item.memberPrice || regular * 0.8);
           return {
             ...item,
             ...updatedFields,
-            price: updatedFields.price !== undefined ? parseFloat(updatedFields.price) : item.price
+            regularPrice: regular,
+            memberPrice: member,
+            price: regular
           };
         }
         return item;
@@ -210,12 +234,10 @@ export const MerchandiseProvider = ({ children }) => {
     );
   };
 
-  // Delete product
   const deleteProduct = (id) => {
     setProducts((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Update specific size stock directly (e.g. restock 10 Mediums)
   const updateSizeStock = (productId, size, quantity) => {
     setProducts((prev) =>
       prev.map((item) => {
@@ -232,13 +254,12 @@ export const MerchandiseProvider = ({ children }) => {
     );
   };
 
-  // Place online order (validates stock, decrements chosen size, creates order)
   const placeOrder = ({
     productId,
     size,
     quantity = 1,
     member,
-    paymentMethod,
+    paymentMethod = 'Student Account (Bursar)',
     paymentStatus = 'PAID',
     notes = '',
     unitPrice: customUnitPrice
@@ -256,7 +277,6 @@ export const MerchandiseProvider = ({ children }) => {
       };
     }
 
-    // Decrement stock for the specific size
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id === productId) {
@@ -271,7 +291,9 @@ export const MerchandiseProvider = ({ children }) => {
       })
     );
 
-    const unitPrice = customUnitPrice !== undefined ? parseFloat(customUnitPrice) : product.price;
+    const isMember = member?.is_active_member || member?.membershipStatus === 'ACTIVE';
+    const pricing = getProductPricing(product, isMember);
+    const unitPrice = customUnitPrice !== undefined ? parseFloat(customUnitPrice) : pricing.price;
     const totalPrice = unitPrice * quantity;
     const newOrderId = `ORD-${Date.now().toString().slice(-4)}`;
     const formattedDate = new Date().toLocaleDateString('en-US', {
@@ -293,15 +315,15 @@ export const MerchandiseProvider = ({ children }) => {
       unitPrice: unitPrice,
       totalPrice: totalPrice,
       memberId: member.id || 'usr-guest',
-      memberName: member.name || 'Student Member',
-      studentId: member.studentId || 'STU-2026',
+      memberName: member.name || member.fullName || 'Student',
+      studentId: member.studentId || member.student_id || 'STU-2026',
       memberEmail: member.email || 'student@university.edu',
-      paymentStatus: paymentStatus, // 'PAID' or 'PENDING'
+      paymentStatus: paymentStatus,
       paymentMethod: paymentMethod,
       paymentDate: paymentStatus === 'PAID' ? new Date().toISOString() : null,
       fulfillmentStatus: 'ORDERED',
       orderDate: formattedDate,
-      notes: notes || 'Online Mobile Order'
+      notes: notes || (isMember ? `Member pricing applied (${pricing.message})` : 'Regular order')
     };
 
     setOrders((prev) => [newOrder, ...prev]);
@@ -312,7 +334,6 @@ export const MerchandiseProvider = ({ children }) => {
     };
   };
 
-  // Record or update payment for an order
   const recordPayment = (orderId, status = 'PAID', method = null) => {
     setOrders((prev) =>
       prev.map((order) => {
@@ -329,7 +350,6 @@ export const MerchandiseProvider = ({ children }) => {
     );
   };
 
-  // Update fulfillment status (ORDERED -> READY_FOR_PICKUP -> COLLECTED)
   const updateFulfillmentStatus = (orderId, newStatus) => {
     setOrders((prev) =>
       prev.map((order) => {
@@ -350,6 +370,7 @@ export const MerchandiseProvider = ({ children }) => {
         products,
         orders,
         getProductTotalStock,
+        getProductPricing,
         addProduct,
         updateProduct,
         deleteProduct,
@@ -371,3 +392,5 @@ export const useMerchandise = () => {
   }
   return context;
 };
+
+export default MerchandiseContext;

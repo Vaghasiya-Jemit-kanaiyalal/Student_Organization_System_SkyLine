@@ -31,25 +31,26 @@ export const LoginPage = () => {
 
   const redirectByRole = React.useCallback((role) => {
     const destination = location.state?.from?.pathname;
+    const cleanRole = String(role || '').toUpperCase();
 
-    // Validate that destination belongs to the user's role
-    if (destination && !destination.includes('/login')) {
-      if (role === 'TREASURER' && destination.startsWith('/treasurer')) {
+    // Validate that destination belongs to the user's role (avoid stale /unauthorized or /login)
+    if (destination && !destination.includes('/login') && !destination.includes('/unauthorized')) {
+      if (cleanRole === 'TREASURER' && destination.startsWith('/treasurer')) {
         navigate(destination, { replace: true });
         return;
       }
-      if (role === 'ADMIN' && destination.startsWith('/admin')) {
+      if (cleanRole === 'ADMIN' && destination.startsWith('/admin')) {
         navigate(destination, { replace: true });
         return;
       }
-      if (role === 'MEMBER' && destination.startsWith('/member')) {
+      if ((cleanRole === 'MEMBER' || cleanRole === 'STUDENT') && (destination.startsWith('/member') || destination.startsWith('/student'))) {
         navigate(destination, { replace: true });
         return;
       }
     }
 
     // Role-specific primary destinations
-    switch (role) {
+    switch (cleanRole) {
       case 'ADMIN':
         navigate('/admin/dashboard', { replace: true });
         break;
@@ -57,6 +58,7 @@ export const LoginPage = () => {
         navigate('/treasurer/dashboard', { replace: true });
         break;
       case 'MEMBER':
+      case 'STUDENT':
       default:
         navigate('/member/dashboard', { replace: true });
         break;

@@ -18,30 +18,51 @@ class IsAdmin(permissions.BasePermission):
 
 class IsTreasurer(permissions.BasePermission):
     """
-    Custom permission to only allow Treasurers or Admins access to financial resources.
+    Treasurer-only financial operations (reimbursement approval, ledger writes).
     """
-    message = "Access denied: Treasurer or Administrator privileges required."
+    message = "Access denied: Treasurer privileges required."
 
     def has_permission(self, request, view):
         return bool(
-            request.user and
-            request.user.is_authenticated and
-            (request.user.role in ['TREASURER', 'ADMIN'] or request.user.is_superuser)
+            request.user
+            and request.user.is_authenticated
+            and (request.user.role == 'TREASURER' or request.user.is_superuser)
         )
 
 
-class IsMember(permissions.BasePermission):
+class IsTreasurerOrAdminReadOnly(permissions.BasePermission):
     """
-    Custom permission to only allow registered Organization Members access.
+    Treasurers: full access. Admins: read-only on finance endpoints (no approvals).
     """
-    message = "Access denied: Organization Member access required."
+
+    message = "Access denied: Treasurer privileges required for this action."
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser or request.user.role == 'TREASURER':
+            return True
+        if request.user.role == 'ADMIN' and request.method in permissions.SAFE_METHODS:
+            return True
+        return False
+
+
+class IsStudent(permissions.BasePermission):
+    """
+    Students (STUDENT or legacy MEMBER role). Membership status is separate from role.
+    """
+    message = "Access denied: Student access required."
 
     def has_permission(self, request, view):
         return bool(
-            request.user and
-            request.user.is_authenticated and
-            request.user.role == 'MEMBER'
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in ('STUDENT', 'MEMBER')
         )
+
+
+# Backward-compatible alias used across volunteer views
+IsMember = IsStudent
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
