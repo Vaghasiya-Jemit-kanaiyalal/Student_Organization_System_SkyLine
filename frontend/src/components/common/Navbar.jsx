@@ -103,7 +103,7 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand / Logo */}
         <Link to="/" className="flex items-center space-x-3 group">
-          <UniversityCrest className="w-9 h-9 transition-transform group-hover:scale-105" variant="burgundy" />
+          <UniversityCrest className="w-9 h-9 transition-transform group-hover:scale-105" variant="navy" />
           <div className="flex flex-col text-left">
             <span className="font-serif-academic text-xl font-bold tracking-tight text-primary leading-none group-hover:text-primary-hover">
               ConnectU
