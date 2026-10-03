@@ -9,6 +9,7 @@ import { AdminMerchManager } from '../../components/merchandise/AdminMerchManage
 import { FundraisersManagementModule } from '../../components/fundraisers/FundraisersManagementModule';
 import { useTreasurer } from '../../context/TreasurerContext';
 import { TreasurerModal } from '../../components/admin/TreasurerModal';
+import { AdminVolunteerControl } from '../../components/volunteers/AdminVolunteerControl';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -704,106 +705,8 @@ export const AdminDashboard = () => {
         {/* TAB 7: VOLUNTEER CONTROL */}
         {/* ========================================================= */}
         {activeTab === 'volunteers' && (
-          <div className="space-y-4 animate-fadeIn">
-            {/* Top Volunteer Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 sm:p-4 shadow-2xs">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Total Certified Hours
-                </span>
-                <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">
-                  420 Hours
-                </p>
-                <span className="text-[11px] text-emerald-700 font-medium">Ratified under Dean Honor Program</span>
-              </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 sm:p-4 shadow-2xs">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Pending Verification
-                </span>
-                <p className="text-xl sm:text-2xl font-bold font-mono text-amber-700 mt-1">
-                  {volunteerHours.filter(v => v.status === 'PENDING').reduce((acc, curr) => acc + curr.hours, 0)} Hours
-                </p>
-                <span className="text-[11px] text-slate-400">Awaiting Advisor Signature</span>
-              </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-3.5 sm:p-4 shadow-2xs">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Registrar Credits
-                </span>
-                <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">
-                  28 Students Awarded
-                </p>
-                <span className="text-[11px] text-slate-400">Official academic transcript notation</span>
-              </div>
-            </div>
-
-            {/* Volunteer Control Table */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3.5">
-              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-zinc-900">
-                    Volunteer Verification & Hour Allocation
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Review student community service submissions and certify official transcript credits
-                  </p>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="py-2.5 px-3.5">Student Volunteer</th>
-                      <th className="py-2.5 px-3.5">Initiative / Event</th>
-                      <th className="py-2.5 px-3.5">Hours Logged</th>
-                      <th className="py-2.5 px-3.5">Date</th>
-                      <th className="py-2.5 px-3.5">Status</th>
-                      <th className="py-2.5 px-3.5 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {volunteerHours.map((vol) => (
-                      <tr key={vol.id} className="hover:bg-slate-50/80 transition">
-                        <td className="py-2.5 px-3.5">
-                          <p className="font-semibold text-zinc-900">{vol.studentName}</p>
-                          <p className="text-[10px] font-mono text-slate-400">{vol.studentId}</p>
-                        </td>
-                        <td className="py-2.5 px-3.5">
-                          <p className="font-medium text-zinc-900">{vol.event}</p>
-                          <p className="text-[10px] text-slate-500">{vol.role}</p>
-                        </td>
-                        <td className="py-2.5 px-3.5 font-mono font-bold text-emerald-700">
-                          {vol.hours} hrs
-                        </td>
-                        <td className="py-2.5 px-3.5 text-slate-500">{vol.date}</td>
-                        <td className="py-2.5 px-3.5">
-                          {vol.status === 'VERIFIED' ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              Dean Verified
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                              Pending Review
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3.5 text-right">
-                          <button
-                            onClick={() => handleToggleVolunteerApproval(vol.id)}
-                            className={`h-7 px-2.5 rounded text-xs font-semibold transition ${vol.status === 'VERIFIED'
-                              ? 'bg-slate-100 hover:bg-slate-200 text-zinc-700 border border-slate-200'
-                              : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs'
-                              }`}
-                          >
-                            {vol.status === 'VERIFIED' ? 'Revoke Credit' : 'Certify Credit'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="space-y-6 animate-fadeIn">
+            <AdminVolunteerControl onNavigateToEvents={() => navigateToEvents('all')} />
           </div>
         )}
 

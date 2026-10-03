@@ -36,7 +36,10 @@ class VolunteerFlowTests(APITestCase):
             title='Tech Fair 2026',
             description='Annual university tech fair.',
             date=timezone.now() + timedelta(days=7),
-            location='Main Campus Auditorium',
+            venue='Main Campus Auditorium',
+            volunteers_required=True,
+            volunteer_roles_required=['Registration Desk', 'Photography Team'],
+            status=Event.Status.PUBLISHED,
             created_by=self.admin
         )
 
@@ -47,11 +50,12 @@ class VolunteerFlowTests(APITestCase):
         url = reverse('volunteer-apply')
         data = {
             'event': self.event.id,
-            'notes': 'Excited to help with stage management.'
+            'preferred_role': 'Stage Management',
+            'reason': 'Excited to help with stage management.'
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['data']['status'], 'PENDING')
+        self.assertEqual(response.data['data']['status'], VolunteerApplication.Status.PENDING)
         self.assertEqual(response.data['data']['event'], self.event.id)
 
     def test_member_cannot_apply_twice_to_same_event(self):
@@ -103,3 +107,47 @@ class VolunteerFlowTests(APITestCase):
         url = reverse('admin-volunteers-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_approving_creates_active_assignment_and_certificate(self):
+        app = VolunteerApplication.objects.create(
+            student=self.member,
+            event=self.event,
+            preferred_role='Stage Management',
+            status=VolunteerApplication.Status.PENDING
+        )
+
+        refresh = RefreshToken.for_user(self.admin)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        # Approve application
+        url = reverse('admin-volunteer-approve', kwargs={'pk': app.id})
+        approve_data = {
+            'assigned_role': 'Stage Management',
+            'duration': '6 Hours',
+            'notes': 'Great match'
+        }
+        res = self.client.post(url, approve_data, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+        # Check Active assignment
+        active_url = reverse('volunteers-active')
+        active_res = self.client.get(active_url)
+        self.assertEqual(active_res.status_code, status.HTTP_200_OK)
+        assignments = active_res.data.get('results', active_res.data)
+        self.assertTrue(any(a['student'] == self.member.id for a in assignments))
+
+        # Mark event completed
+        self.event.status = Event.Status.COMPLETED
+        self.event.save()
+
+        # Generate certificate
+        gen_cert_url = reverse('certificates-generate')
+        cert_data = {
+            'event_id': self.event.id,
+            'student_ids': [self.member.id]
+        }
+        cert_res = self.client.post(gen_cert_url, cert_data, format='json')
+        self.assertEqual(cert_res.status_code, status.HTTP_201_CREATED)
+        self.assertIn('certificates', cert_res.data)
+        self.assertEqual(len(cert_res.data['certificates']), 1)
+        self.assertEqual(cert_res.data['certificates'][0]['student_name'], self.member.full_name)
