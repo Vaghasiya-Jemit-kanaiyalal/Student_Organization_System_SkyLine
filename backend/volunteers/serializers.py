@@ -62,6 +62,8 @@ class EventSerializer(serializers.ModelSerializer):
             'ticket_price',
             'member_ticket_price',
             'non_member_ticket_price',
+            'member_price',
+            'non_member_price',
             'user_ticket_price',
             'is_member_discount_applied',
             'discount_savings',

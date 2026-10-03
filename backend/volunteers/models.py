@@ -116,6 +116,14 @@ class Event(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def member_price(self):
+        return self.member_ticket_price
+
+    @property
+    def non_member_price(self):
+        return self.non_member_ticket_price or self.ticket_price
+
+    @property
     def roles_list(self):
         if not self.volunteer_roles_required:
             return []

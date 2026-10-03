@@ -282,7 +282,7 @@ class RenewMembershipView(APIView):
             "message": f"Membership renewed successfully! Valid until {membership.end_date.strftime('%b %d, %Y')}.",
             "membership": ClubMembershipSerializer(membership).data,
             "user": UserSerializer(request.user).data
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_201_CREATED)
 
 
 class MyMembershipStatusView(APIView):

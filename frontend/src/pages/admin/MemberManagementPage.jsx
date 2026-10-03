@@ -38,8 +38,41 @@ export const MemberManagementPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const subTabParam = searchParams.get('subtab') || (searchParams.get('tab') === 'renewals' ? 'renewals' : 'all');
 
-  // Master Members State
-  const [members, setMembers] = useState(INITIAL_MEMBERS_DATA);
+  // Master Members State with localStorage persistence
+  const [members, setMembers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('skyline_members_roster');
+      if (saved) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const parsed = JSON.parse(saved);
+        // Automatic expiry check: if today > expiryDate, status is Expired
+        return parsed.map((m) => {
+          if (m.expiryDate && m.expiryDate < todayStr && m.membershipStatus === 'Active') {
+            return { ...m, membershipStatus: 'Expired' };
+          }
+          return m;
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved member roster:', e);
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    return INITIAL_MEMBERS_DATA.map((m) => {
+      if (m.expiryDate && m.expiryDate < todayStr && m.membershipStatus === 'Active') {
+        return { ...m, membershipStatus: 'Expired' };
+      }
+      return m;
+    });
+  });
+
+  // Sync to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('skyline_members_roster', JSON.stringify(members));
+    } catch (e) {
+      console.warn('Failed to save members to localStorage:', e);
+    }
+  }, [members]);
 
   // Load from backend API if available
   useEffect(() => {
@@ -48,10 +81,13 @@ export const MemberManagementPage = () => {
         const res = await membershipApi.getAdminMembers();
         const data = Array.isArray(res) ? res : res?.results;
         if (data && data.length > 0) {
+          const todayStr = new Date().toISOString().split('T')[0];
           const mapped = data.map((u) => {
             const rawName = u.full_name || u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email || 'Student';
             const rawStatus = String(u.membership_status || 'NONE').toUpperCase();
-            const formattedStatus = rawStatus === 'ACTIVE' ? 'Active' : rawStatus === 'EXPIRED' ? 'Expired' : 'None';
+            const rawExpiry = u.membership_end_date || '2027-08-31';
+            const isFinished = rawExpiry && rawExpiry < todayStr;
+            const formattedStatus = (rawStatus === 'ACTIVE' && isFinished) ? 'Expired' : (rawStatus === 'ACTIVE' ? 'Active' : rawStatus === 'EXPIRED' ? 'Expired' : 'None');
             const rawType = String(u.membership_type || 'ANNUAL').toUpperCase();
             const formattedType = rawType === 'SEMESTER' ? 'Semester' : 'Annual';
 
@@ -64,7 +100,7 @@ export const MemberManagementPage = () => {
               membershipType: formattedType,
               membershipStatus: formattedStatus,
               joinDate: u.membership_start_date || '2026-09-01',
-              expiryDate: u.membership_end_date || '2027-08-31',
+              expiryDate: rawExpiry,
               totalRenewals: 1,
               lastRenewalDate: u.membership_start_date || '2026-09-01',
               eventHistory: [],
@@ -202,6 +238,40 @@ export const MemberManagementPage = () => {
     });
   }, [members, renewalSearchTerm, renewalTypeFilter]);
 
+  // Cross-page sync helper: updates active student session if the admin modifies the currently logged-in user
+  const syncWithActiveUser = (updatedMember) => {
+    try {
+      const activeUserStr = localStorage.getItem('connectu_active_user');
+      if (activeUserStr) {
+        const activeUser = JSON.parse(activeUserStr);
+        if (
+          String(activeUser.id) === String(updatedMember.id) ||
+          activeUser.email?.toLowerCase() === updatedMember.email?.toLowerCase() ||
+          activeUser.studentId === updatedMember.studentId ||
+          activeUser.student_id === updatedMember.studentId
+        ) {
+          const isAct = String(updatedMember.membershipStatus).toUpperCase() === 'ACTIVE';
+          const updatedActiveUser = {
+            ...activeUser,
+            membership_status: isAct ? 'ACTIVE' : 'EXPIRED',
+            membershipStatus: isAct ? 'ACTIVE' : 'EXPIRED',
+            membership_type: String(updatedMember.membershipType || 'ANNUAL').toUpperCase(),
+            membershipType: String(updatedMember.membershipType || 'ANNUAL').toUpperCase(),
+            membership_end_date: updatedMember.expiryDate || activeUser.membership_end_date,
+            membershipEndDate: updatedMember.expiryDate || activeUser.membershipEndDate,
+            membershipBadge: isAct ? (String(updatedMember.membershipType).toUpperCase() === 'SEMESTER' ? 'Semester Member' : 'Annual Member') : 'Student',
+            is_active_member: isAct,
+            isActiveMember: isAct,
+          };
+          localStorage.setItem('connectu_active_user', JSON.stringify(updatedActiveUser));
+          window.dispatchEvent(new Event('skyline-user-updated'));
+        }
+      }
+    } catch (e) {
+      console.warn('Sync with active user failed:', e);
+    }
+  };
+
   // Action: Renew Membership
   const handleConfirmRenew = async (memberId, extensionMonths = 12) => {
     try {
@@ -213,13 +283,15 @@ export const MemberManagementPage = () => {
       console.warn('API renew call fallback:', err);
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id === memberId) {
-          const currentExpiry = new Date(m.expiryDate > '2026-10-03' ? m.expiryDate : '2026-10-03');
+          const baseDate = m.expiryDate && m.expiryDate > todayStr ? m.expiryDate : todayStr;
+          const currentExpiry = new Date(baseDate);
           currentExpiry.setMonth(currentExpiry.getMonth() + extensionMonths);
           const newExpiryStr = currentExpiry.toISOString().split('T')[0];
-          const todayStr = '2026-10-03';
 
           const newHistoryItem = {
             id: `REN-${Date.now().toString().slice(-4)}`,
@@ -230,7 +302,7 @@ export const MemberManagementPage = () => {
             approvedBy: 'Club Administrator'
           };
 
-          return {
+          const updated = {
             ...m,
             membershipStatus: 'Active',
             expiryDate: newExpiryStr,
@@ -238,6 +310,9 @@ export const MemberManagementPage = () => {
             lastRenewalDate: todayStr,
             renewalHistory: [newHistoryItem, ...(m.renewalHistory || [])]
           };
+
+          syncWithActiveUser(updated);
+          return updated;
         }
         return m;
       })
@@ -262,8 +337,10 @@ export const MemberManagementPage = () => {
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id === memberId) {
+          const updated = { ...m, membershipStatus: nextStatus };
+          syncWithActiveUser(updated);
           showToast(`Member ${m.name} status updated to ${nextStatus}.`, nextStatus === 'Active' ? 'success' : 'warning');
-          return { ...m, membershipStatus: nextStatus };
+          return updated;
         }
         return m;
       })
@@ -287,7 +364,9 @@ export const MemberManagementPage = () => {
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id === discardingMember.id) {
-          return { ...m, membershipStatus: 'Expired' };
+          const updated = { ...m, membershipStatus: 'Expired' };
+          syncWithActiveUser(updated);
+          return updated;
         }
         return m;
       })
@@ -315,7 +394,13 @@ export const MemberManagementPage = () => {
     }
 
     setMembers((prev) =>
-      prev.map((m) => (m.id === editingMember.id ? editingMember : m))
+      prev.map((m) => {
+        if (m.id === editingMember.id) {
+          syncWithActiveUser(editingMember);
+          return editingMember;
+        }
+        return m;
+      })
     );
 
     if (selectedMemberDetails?.id === editingMember.id) {

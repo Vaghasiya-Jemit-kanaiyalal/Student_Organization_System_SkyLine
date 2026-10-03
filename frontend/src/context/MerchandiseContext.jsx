@@ -172,16 +172,20 @@ export const MerchandiseProvider = ({ children }) => {
    * Pricing Calculator based on Student Membership Status
    */
   const getProductPricing = (product, isMember = false) => {
-    const regular = parseFloat(product.regularPrice || product.price || 1000);
-    const member = parseFloat(product.memberPrice || regular * 0.8);
+    const regular = parseFloat(product.regular_price || product.regularPrice || product.price || 1000);
+    const member = parseFloat(product.member_price || product.memberPrice || regular * 0.8);
     const savings = Math.max(0, regular - member);
 
     if (isMember) {
       return {
         price: member,
+        effectivePrice: member,
         regularPrice: regular,
+        regular_price: regular,
         memberPrice: member,
+        member_price: member,
         savings: savings,
+        discountAmount: savings,
         isMemberDiscountApplied: true,
         message: `You saved ₹${savings}`,
         badge: 'Member Price'
@@ -190,9 +194,13 @@ export const MerchandiseProvider = ({ children }) => {
 
     return {
       price: regular,
+      effectivePrice: regular,
       regularPrice: regular,
+      regular_price: regular,
       memberPrice: member,
+      member_price: member,
       savings: savings,
+      discountAmount: savings,
       isMemberDiscountApplied: false,
       message: 'Member discount available',
       badge: 'Regular Price'
@@ -254,16 +262,28 @@ export const MerchandiseProvider = ({ children }) => {
     );
   };
 
-  const placeOrder = ({
-    productId,
-    size,
-    quantity = 1,
-    member,
-    paymentMethod = 'Student Account (Bursar)',
-    paymentStatus = 'PAID',
-    notes = '',
-    unitPrice: customUnitPrice
-  }) => {
+  const placeOrder = (optionsOrId, maybeSize, maybeQuantity, maybeMember) => {
+    let opts = {};
+    if (typeof optionsOrId === 'string') {
+      opts = {
+        productId: optionsOrId,
+        size: maybeSize || 'M',
+        quantity: maybeQuantity || 1,
+        member: maybeMember
+      };
+    } else if (optionsOrId && typeof optionsOrId === 'object') {
+      opts = optionsOrId;
+    }
+    const {
+      productId,
+      size = 'M',
+      quantity = 1,
+      member = null,
+      paymentMethod = 'Student Account (Bursar)',
+      paymentStatus = 'PAID',
+      notes = '',
+      unitPrice: customUnitPrice
+    } = opts;
     const product = products.find((p) => p.id === productId);
     if (!product) {
       return { success: false, error: 'Product not found.' };
@@ -291,7 +311,7 @@ export const MerchandiseProvider = ({ children }) => {
       })
     );
 
-    const isMember = member?.is_active_member || member?.membershipStatus === 'ACTIVE';
+    const isMember = member?.is_active_member || member?.membershipStatus === 'ACTIVE' || member?.membership_status === 'ACTIVE';
     const pricing = getProductPricing(product, isMember);
     const unitPrice = customUnitPrice !== undefined ? parseFloat(customUnitPrice) : pricing.price;
     const totalPrice = unitPrice * quantity;

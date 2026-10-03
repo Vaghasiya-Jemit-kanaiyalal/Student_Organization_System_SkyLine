@@ -106,6 +106,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchCurrentUser();
+
+    const handleExternalUserUpdate = () => {
+      try {
+        const saved = localStorage.getItem('connectu_active_user');
+        if (saved) {
+          setUser(normalizeUser(JSON.parse(saved)));
+        }
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleExternalUserUpdate);
+    window.addEventListener('skyline-user-updated', handleExternalUserUpdate);
+    return () => {
+      window.removeEventListener('storage', handleExternalUserUpdate);
+      window.removeEventListener('skyline-user-updated', handleExternalUserUpdate);
+    };
   }, []);
 
   /**
@@ -476,6 +492,32 @@ export const AuthProvider = ({ children }) => {
 
     setUser(updatedUser);
     localStorage.setItem('connectu_active_user', JSON.stringify(updatedUser));
+
+    // Synchronize master member roster in localStorage
+    try {
+      const savedRoster = localStorage.getItem('skyline_members_roster');
+      if (savedRoster) {
+        const roster = JSON.parse(savedRoster);
+        const updatedRoster = roster.map((m) => {
+          if (m.id === user.id || m.email?.toLowerCase() === user.email?.toLowerCase() || m.studentId === user.student_id || m.studentId === user.studentId) {
+            return {
+              ...m,
+              membershipStatus: 'Active',
+              membershipType: normalizedPlan === 'SEMESTER' ? 'Semester' : 'Annual',
+              joinDate: m.joinDate || todayStr,
+              expiryDate: expiryStr,
+              totalRenewals: (m.totalRenewals || 0) + 1,
+              lastRenewalDate: todayStr,
+            };
+          }
+          return m;
+        });
+        localStorage.setItem('skyline_members_roster', JSON.stringify(updatedRoster));
+      }
+    } catch (e) {
+      console.warn('Failed to update member roster:', e);
+    }
+
     return { success: true, membership: newMembership, user: updatedUser };
   };
 

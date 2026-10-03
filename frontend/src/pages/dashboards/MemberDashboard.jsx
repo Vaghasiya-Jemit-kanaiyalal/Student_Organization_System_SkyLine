@@ -161,6 +161,9 @@ export const MemberDashboard = () => {
     }
   }, [user]);
 
+  // Campus Clubs Master State
+  const [clubsList, setClubsList] = useState(CAMPUS_CLUBS);
+
   // Events Master State
   const [eventsList, setEventsList] = useState([
     {
@@ -531,41 +534,74 @@ export const MemberDashboard = () => {
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
-        const [eventsRes, appsRes, activeRes, certsRes, announcementsRes] = await Promise.all([
+        const [eventsRes, appsRes, activeRes, certsRes, announcementsRes, clubsRes] = await Promise.all([
           eventsApi.getAll().catch(() => null),
           volunteerApi.getApplications().catch(() => null),
           volunteerApi.getActive().catch(() => null),
           certificateApi.getStudentCertificates().catch(() => null),
           announcementsApi.getAll({ status: 'Sent' }).catch(() => null),
+          clubsApi.getAll().catch(() => null),
         ]);
+
+        if (clubsRes) {
+          const rawClubs = Array.isArray(clubsRes) ? clubsRes : clubsRes?.results || [];
+          if (rawClubs.length > 0) {
+            const mappedClubs = rawClubs.map((c) => {
+              const matchedFallback = CAMPUS_CLUBS.find((fc) => String(fc.id) === String(c.id) || fc.name.toLowerCase() === c.name.toLowerCase()) || {};
+              return {
+                ...matchedFallback,
+                id: c.id,
+                name: c.name,
+                category: c.category || matchedFallback.category || 'General Club',
+                tagline: c.description ? c.description.slice(0, 80) : (matchedFallback.tagline || 'Student organization'),
+                description: c.description || matchedFallback.description || '',
+                semester_fee: c.semester_fee !== undefined ? Number(c.semester_fee) : (matchedFallback.semester_fee || 299),
+                annual_fee: c.annual_fee !== undefined ? Number(c.annual_fee) : (matchedFallback.annual_fee || 499),
+                semesterFee: c.semester_fee !== undefined ? Number(c.semester_fee) : (matchedFallback.semesterFee || 299),
+                annualFee: c.annual_fee !== undefined ? Number(c.annual_fee) : (matchedFallback.annualFee || 499),
+                image: c.image || matchedFallback.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80',
+                availableSeats: c.capacity || matchedFallback.availableSeats || 30
+              };
+            });
+            setClubsList(mappedClubs);
+          }
+        }
 
         if (eventsRes) {
           const rawEvents = Array.isArray(eventsRes) ? eventsRes : eventsRes?.results || [];
           if (rawEvents.length > 0) {
-            const mapped = rawEvents.map((evt) => ({
-              id: evt.id,
-              title: evt.title || 'Campus Event',
-              clubId: evt.club || 'club-default',
-              clubName: evt.club_name || evt.club_details?.name || 'SkyLine Organization',
-              date: evt.date && evt.start_time ? `${new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} • ${evt.start_time} – ${evt.end_time || ''}` : (evt.date || 'TBD'),
-              rawDate: evt.date,
-              venue: evt.venue || evt.location || 'Campus Center',
-              availableSeats: evt.capacity || 100,
-              totalSeats: evt.capacity || 100,
-              memberPrice: Number(evt.ticket_price) === 0 ? '$0.00 (Free for Members)' : `$${Number(evt.ticket_price).toFixed(2)}`,
-              nonMemberPrice: Number(evt.ticket_price) === 0 ? '$10.00' : `$${(Number(evt.ticket_price) * 1.5).toFixed(2)}`,
-              status: evt.status || 'Published',
-              category: evt.event_type || 'Campus Event',
-              description: evt.description || '',
-              image: evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
-              volunteers_required: evt.volunteers_required,
-              volunteersRequired: evt.volunteers_required,
-              volunteer_count_required: evt.volunteer_count_required,
-              volunteer_slots_remaining: evt.volunteer_slots_remaining ?? evt.volunteer_count_required ?? 5,
-              roles_list: evt.roles_list || evt.volunteer_roles_required || ['General Volunteer'],
-              volunteer_roles_required: evt.volunteer_roles_required || evt.roles_list || ['General Volunteer'],
-              volunteer_deadline: evt.volunteer_deadline,
-            }));
+            const mapped = rawEvents.map((evt) => {
+              const mPriceNum = evt.member_price !== undefined ? Number(evt.member_price) : Number(evt.ticket_price || 0);
+              const nmPriceNum = evt.non_member_price !== undefined ? Number(evt.non_member_price) : (mPriceNum === 0 ? 15.0 : mPriceNum * 1.5);
+              return {
+                id: evt.id,
+                title: evt.title || 'Campus Event',
+                clubId: evt.club || 'club-default',
+                clubName: evt.club_name || evt.club_details?.name || 'SkyLine Organization',
+                date: evt.date && evt.start_time ? `${new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} • ${evt.start_time} – ${evt.end_time || ''}` : (evt.date || 'TBD'),
+                rawDate: evt.date,
+                venue: evt.venue || evt.location || 'Campus Center',
+                availableSeats: evt.capacity || 100,
+                totalSeats: evt.capacity || 100,
+                memberPrice: mPriceNum === 0 ? '$0.00 (Free for Members)' : `₹${mPriceNum.toFixed(2)}`,
+                nonMemberPrice: `₹${nmPriceNum.toFixed(2)}`,
+                memberPriceNum: mPriceNum,
+                nonMemberPriceNum: nmPriceNum,
+                member_price: mPriceNum,
+                non_member_price: nmPriceNum,
+                status: evt.status || 'Published',
+                category: evt.event_type || 'Campus Event',
+                description: evt.description || '',
+                image: evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
+                volunteers_required: evt.volunteers_required,
+                volunteersRequired: evt.volunteers_required,
+                volunteer_count_required: evt.volunteer_count_required,
+                volunteer_slots_remaining: evt.volunteer_slots_remaining ?? evt.volunteer_count_required ?? 5,
+                roles_list: evt.roles_list || evt.volunteer_roles_required || ['General Volunteer'],
+                volunteer_roles_required: evt.volunteer_roles_required || evt.roles_list || ['General Volunteer'],
+                volunteer_deadline: evt.volunteer_deadline,
+              };
+            });
             setEventsList(mapped);
           }
         }
@@ -829,8 +865,9 @@ export const MemberDashboard = () => {
     if (!selectedClubForPurchase || isActivatingMembership) return;
     setIsActivatingMembership(true);
 
-    const duesAmount =
-      selectedPlanForPurchase === 'Annual' ? 499.00 : 299.00;
+    const duesAmount = selectedPlanForPurchase === 'Annual'
+      ? (Number(selectedClubForPurchase.annual_fee) || Number(selectedClubForPurchase.annualFee) || 499.00)
+      : (Number(selectedClubForPurchase.semester_fee) || Number(selectedClubForPurchase.semesterFee) || 299.00);
 
     try {
       const result = await buyClubMembership(
@@ -1056,7 +1093,7 @@ export const MemberDashboard = () => {
                     <button
                       onClick={() => {
                         const targetClubId = userMemberships[0]?.clubId || userMemberships[0]?.club_id || (typeof userMemberships[0]?.club === 'object' ? userMemberships[0]?.club?.id : userMemberships[0]?.club);
-                        const matchedClub = CAMPUS_CLUBS.find(c => c.id === targetClubId) || CAMPUS_CLUBS[0];
+                        const matchedClub = clubsList.find(c => c.id === targetClubId) || CAMPUS_CLUBS.find(c => c.id === targetClubId) || clubsList[0] || CAMPUS_CLUBS[0];
                         setSelectedPlanForPurchase(membershipType === 'SEMESTER' ? 'Semester' : 'Annual');
                         setSelectedClubForPurchase(matchedClub);
                       }}
@@ -1505,9 +1542,9 @@ export const MemberDashboard = () => {
               </div>
             </div>
 
-            {/* Clubs Grid (6 Available Clubs) */}
+            {/* Clubs Grid (Available Clubs) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {CAMPUS_CLUBS.filter((club) => {
+              {clubsList.filter((club) => {
                 const catFilter = (selectedClubCategory || 'ALL').toLowerCase();
                 const q = (clubSearchQuery || '').toLowerCase().trim();
                 const clubCat = String(club.category || '').toLowerCase();
@@ -1541,7 +1578,7 @@ export const MemberDashboard = () => {
                         </div>
                         <div className="absolute bottom-2.5 right-2.5">
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-white/95 text-slate-800 shadow-xs">
-                            {club.availableSeats} spots open
+                            {club.availableSeats || 25} spots open
                           </span>
                         </div>
                       </div>
@@ -1568,11 +1605,11 @@ export const MemberDashboard = () => {
                         <div className="text-xs text-slate-600 space-y-1.5 pt-2 border-t border-slate-100">
                           <div className="flex items-center gap-1.5 truncate">
                             <User className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
-                            <span><strong className="text-slate-700">Advisor:</strong> {club.facultyAdvisor || club.advisor}</span>
+                            <span><strong className="text-slate-700">Advisor:</strong> {club.facultyAdvisor || club.advisor || 'Faculty Lead'}</span>
                           </div>
                           <div className="flex items-center gap-1.5 truncate">
                             <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                            <span><strong className="text-slate-700">Schedule:</strong> {club.meetingSchedule || club.meetingTime}</span>
+                            <span><strong className="text-slate-700">Schedule:</strong> {club.meetingSchedule || club.meetingTime || 'Weekly on Thursdays'}</span>
                           </div>
                         </div>
 
@@ -1600,11 +1637,11 @@ export const MemberDashboard = () => {
                           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Membership Plans</span>
                           <div className="flex justify-between items-center text-slate-700">
                             <span>1. Semester Membership:</span>
-                            <strong className="text-slate-900 font-bold">₹299</strong>
+                            <strong className="text-slate-900 font-bold">₹{club.semester_fee || club.semesterFee || 299}</strong>
                           </div>
                           <div className="flex justify-between items-center text-slate-700">
                             <span>2. Annual Membership:</span>
-                            <strong className="text-emerald-700 font-bold">₹499</strong>
+                            <strong className="text-emerald-700 font-bold">₹{club.annual_fee || club.annualFee || 499}</strong>
                           </div>
                         </div>
                       </div>
@@ -2860,7 +2897,7 @@ export const MemberDashboard = () => {
 
                       <button
                         onClick={() => {
-                          const order = placeOrder ? placeOrder(product.id, 'M', 1) : null;
+                          const order = placeOrder ? placeOrder({ productId: product.id, size: 'M', quantity: 1, member: user }) : null;
                           showToast(`Ordered ${product.name} successfully at ₹${pricing.effectivePrice}! Order receipt generated.`);
                         }}
                         className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
@@ -3761,7 +3798,7 @@ export const MemberDashboard = () => {
                               {selectedPlanForPurchase === 'Semester' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                             </div>
                             <div className="text-base font-bold text-emerald-700 mt-1">
-                              ₹299
+                              ₹{selectedClubForPurchase.semester_fee || selectedClubForPurchase.semesterFee || 299}
                             </div>
                             <span className="text-[10px] text-slate-500">Single Semester Plan</span>
                           </button>
@@ -3779,7 +3816,7 @@ export const MemberDashboard = () => {
                               {selectedPlanForPurchase === 'Annual' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                             </div>
                             <div className="text-base font-bold text-emerald-700 mt-1">
-                              ₹499
+                              ₹{selectedClubForPurchase.annual_fee || selectedClubForPurchase.annualFee || 499}
                             </div>
                             <span className="text-[10px] text-slate-500">Full Year (Best Value)</span>
                           </button>
