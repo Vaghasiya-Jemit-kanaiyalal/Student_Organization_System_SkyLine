@@ -14,7 +14,7 @@ export const EventAttendeesModal = ({ event, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs overflow-y-auto">
       <div className="max-w-3xl w-full bg-surface border border-border rounded-xl shadow-elevated overflow-hidden animate-fadeIn my-8">
-        
+
         {/* Header */}
         <div className="bg-surface p-5 border-b border-border flex justify-between items-center">
           <div className="flex items-center space-x-3">
@@ -66,11 +66,10 @@ export const EventAttendeesModal = ({ event, onClose }) => {
                       </td>
                       <td className="py-2.5 px-3">
                         <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center w-fit gap-1 ${
-                            tck.checkInStatus === 'Checked In'
+                          className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center w-fit gap-1 ${tck.checkInStatus === 'Checked In'
                               ? 'bg-status-success-bg text-status-success border border-status-success/30'
                               : 'bg-ivory-200 text-text-muted'
-                          }`}
+                            }`}
                         >
                           {tck.checkInStatus === 'Checked In' ? (
                             <>
