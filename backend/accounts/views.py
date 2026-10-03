@@ -14,8 +14,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from .models import User, Club, ClubMembership
+from .models import User, Club, ClubMembership, MembershipNotificationLog
 from .permissions import IsAdmin, IsTreasurer, IsMember, IsAdminOrReadOnly
+from .services.email_service import send_password_reset_email, process_membership_checks
 from .serializers import (
     UserSerializer,
     MemberRegisterSerializer,
@@ -23,7 +24,9 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     ChangePasswordSerializer,
     ForgotPasswordSerializer,
+    ValidateResetTokenSerializer,
     ResetPasswordSerializer,
+    MembershipNotificationLogSerializer,
     UpdateProfileSerializer,
     ClubSerializer,
     ClubMembershipSerializer,
@@ -31,6 +34,7 @@ from .serializers import (
     RenewMembershipSerializer,
     AdminUpdateMembershipSerializer,
 )
+
 
 
 class RegisterView(generics.CreateAPIView):
@@ -155,7 +159,8 @@ class ChangePasswordView(APIView):
 class ForgotPasswordView(APIView):
     """
     POST /api/auth/forgot-password/
-    Generates a password reset token for the given registered email.
+    Generates a secure password reset token and sends email.
+    Always returns a generic message to prevent email enumeration.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -164,38 +169,43 @@ class ForgotPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.context.get('user')
 
-        token = None
-        uidb64 = None
-        if user:
-            token = default_token_generator.make_token(user)
-            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_url = f"/reset-password?uid={uidb64}&token={token}"
-
-            try:
-                send_mail(
-                    subject="Password Reset Request - Student Organization System",
-                    message=f"Hello {user.full_name},\n\nPlease use the following token and UID to reset your password:\nUID: {uidb64}\nToken: {token}\nLink: {reset_url}",
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
+        if user and user.is_active:
+            send_password_reset_email(user)
 
         return Response({
             "success": True,
-            "message": "If an account with this email exists, password reset instructions have been dispatched.",
-            "data": {
-                "uidb64": uidb64,
-                "token": token
-            } if settings.DEBUG and user else None
+            "message": "If an account exists with this email, a password reset link has been sent."
+        }, status=status.HTTP_200_OK)
+
+
+class ValidateResetTokenView(APIView):
+    """
+    POST /api/auth/validate-reset-token/
+    Validates uidb64 and token before allowing access to the password reset form.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ValidateResetTokenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "valid": False,
+                "error": "Password reset link is invalid or has expired."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = serializer.context.get('user')
+        return Response({
+            "valid": True,
+            "email": user.email,
+            "message": "Token is valid."
         }, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):
     """
     POST /api/auth/reset-password/
-    Resets user password with uidb64, token, and new password.
+    Validates token and new password requirements, updates password hash,
+    and invalidates the reset token immediately upon completion.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -207,6 +217,7 @@ class ResetPasswordView(APIView):
             "success": True,
             "message": "Password has been successfully reset. You may now log in with your new password."
         }, status=status.HTTP_200_OK)
+
 
 
 # ============================================================================
@@ -513,3 +524,40 @@ class AdminTreasurerList(generics.ListAPIView):
 
     def get_queryset(self):
         return User.objects.filter(role=User.Role.TREASURER).order_by('-created_at')
+
+
+class AdminMembershipNotificationLogView(generics.ListAPIView):
+    """
+    GET /api/admin/membership-notifications/
+    Audit trail of all membership expiry reminders & expired notice emails.
+    """
+    permission_classes = [IsAdmin]
+    serializer_class = MembershipNotificationLogSerializer
+    queryset = MembershipNotificationLog.objects.all().select_related('user')
+    filterset_fields = ['notification_type', 'status', 'user']
+
+
+class AdminTriggerMembershipCheckView(APIView):
+    """
+    POST /api/admin/check-memberships/
+    Admin endpoint to trigger automatic membership checks on-demand.
+    """
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        dry_run = request.data.get('dry_run', False)
+        force = request.data.get('force', False)
+        days = request.data.get('days', None)
+        reminder_days = [int(d) for d in days] if isinstance(days, list) else None
+
+        stats = process_membership_checks(
+            reminder_days=reminder_days,
+            dry_run=dry_run,
+            force=force
+        )
+        return Response({
+            "success": True,
+            "message": "Membership check executed successfully.",
+            "data": stats
+        }, status=status.HTTP_200_OK)
+

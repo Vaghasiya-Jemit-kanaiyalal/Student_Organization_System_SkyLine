@@ -31,7 +31,29 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Authentication APIs
+export const authApi = {
+  forgotPassword: async (email) => {
+    const res = await apiClient.post('/auth/forgot-password/', { email });
+    return res.data;
+  },
+  validateResetToken: async (uidb64, token) => {
+    const res = await apiClient.post('/auth/validate-reset-token/', { uidb64, token });
+    return res.data;
+  },
+  resetPassword: async ({ uidb64, token, new_password, confirm_new_password }) => {
+    const res = await apiClient.post('/auth/reset-password/', {
+      uidb64,
+      token,
+      new_password,
+      confirm_new_password
+    });
+    return res.data;
+  }
+};
+
 export const clubsApi = {
+
   getAll: async () => {
     const res = await apiClient.get('/clubs/');
     return res.data;

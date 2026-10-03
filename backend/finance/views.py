@@ -11,7 +11,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsTreasurer, IsTreasurerOrAdminReadOnly
+from accounts.services.email_service import (
+    send_event_payment_success_email,
+    send_merchandise_payment_success_email,
+)
 from .models import ReimbursementRequest, Transaction
+
 from .serializers import (
     RecordPaymentSerializer,
     RefundTransactionSerializer,
@@ -362,12 +367,38 @@ class RecordPaymentView(APIView):
                 'details': str(exc),
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Trigger confirmation email safely upon successful payment verification
+        try:
+            if data['reference_type'] == Transaction.ReferenceType.EVENT_TICKET:
+                send_event_payment_success_email(
+                    user=request.user,
+                    event_name=data.get('title', 'SkyLine Campus Event'),
+                    event_date=str(data.get('date') or timezone.now().date()),
+                    event_time='Check Skyline Portal',
+                    event_venue='University Campus / Student Center',
+                    ticket_id=data.get('reference_id', ''),
+                    amount_paid=str(data.get('amount', '0.00')),
+                    payment_id=data.get('reference_id', '')
+                )
+            elif data['reference_type'] == Transaction.ReferenceType.MERCHANDISE:
+                send_merchandise_payment_success_email(
+                    user=request.user,
+                    order_id=data.get('reference_id', ''),
+                    item_name=data.get('title', 'SkyLine Official Merchandise'),
+                    amount_paid=str(data.get('amount', '0.00')),
+                    payment_id=data.get('reference_id', '')
+                )
+        except Exception:
+            # Payment success is protected and stays valid
+            pass
+
         return Response({
             'success': True,
             'created': created,
             'message': 'Income recorded.' if created else 'Existing payment already recorded (idempotent).',
             'data': TransactionSerializer(txn, context={'request': request}).data,
         }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
 
 
 class ReimbursementListCreateView(generics.ListCreateAPIView):

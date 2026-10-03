@@ -8,9 +8,10 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Club, ClubMembership
+from .models import Club, ClubMembership, MembershipNotificationLog
 
 User = get_user_model()
+
 
 
 class ClubSerializer(serializers.ModelSerializer):
@@ -499,6 +500,27 @@ class ForgotPasswordSerializer(serializers.Serializer):
         return value
 
 
+class ValidateResetTokenSerializer(serializers.Serializer):
+    """
+    Serializer to validate uidb64 and password reset token.
+    """
+    uidb64 = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+
+    def validate(self, attrs):
+        try:
+            uid = force_str(urlsafe_base64_decode(attrs['uidb64']))
+            user = User.objects.get(pk=uid, is_active=True)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError({"token": "Password reset link is invalid or expired."})
+
+        if not default_token_generator.check_token(user, attrs['token']):
+            raise serializers.ValidationError({"token": "Password reset token is invalid or has expired."})
+
+        self.context['user'] = user
+        return attrs
+
+
 class ResetPasswordSerializer(serializers.Serializer):
     """
     Serializer to confirm password reset with uidb64 and token.
@@ -529,6 +551,30 @@ class ResetPasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+
+class MembershipNotificationLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer for membership notification delivery audit logs.
+    """
+    user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = MembershipNotificationLog
+        fields = [
+            'id',
+            'user',
+            'user_name',
+            'user_email',
+            'notification_type',
+            'target_expiry_date',
+            'recipient_email',
+            'status',
+            'error_message',
+            'sent_at'
+        ]
+
 
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
