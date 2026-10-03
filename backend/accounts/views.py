@@ -169,13 +169,19 @@ class ForgotPasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.context.get('user')
 
+        debug_reset_url = None
         if user and user.is_active:
+            token = default_token_generator.make_token(user)
+            uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+            debug_reset_url = f"/reset-password?uid={uidb64}&token={token}"
             send_password_reset_email(user)
 
         return Response({
             "success": True,
-            "message": "If an account exists with this email, a password reset link has been sent."
+            "message": "If an account exists with this email, a password reset link has been sent.",
+            "debug_reset_url": debug_reset_url if settings.DEBUG else None
         }, status=status.HTTP_200_OK)
+
 
 
 class ValidateResetTokenView(APIView):
