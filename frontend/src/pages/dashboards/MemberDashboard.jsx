@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
+import { CAMPUS_CLUBS } from '../../data/clubsData';
 import {
   LayoutDashboard,
   Calendar,
@@ -19,6 +20,7 @@ import {
   Download,
   QrCode,
   ShieldCheck,
+  ShieldAlert,
   Sparkles,
   Search,
   Filter,
@@ -47,9 +49,15 @@ import {
 } from 'lucide-react';
 
 export const MemberDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, buyClubMembership } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Active user's memberships
+  const userMemberships = user?.memberships || [];
+  const hasAnyClubMembership = userMemberships.length > 0;
+  const isClubMember = (clubId) => userMemberships.some(m => m.clubId === clubId && m.duesPaid);
+  const isEligibleForMemberPrice = (event) => hasAnyClubMembership;
 
   // Read active tab from query params
   const queryParams = new URLSearchParams(location.search);
@@ -81,26 +89,55 @@ export const MemberDashboard = () => {
   // Overview Activity Log Filter
   const [activityFilter, setActivityFilter] = useState('ALL');
 
+  // Club Filter & Search State
+  const [selectedClubCategory, setSelectedClubCategory] = useState('ALL');
+  const [clubSearchQuery, setClubSearchQuery] = useState('');
+  const [selectedClubForPurchase, setSelectedClubForPurchase] = useState(null);
+  const [selectedPlanForPurchase, setSelectedPlanForPurchase] = useState('Annual');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Student Account (Bursar)');
+
   // Student Profile State
-  const [studentProfile, setStudentProfile] = useState({
+  const [studentProfile, setStudentProfile] = useState(() => ({
     name: user?.name || user?.full_name || 'Rohan Sharma',
     studentId: user?.studentId || user?.student_id || 'STU-2026-905',
     email: user?.email || 'rohan.sharma@studentorg.edu',
     phone: '+1 (555) 234-8910',
-    department: 'Computer Science & Software Engineering',
-    semester: 'Junior (Year 3, Semester 5)',
-    membershipType: 'Annual Academic Member',
-    membershipStatus: 'Active',
-    joinDate: 'Oct 01, 2026',
-    expiryDate: 'June 30, 2027',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+    department: user?.department || 'Computer Science & Software Engineering',
+    semester: user?.semester || 'Junior (Year 3, Semester 5)',
+    membershipType: hasAnyClubMembership
+      ? (userMemberships.map(m => m.clubName).join(', ') || 'Active Club Member')
+      : 'General Student (Non-Member)',
+    membershipStatus: hasAnyClubMembership ? 'Active' : 'Non-Member',
+    joinDate: hasAnyClubMembership ? (userMemberships[0]?.joinDate || 'Oct 01, 2026') : 'Not Enrolled',
+    expiryDate: hasAnyClubMembership ? (userMemberships[0]?.expiryDate || 'June 30, 2027') : 'N/A',
+    avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
     bio: 'Undergraduate student passionate about robotics, autonomous systems, and student community coordination.'
-  });
+  }));
+
+  // Sync profile when user changes
+  useEffect(() => {
+    if (user) {
+      setStudentProfile(prev => ({
+        ...prev,
+        name: user.name || user.full_name || prev.name,
+        studentId: user.studentId || user.student_id || prev.studentId,
+        email: user.email || prev.email,
+        membershipType: user.memberships && user.memberships.length > 0
+          ? user.memberships.map(m => m.clubName).join(', ')
+          : 'General Student (Non-Member)',
+        membershipStatus: user.memberships && user.memberships.length > 0 ? 'Active' : 'Non-Member',
+        joinDate: user.memberships && user.memberships.length > 0 ? (user.memberships[0]?.joinDate || prev.joinDate) : 'Not Enrolled',
+        expiryDate: user.memberships && user.memberships.length > 0 ? (user.memberships[0]?.expiryDate || prev.expiryDate) : 'N/A'
+      }));
+    }
+  }, [user]);
 
   // Events Master State
   const [eventsList, setEventsList] = useState([
     {
       id: 'evt-1',
+      clubId: 'club-robotics',
+      clubName: 'Skyline Robotics & AI Society',
       title: 'SkyLine Annual Robotics Showcase 2026',
       date: 'Oct 14, 2026 • 2:00 PM – 6:00 PM',
       venue: 'Grand Hall, Turing Science Quad',
@@ -114,6 +151,8 @@ export const MemberDashboard = () => {
     },
     {
       id: 'evt-2',
+      clubId: 'club-coding',
+      clubName: 'Skyline Coding & Hackathon Guild',
       title: 'Full-Stack Web3 & Cloud Hackathon',
       date: 'Oct 28, 2026 • 9:00 AM – 8:00 PM',
       venue: 'Innovation Center, Room 402',
@@ -127,6 +166,8 @@ export const MemberDashboard = () => {
     },
     {
       id: 'evt-3',
+      clubId: 'club-finance',
+      clubName: 'Skyline Business & Investment League',
       title: 'Career & Industry Networking Night',
       date: 'Nov 05, 2026 • 5:30 PM – 8:30 PM',
       venue: 'Student Union Ballroom',
@@ -140,6 +181,8 @@ export const MemberDashboard = () => {
     },
     {
       id: 'evt-4',
+      clubId: 'club-robotics',
+      clubName: 'Skyline Robotics & AI Society',
       title: 'Hands-on Microcontroller & IoT Workshop',
       date: 'Nov 18, 2026 • 1:00 PM – 4:00 PM',
       venue: 'Makerspace Lab 108',
@@ -150,6 +193,21 @@ export const MemberDashboard = () => {
       status: 'Limited Seats',
       category: 'Technical Workshop',
       description: 'Build connected sensor nodes using ESP32, MQTT protocols, and telemetry dashboards. Hardware kits provided.'
+    },
+    {
+      id: 'evt-5',
+      clubId: 'club-arts',
+      clubName: 'Campus Cultural & Creative Arts Society',
+      title: 'Campus Cultural Gala & Music Festival',
+      date: 'Nov 26, 2026 • 6:30 PM – 10:00 PM',
+      venue: 'Fine Arts Amphitheater',
+      availableSeats: 90,
+      totalSeats: 350,
+      memberPrice: '$0.00 (Free for Members)',
+      nonMemberPrice: '$18.00',
+      status: 'Registration Open',
+      category: 'Cultural Gala',
+      description: 'Live musical performances, theatrical recitals, dance troupes, and culinary showcases celebrating campus student diversity.'
     }
   ]);
 
@@ -311,25 +369,20 @@ export const MemberDashboard = () => {
     }
   ]);
 
-  // Membership History State
-  const [membershipHistory, setMembershipHistory] = useState([
-    {
-      term: 'Academic Year 2026–2027',
-      plan: 'Full Annual Student Membership',
-      amount: '$35.00',
-      paymentDate: 'Oct 01, 2026',
-      receiptId: 'RCP-2026-98102',
-      status: 'Paid & Active'
-    },
-    {
-      term: 'Academic Year 2025–2026',
-      plan: 'Semester Membership (Spring)',
-      amount: '$20.00',
-      paymentDate: 'Jan 15, 2026',
-      receiptId: 'RCP-2026-10492',
-      status: 'Completed'
+  // Membership History State (Dynamically initialized from active memberships)
+  const [membershipHistory, setMembershipHistory] = useState(() => {
+    if (user?.memberships && user.memberships.length > 0) {
+      return user.memberships.map((m, idx) => ({
+        term: m.plan || 'Academic Year 2026–2027',
+        plan: `${m.clubName} (${m.plan || 'Annual Membership'})`,
+        amount: m.amount || '$35.00',
+        paymentDate: m.paymentDate || 'Oct 01, 2026',
+        receiptId: m.receiptId || `RCP-2026-${98100 + idx}`,
+        status: m.status || 'Paid & Active'
+      }));
     }
-  ]);
+    return [];
+  });
 
   // Student Governance / Activity Log (Matches Admin Dashboard Log style)
   const studentActivityLogs = [
@@ -402,21 +455,66 @@ export const MemberDashboard = () => {
     e.preventDefault();
     if (!buyTicketModalEvent) return;
 
+    const isMemberEligible = isEligibleForMemberPrice(buyTicketModalEvent);
+    const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
+
     const newTicket = {
       id: `TCK-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       eventTitle: buyTicketModalEvent.title,
       date: buyTicketModalEvent.date,
       venue: buyTicketModalEvent.venue,
-      seat: `General Admission Pass • Seat #${Math.floor(10 + Math.random() * 90)}`,
-      pricePaid: buyTicketModalEvent.memberPrice.includes('$0.00') ? '$0.00 (Member Pass)' : '$5.00',
-      purchaseDate: 'Oct 03, 2026',
+      seat: isMemberEligible
+        ? `Member Pass • Seat #${Math.floor(10 + Math.random() * 90)}`
+        : `Standard Pass • Seat #${Math.floor(10 + Math.random() * 90)}`,
+      pricePaid: finalPricePaid,
+      purchaseDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       status: 'Confirmed',
       qrCodeData: `CONNECTU-${buyTicketModalEvent.id.toUpperCase()}-${studentProfile.studentId}`
     };
 
     setTicketsList(prev => [newTicket, ...prev]);
     setBuyTicketModalEvent(null);
-    showToast(`Ticket for "${newTicket.eventTitle}" reserved successfully!`);
+    showToast(`Ticket for "${newTicket.eventTitle}" reserved successfully at ${finalPricePaid}!`);
+  };
+
+  // Club Membership Purchase Handler
+  const handleConfirmBuyMembership = () => {
+    if (!selectedClubForPurchase) return;
+    const duesAmount = selectedPlanForPurchase === 'Annual'
+      ? selectedClubForPurchase.annualDues
+      : selectedClubForPurchase.semesterDues;
+
+    const result = buyClubMembership(
+      selectedClubForPurchase,
+      selectedPlanForPurchase,
+      duesAmount,
+      selectedPaymentMethod
+    );
+
+    if (result.success) {
+      const newHistoryItem = {
+        term: `Academic Year 2026–2027`,
+        plan: `${selectedClubForPurchase.name} (${selectedPlanForPurchase} Membership)`,
+        amount: `$${duesAmount.toFixed(2)}`,
+        paymentDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        receiptId: result.membership.receiptId,
+        status: 'Paid & Active'
+      };
+      setMembershipHistory(prev => [newHistoryItem, ...prev]);
+
+      setStudentProfile(prev => ({
+        ...prev,
+        membershipStatus: 'Active',
+        membershipType: `${selectedClubForPurchase.shortName} (${selectedPlanForPurchase})`,
+        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        expiryDate: selectedPlanForPurchase === 'Annual' ? 'June 30, 2027' : 'Dec 31, 2026'
+      }));
+
+      setSelectedClubForPurchase(null);
+      showToast(`🎉 Congratulations! You are now an active member of ${selectedClubForPurchase.name}. Membered pricing is now unlocked across all events!`);
+    } else {
+      showToast(result.error || 'Failed to activate membership.', 'error');
+    }
   };
 
   const handleApplyVolunteerSubmit = async (e) => {
@@ -541,26 +639,44 @@ export const MemberDashboard = () => {
                     <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                       Membership Standing
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-status-success-bg flex items-center justify-center text-status-success">
-                      <ShieldCheck className="w-4 h-4" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      hasAnyClubMembership
+                        ? 'bg-status-success-bg text-status-success'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {hasAnyClubMembership ? <ShieldCheck className="w-4 h-4" /> : <ShieldAlert className="w-4 h-4" />}
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-text-primary mt-2">
-                    Active
+                  <p className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">
+                    {hasAnyClubMembership ? 'Active Member' : 'Standard Student'}
                   </p>
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
-                    <CheckCircle2 className="w-3 h-3" />
-                    <span>Dues Ratified</span>
-                    <span className="text-text-muted">• Valid thru June 2027</span>
+                  <div className={`mt-1 flex items-center gap-1.5 text-[11px] font-medium ${
+                    hasAnyClubMembership ? 'text-status-success' : 'text-amber-800'
+                  }`}>
+                    {hasAnyClubMembership ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>{userMemberships.length} Active Club(s)</span>
+                        <span className="text-text-muted">• Member discounts active</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        <span>Non-Member</span>
+                        <span className="text-text-muted">• Regular pricing applies</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-text-muted">Annual Member</span>
+                  <span className="text-[11px] text-text-muted">
+                    {hasAnyClubMembership ? 'Dues Ratified' : 'No Club Memberships'}
+                  </span>
                   <button
                     onClick={() => handleTabSelect('membership')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
-                    <span>View Membership</span>
+                    <span>{hasAnyClubMembership ? 'Manage Clubs' : 'Join a Club'}</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -842,150 +958,407 @@ export const MemberDashboard = () => {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 2: MEMBERSHIP */}
+        {/* TAB 2: CLUBS & MEMBERSHIPS */}
         {/* ========================================================= */}
         {activeTab === 'membership' && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 rounded-xl border border-border bg-surface p-6 shadow-subtle space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-border">
-                  <div>
-                    <h2 className="text-lg font-bold text-text-primary">Membership Standing & Subscription</h2>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      Official student affiliation with ConnectU Campus Organizations.
-                    </p>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-status-success-bg text-status-success border border-status-success/30">
-                    Active Dues Paid
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div className="p-3.5 rounded-lg border border-border bg-canvas/40 space-y-1">
-                    <span className="text-text-muted font-medium">Membership Type</span>
-                    <p className="text-sm font-bold text-text-primary">{studentProfile.membershipType}</p>
-                  </div>
-                  <div className="p-3.5 rounded-lg border border-border bg-canvas/40 space-y-1">
-                    <span className="text-text-muted font-medium">Affiliation Status</span>
-                    <p className="text-sm font-bold text-status-success">In Good Academic Standing</p>
-                  </div>
-                  <div className="p-3.5 rounded-lg border border-border bg-canvas/40 space-y-1">
-                    <span className="text-text-muted font-medium">Enrolled Since</span>
-                    <p className="text-sm font-bold text-text-primary">{studentProfile.joinDate}</p>
-                  </div>
-                  <div className="p-3.5 rounded-lg border border-border bg-canvas/40 space-y-1">
-                    <span className="text-text-muted font-medium">Renewal Due Date</span>
-                    <p className="text-sm font-bold text-text-primary">{studentProfile.expiryDate}</p>
-                  </div>
-                </div>
-
+            {/* Top Banner: Club Membership Overview */}
+            <div className="bg-gradient-to-r from-[#0F2942] to-[#1557B0] text-white rounded-xl p-6 shadow-md relative overflow-hidden">
+              <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-white/5 rounded-full pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-text-primary text-sm mb-3">Included Membership Privileges</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-text-secondary">
-                    <div className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-status-success flex-shrink-0" />
-                      <span>Free admission to all general campus showcases</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-status-success flex-shrink-0" />
-                      <span>Up to 75% discount on flagship technical hackathons</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-status-success flex-shrink-0" />
-                      <span>Voting rights at the semester General Assembly</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Check className="w-4 h-4 text-status-success flex-shrink-0" />
-                      <span>Priority registration for volunteer honor positions</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-border flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setRenewMembershipModalOpen(true)}
-                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-subtle transition flex items-center"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Renew Membership
-                  </button>
-                </div>
-              </div>
-
-              {/* Digital Member Card */}
-              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-[#0F2942] to-[#1557B0] p-6 text-white shadow-elevated flex flex-col justify-between relative overflow-hidden">
-                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <UniversityCrest className="w-8 h-8 text-white" variant="white" />
-                    <div>
-                      <div className="text-xs font-bold tracking-wider uppercase">ConnectU Identity</div>
-                      <div className="text-[10px] text-white/70">Student Organization Society</div>
-                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#58A6FF]/20 text-[#58A6FF] border border-[#58A6FF]/40 uppercase tracking-wider">
+                      Campus Student Organizations
+                    </span>
+                    {hasAnyClubMembership ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span>Active Member in {userMemberships.length} Club(s)</span>
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-300/40 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 text-amber-300" />
+                        <span>Standard Student (Non-Member)</span>
+                      </span>
+                    )}
                   </div>
-                  <BadgeCheck className="w-6 h-6 text-[#58A6FF]" />
+                  <h1 className="text-2xl sm:text-3xl font-bold mt-2">
+                    University Clubs & Society Memberships
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#D9E2EC] max-w-2xl mt-1 leading-relaxed">
+                    Browse all university student chapters, review membership seat availability, and enroll to unlock <strong>subsidized member pricing ($0.00 / 75% off)</strong> across events and workshops!
+                  </p>
                 </div>
 
-                <div className="my-6 space-y-1">
-                  <div className="text-[11px] text-white/70">Member Name</div>
-                  <div className="text-xl font-bold tracking-tight">{studentProfile.name}</div>
-                  <div className="text-xs text-[#58A6FF] font-mono tracking-widest mt-0.5">
-                    ID: {studentProfile.studentId}
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/20 flex items-center justify-between text-[11px] text-white/80">
-                  <div>
-                    <span>Valid: </span>
-                    <span className="font-semibold text-white">2026–2027</span>
-                  </div>
-                  <div className="font-mono text-[10px] bg-white/10 px-2 py-0.5 rounded">
-                    VERIFIED
-                  </div>
+                <div className="flex items-center space-x-2 self-start md:self-center">
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('clubs-catalog-grid');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-lg bg-white text-[#0F2942] hover:bg-[#F0F4F8] text-xs font-bold transition shadow-sm flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#1557B0]" />
+                    <span>Browse Available Clubs</span>
+                  </button>
                 </div>
               </div>
             </div>
 
+            {/* Pricing Status Notice Banner */}
+            {hasAnyClubMembership ? (
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0 mt-0.5">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-900">
+                      ✓ Active Club Member Pricing Unlocked
+                    </h3>
+                    <p className="text-xs text-emerald-800 mt-0.5">
+                      You are enrolled in: <strong>{userMemberships.map(m => m.clubName).join(', ')}</strong>. You enjoy free passes ($0.00) and up to 75% subsidies across campus showcases and hackathons!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleTabSelect('events')}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center gap-1 self-end sm:self-center whitespace-nowrap transition"
+                >
+                  <span>View Membered Events</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/90 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-800 flex-shrink-0 mt-0.5">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-950">
+                      Standard Student Rate Active (Non-Member)
+                    </h3>
+                    <p className="text-xs text-amber-900 mt-0.5">
+                      You do not have an active club membership. Non-members pay regular prices ($15–$35) for campus events. Select a club below and purchase a membership to unlock <strong>Free ($0.00) Membered Passes</strong>!
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('clubs-catalog-grid');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold flex items-center gap-1 self-end sm:self-center whitespace-nowrap transition"
+                >
+                  <span>Select a Club Below</span>
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Clubs Catalog Section */}
+            <div id="clubs-catalog-grid" className="space-y-4">
+              {/* Search & Filter Toolbar */}
+              <div className="bg-surface rounded-xl border border-border p-4 shadow-subtle flex flex-col lg:flex-row items-center justify-between gap-3">
+                <div className="flex items-center space-x-1.5 overflow-x-auto w-full lg:w-auto pb-1 lg:pb-0">
+                  <span className="text-xs font-semibold text-text-secondary flex items-center gap-1 mr-1 flex-shrink-0">
+                    <Filter className="w-3.5 h-3.5 text-primary" /> Category:
+                  </span>
+                  {[
+                    { id: 'ALL', label: 'All Societies' },
+                    { id: 'Engineering & Technology', label: 'Engineering' },
+                    { id: 'Computer Science', label: 'Computer Science' },
+                    { id: 'Finance & Business', label: 'Finance' },
+                    { id: 'Arts & Media', label: 'Arts & Cultural' },
+                    { id: 'Leadership & Policy', label: 'Leadership' },
+                    { id: 'Civic & Ecology', label: 'Civic & Green' }
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedClubCategory(cat.id)}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
+                        selectedClubCategory === cat.id
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-ivory-100 hover:bg-ivory-200 text-text-secondary'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative w-full lg:w-72">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <input
+                    type="text"
+                    value={clubSearchQuery}
+                    onChange={(e) => setClubSearchQuery(e.target.value)}
+                    placeholder="Search clubs, advisors, topics..."
+                    className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Clubs Grid (6 Clubs) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {CAMPUS_CLUBS.filter((club) => {
+                  const matchesCat =
+                    selectedClubCategory === 'ALL' ||
+                    club.category.toLowerCase().includes(selectedClubCategory.toLowerCase());
+                  const matchesSearch =
+                    club.name.toLowerCase().includes(clubSearchQuery.toLowerCase()) ||
+                    club.tagline.toLowerCase().includes(clubSearchQuery.toLowerCase()) ||
+                    club.advisor.toLowerCase().includes(clubSearchQuery.toLowerCase());
+                  return matchesCat && matchesSearch;
+                }).map((club) => {
+                  const isEnrolled = isClubMember(club.id);
+
+                  return (
+                    <div
+                      key={club.id}
+                      className={`border rounded-xl bg-surface overflow-hidden shadow-subtle hover:shadow-card transition flex flex-col justify-between group ${
+                        isEnrolled ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-border'
+                      }`}
+                    >
+                      <div>
+                        {/* Club Cover Image */}
+                        <div className="relative h-44 bg-ivory-200 overflow-hidden">
+                          <img
+                            src={club.image}
+                            alt={club.name}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#0F2942]/90 text-white backdrop-blur-xs">
+                              {club.category}
+                            </span>
+                            {club.badge && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1557B0] text-white">
+                                {club.badge}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="absolute bottom-2.5 right-2.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/95 text-[#0F2942] backdrop-blur-xs shadow-xs font-mono">
+                              {club.availableSeats} / {club.totalSeats} Spots Open
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Club Body */}
+                        <div className="p-5 space-y-3.5">
+                          <div>
+                            <div className="flex items-center justify-between gap-2">
+                              <h3 className="text-base font-bold text-text-primary leading-snug">
+                                {club.name}
+                              </h3>
+                              {isEnrolled && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex-shrink-0">
+                                  Enrolled
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                              {club.tagline}
+                            </p>
+                          </div>
+
+                          {/* Meeting Schedule & Advisor */}
+                          <div className="space-y-1 text-xs text-text-muted border-t border-border pt-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span className="text-[11px] truncate">{club.advisor}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span className="text-[11px] truncate">{club.meetingTime}</span>
+                            </div>
+                          </div>
+
+                          {/* Membership Perks */}
+                          <div className="space-y-1.5 border-t border-border pt-2.5">
+                            <span className="text-[11px] font-semibold text-text-primary block">
+                              Verified Member Perks:
+                            </span>
+                            <ul className="space-y-1 text-[11px] text-text-secondary">
+                              {club.benefits.slice(0, 3).map((benefit, bIdx) => (
+                                <li key={bIdx} className="flex items-start gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                                  <span className="leading-tight">{benefit}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dues & Join Action Footer */}
+                      <div className="p-4 pt-3 border-t border-border bg-canvas/30 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[10px] text-text-muted uppercase block">Annual Dues</span>
+                            <span className="text-base font-bold text-primary">
+                              ${club.annualDues.toFixed(2)}
+                              <span className="text-xs text-text-muted font-normal"> / year</span>
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-text-muted uppercase block">Semester Plan</span>
+                            <span className="text-sm font-semibold text-text-primary">
+                              ${club.semesterDues.toFixed(2)}
+                              <span className="text-[10px] text-text-muted font-normal"> / sem</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {isEnrolled ? (
+                          <div className="w-full py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5">
+                            <BadgeCheck className="w-4 h-4 text-emerald-600" />
+                            <span>Active Member (Dues Ratified)</span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedClubForPurchase(club);
+                              setSelectedPlanForPurchase('Annual');
+                            }}
+                            className="w-full py-2.5 px-3 rounded-lg bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Join Club & Buy Membership (${club.annualDues.toFixed(0)})</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* My Active Club Digital Passes & Passports */}
+            {hasAnyClubMembership && (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <div>
+                    <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                      <BadgeCheck className="w-4 h-4 text-primary" />
+                      <span>My Verified Digital Club Passports ({userMemberships.length})</span>
+                    </h3>
+                    <p className="text-xs text-text-secondary">
+                      Present your digital pass for access to club rooms, labs, and member discounts
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {userMemberships.map((membership, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-primary/20 bg-gradient-to-br from-[#0F2942] to-[#1557B0] p-5 text-white shadow-elevated flex flex-col justify-between relative overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <UniversityCrest className="w-7 h-7 text-white" variant="white" />
+                          <div>
+                            <div className="text-[11px] font-bold tracking-wider uppercase">ConnectU Identity</div>
+                            <div className="text-[9px] text-white/70">{membership.clubName}</div>
+                          </div>
+                        </div>
+                        <BadgeCheck className="w-5 h-5 text-[#58A6FF]" />
+                      </div>
+
+                      <div className="my-4 space-y-1">
+                        <div className="text-[10px] text-white/70">Member Name & Affiliation</div>
+                        <div className="text-lg font-bold tracking-tight">{studentProfile.name}</div>
+                        <div className="text-xs text-[#58A6FF] font-mono tracking-widest">
+                          ID: {studentProfile.studentId}
+                        </div>
+                        <div className="text-[11px] text-emerald-300 font-semibold pt-1">
+                          Role: {membership.role || 'Active Member'} • Dues Paid
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-white/20 flex items-center justify-between text-[10px] text-white/80">
+                        <div>
+                          <span>Valid Thru: </span>
+                          <span className="font-semibold text-white">{membership.expiryDate || 'June 30, 2027'}</span>
+                        </div>
+                        <div className="font-mono text-[9px] bg-white/10 px-2 py-0.5 rounded text-emerald-300 font-bold">
+                          VERIFIED MEMBER
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Membership Payment History Table */}
             <div className="rounded-xl border border-border bg-surface p-6 shadow-subtle space-y-4">
-              <h3 className="font-bold text-text-primary text-base">Membership Payment History</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-border bg-canvas/60 text-text-secondary">
-                      <th className="py-2.5 px-3 font-semibold">Academic Term</th>
-                      <th className="py-2.5 px-3 font-semibold">Plan Description</th>
-                      <th className="py-2.5 px-3 font-semibold">Amount Paid</th>
-                      <th className="py-2.5 px-3 font-semibold">Date</th>
-                      <th className="py-2.5 px-3 font-semibold">Receipt Code</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
-                      <th className="py-2.5 px-3 font-semibold text-right">Invoice</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {membershipHistory.map((hist, idx) => (
-                      <tr key={idx} className="hover:bg-canvas/40 transition">
-                        <td className="py-3 px-3 font-semibold text-text-primary">{hist.term}</td>
-                        <td className="py-3 px-3 text-text-secondary">{hist.plan}</td>
-                        <td className="py-3 px-3 font-bold text-text-primary">{hist.amount}</td>
-                        <td className="py-3 px-3 text-text-muted">{hist.paymentDate}</td>
-                        <td className="py-3 px-3 font-mono text-[11px] text-primary">{hist.receiptId}</td>
-                        <td className="py-3 px-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-status-success-bg text-status-success">
-                            {hist.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-right">
-                          <button
-                            onClick={() => showToast(`Receipt ${hist.receiptId} downloaded.`)}
-                            className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
-                          >
-                            <Download className="w-3.5 h-3.5 mr-1" /> PDF
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div>
+                  <h3 className="font-bold text-text-primary text-base">Membership Dues Payment Ledger</h3>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Official fiscal records of student membership dues paid to campus organizations
+                  </p>
+                </div>
+                <span className="text-xs text-text-muted font-medium">
+                  {membershipHistory.length} Receipts Stored
+                </span>
               </div>
+
+              {membershipHistory.length === 0 ? (
+                <div className="p-8 text-center rounded-lg border border-dashed border-border space-y-2">
+                  <Users className="w-8 h-8 mx-auto text-text-muted" />
+                  <p className="text-xs font-semibold text-text-primary">No Membership Dues Paid Yet</p>
+                  <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                    You have not enrolled in any campus clubs yet. Purchase a membership above to generate your first verified receipt and unlock member rates!
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-canvas/60 text-text-secondary">
+                        <th className="py-2.5 px-3 font-semibold">Academic Term</th>
+                        <th className="py-2.5 px-3 font-semibold">Organization / Plan</th>
+                        <th className="py-2.5 px-3 font-semibold">Amount Paid</th>
+                        <th className="py-2.5 px-3 font-semibold">Date</th>
+                        <th className="py-2.5 px-3 font-semibold">Receipt Code</th>
+                        <th className="py-2.5 px-3 font-semibold">Status</th>
+                        <th className="py-2.5 px-3 font-semibold text-right">Invoice</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {membershipHistory.map((hist, idx) => (
+                        <tr key={idx} className="hover:bg-canvas/40 transition">
+                          <td className="py-3 px-3 font-semibold text-text-primary">{hist.term}</td>
+                          <td className="py-3 px-3 text-text-secondary font-medium">{hist.plan}</td>
+                          <td className="py-3 px-3 font-bold text-text-primary">{hist.amount}</td>
+                          <td className="py-3 px-3 text-text-muted">{hist.paymentDate}</td>
+                          <td className="py-3 px-3 font-mono text-[11px] text-primary">{hist.receiptId}</td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-status-success-bg text-status-success">
+                              {hist.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <button
+                              onClick={() => showToast(`Receipt ${hist.receiptId} downloaded.`)}
+                              className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
+                            >
+                              <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1033,58 +1406,94 @@ export const MemberDashboard = () => {
                   <thead>
                     <tr className="border-b border-border bg-canvas/70 text-text-secondary">
                       <th className="py-3 px-4 font-semibold">Event Name</th>
+                      <th className="py-3 px-4 font-semibold">Host Organization</th>
                       <th className="py-3 px-4 font-semibold">Date & Time</th>
                       <th className="py-3 px-4 font-semibold">Venue</th>
                       <th className="py-3 px-4 font-semibold">Available Seats</th>
-                      <th className="py-3 px-4 font-semibold">Member Price</th>
+                      <th className="py-3 px-4 font-semibold">Ticket Price</th>
                       <th className="py-3 px-4 font-semibold">Status</th>
                       <th className="py-3 px-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {filteredEvents.map(evt => (
-                      <tr key={evt.id} className="hover:bg-canvas/40 transition">
-                        <td className="py-3.5 px-4 font-bold text-text-primary">
-                          <div>{evt.title}</div>
-                          <span className="text-[10px] text-primary font-normal">{evt.category}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">
-                          {evt.date}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-secondary flex items-center">
-                          <MapPin className="w-3.5 h-3.5 mr-1 text-text-muted flex-shrink-0" />
-                          <span>{evt.venue}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-semibold text-text-primary">{evt.availableSeats}</span>
-                          <span className="text-text-muted"> / {evt.totalSeats}</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-status-success">
-                          {evt.memberPrice}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-light text-primary">
-                            {evt.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => setBuyTicketModalEvent(evt)}
-                              className="px-3 py-1 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition"
-                            >
-                              Buy Ticket
-                            </button>
-                            <button
-                              onClick={() => setApplyVolunteerModalEvent(evt)}
-                              className="px-2.5 py-1 rounded border border-border bg-surface hover:bg-canvas text-text-primary text-xs font-semibold transition"
-                            >
-                              Apply Volunteer
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredEvents.map(evt => {
+                      const qualifiesForMemberPrice = isEligibleForMemberPrice(evt);
+
+                      return (
+                        <tr key={evt.id} className="hover:bg-canvas/40 transition">
+                          <td className="py-3.5 px-4 font-bold text-text-primary">
+                            <div>{evt.title}</div>
+                            <span className="text-[10px] text-primary font-normal">{evt.category}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-text-secondary">
+                            <span className="font-medium text-text-primary">{evt.clubName || 'Skyline Student Society'}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">
+                            {evt.date}
+                          </td>
+                          <td className="py-3.5 px-4 text-text-secondary flex items-center">
+                            <MapPin className="w-3.5 h-3.5 mr-1 text-text-muted flex-shrink-0" />
+                            <span>{evt.venue}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="font-semibold text-text-primary">{evt.availableSeats}</span>
+                            <span className="text-text-muted"> / {evt.totalSeats}</span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {qualifiesForMemberPrice ? (
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-sm text-status-success">{evt.memberPrice}</span>
+                                  <span className="text-xs text-text-muted line-through">{evt.nonMemberPrice}</span>
+                                </div>
+                                <span className="inline-flex items-center text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded mt-0.5 border border-emerald-300">
+                                  ✓ Member Price Active
+                                </span>
+                              </div>
+                            ) : (
+                              <div>
+                                <span className="font-bold text-sm text-text-primary">{evt.nonMemberPrice}</span>
+                                <div className="text-[11px] text-amber-800 font-medium mt-0.5">
+                                  Member: {evt.memberPrice}
+                                </div>
+                                <button
+                                  onClick={() => handleTabSelect('membership')}
+                                  className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5 mt-0.5"
+                                >
+                                  <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                                  <span>Join club to get member price</span>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-light text-primary">
+                              {evt.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => setBuyTicketModalEvent(evt)}
+                                className={`px-3 py-1 rounded text-white text-xs font-semibold transition ${
+                                  qualifiesForMemberPrice
+                                    ? 'bg-emerald-700 hover:bg-emerald-800'
+                                    : 'bg-primary hover:bg-primary-hover'
+                                }`}
+                              >
+                                {qualifiesForMemberPrice ? 'Reserve Member Pass' : `Buy Ticket (${evt.nonMemberPrice})`}
+                              </button>
+                              <button
+                                onClick={() => setApplyVolunteerModalEvent(evt)}
+                                className="px-2.5 py-1 rounded border border-border bg-surface hover:bg-canvas text-text-primary text-xs font-semibold transition"
+                              >
+                                Apply Volunteer
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1558,16 +1967,57 @@ export const MemberDashboard = () => {
 
             <div>
               <h3 className="text-lg font-bold text-text-primary">Reserve Event Ticket</h3>
-              <p className="text-xs text-text-muted mt-0.5">Confirm your admission seat with verified member pricing</p>
+              <p className="text-xs text-text-muted mt-0.5">
+                {isEligibleForMemberPrice(buyTicketModalEvent)
+                  ? 'Confirm admission pass with active club member pricing'
+                  : 'Reserve admission pass at standard student rates'}
+              </p>
             </div>
 
             <div className="p-4 rounded-xl border border-border bg-canvas/40 space-y-2 text-xs">
               <div className="font-bold text-text-primary text-sm">{buyTicketModalEvent.title}</div>
+              <div className="text-text-muted text-[11px]">Host: {buyTicketModalEvent.clubName || 'Skyline Student Organization'}</div>
               <div className="text-text-secondary flex items-center"><Clock className="w-3.5 h-3.5 mr-1 text-primary" /> {buyTicketModalEvent.date}</div>
               <div className="text-text-secondary flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-primary" /> {buyTicketModalEvent.venue}</div>
-              <div className="pt-2 border-t border-border flex justify-between font-bold">
-                <span>Member Rate:</span>
-                <span className="text-status-success">{buyTicketModalEvent.memberPrice}</span>
+              
+              <div className="pt-2 border-t border-border">
+                {isEligibleForMemberPrice(buyTicketModalEvent) ? (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-text-primary block">Active Member Rate:</span>
+                      <span className="text-[10px] text-status-success font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Club Membership Active
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-text-muted line-through block">{buyTicketModalEvent.nonMemberPrice}</span>
+                      <span className="text-base font-bold text-status-success">{buyTicketModalEvent.memberPrice}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-text-primary">Standard Student Rate:</span>
+                      <span className="text-base font-bold text-text-primary">{buyTicketModalEvent.nonMemberPrice}</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-start gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span>You do not have an active club membership. Club members pay only <strong>{buyTicketModalEvent.memberPrice}</strong>!</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBuyTicketModalEvent(null);
+                            handleTabSelect('membership');
+                          }}
+                          className="block text-primary font-bold hover:underline mt-0.5"
+                        >
+                          Join a Club first to get member rate →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1586,9 +2036,15 @@ export const MemberDashboard = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center shadow-subtle"
+                  className={`flex-1 py-2.5 rounded-lg text-white text-xs font-semibold flex items-center justify-center shadow-subtle ${
+                    isEligibleForMemberPrice(buyTicketModalEvent)
+                      ? 'bg-emerald-700 hover:bg-emerald-800'
+                      : 'bg-primary hover:bg-primary-hover'
+                  }`}
                 >
-                  Confirm & Reserve Pass
+                  {isEligibleForMemberPrice(buyTicketModalEvent)
+                    ? 'Confirm & Reserve (Member Rate)'
+                    : 'Confirm & Reserve Pass'}
                 </button>
               </div>
             </form>
@@ -1961,6 +2417,162 @@ export const MemberDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 9: JOIN CLUB & BUY MEMBERSHIP MODAL */}
+      {/* ========================================================= */}
+      {selectedClubForPurchase && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-sm animate-fadeIn">
+          <div className="max-w-lg w-full rounded-2xl border border-border bg-surface shadow-elevated p-6 space-y-5 relative">
+            <button
+              onClick={() => setSelectedClubForPurchase(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-canvas transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Club Header Info */}
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary flex-shrink-0">
+                <Users className="w-6 h-6" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary text-white">
+                    {selectedClubForPurchase.category}
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    {selectedClubForPurchase.availableSeats} Spots Available
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-text-primary">
+                  {selectedClubForPurchase.name}
+                </h3>
+                <p className="text-xs text-text-secondary">
+                  {selectedClubForPurchase.tagline}
+                </p>
+              </div>
+            </div>
+
+            {/* Membership Plan Selector */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-text-primary uppercase tracking-wider">
+                Select Membership Term:
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlanForPurchase('Annual')}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    selectedPlanForPurchase === 'Annual'
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs'
+                      : 'border-border bg-surface hover:bg-canvas'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-bold text-text-primary">Full Academic Year</span>
+                    {selectedPlanForPurchase === 'Annual' && (
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-xl font-bold text-primary">${selectedClubForPurchase.annualDues.toFixed(2)}</span>
+                    <span className="text-[10px] text-text-muted block">Valid thru June 30, 2027</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded mt-2 inline-block">
+                    Best Value • Full Privileges
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlanForPurchase('Semester')}
+                  className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    selectedPlanForPurchase === 'Semester'
+                      ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs'
+                      : 'border-border bg-surface hover:bg-canvas'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-bold text-text-primary">Single Semester</span>
+                    {selectedPlanForPurchase === 'Semester' && (
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <span className="text-xl font-bold text-primary">${selectedClubForPurchase.semesterDues.toFixed(2)}</span>
+                    <span className="text-[10px] text-text-muted block">Valid thru Dec 31, 2026</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-text-muted mt-2 inline-block">
+                    Standard Semester Pass
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Unlocked Benefits Summary */}
+            <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 space-y-2 text-xs">
+              <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-xs">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span>Privileges Unlocked Instantly:</span>
+              </span>
+              <ul className="space-y-1.5 text-[11px] text-emerald-900">
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                  <span><strong>Membered Prices unlocked</strong> for all events ($0.00 or up to 75% discount)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                  <span>Official digital student society ID & verified credential</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                  <span>Certified volunteer & academic service hours credited to transcript</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                  <span>Voting delegate status at General Assembly</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="space-y-1.5 text-xs">
+              <label className="block font-semibold text-text-primary">Payment Method:</label>
+              <select
+                value={selectedPaymentMethod}
+                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary text-xs"
+              >
+                <option value="Student Account (Bursar)">University Student Bursar Account (Pre-Authorized)</option>
+                <option value="Credit / Debit Card">Credit / Debit Card (Visa, MasterCard, Amex)</option>
+                <option value="Campus Pay / Mobile Wallet">Campus Pay / Apple Pay</option>
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setSelectedClubForPurchase(null)}
+                className="flex-1 py-2.5 rounded-lg border border-border bg-surface text-text-secondary hover:bg-canvas text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmBuyMembership}
+                className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-subtle transition"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>
+                  Pay ${selectedPlanForPurchase === 'Annual' ? selectedClubForPurchase.annualDues.toFixed(2) : selectedClubForPurchase.semesterDues.toFixed(2)} & Activate
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       )}

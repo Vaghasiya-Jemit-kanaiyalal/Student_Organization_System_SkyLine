@@ -77,13 +77,17 @@ export const Navbar = () => {
             Treasurer
           </span>
         );
-      default:
+      default: {
+        const hasClub = user?.memberships && user.memberships.length > 0;
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#15466A] text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#159947] mr-1.5"></span>
-            Student Member
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            hasClub ? 'bg-[#15466A] text-white' : 'bg-[#1E293B] text-[#94A3B8] border border-[#334155]'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${hasClub ? 'bg-[#159947]' : 'bg-amber-400'}`}></span>
+            {hasClub ? 'Club Member' : 'Standard Student'}
           </span>
         );
+      }
     }
   };
 
@@ -109,7 +113,7 @@ export const Navbar = () => {
 
   const memberNavTabs = [
     { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'membership', label: 'Membership', icon: Users },
+    { id: 'membership', label: 'Clubs & Memberships', icon: Users },
     { id: 'events', label: 'Events', badge: 3, icon: Calendar },
     { id: 'tickets', label: 'My Tickets', badge: 2, icon: Ticket },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
