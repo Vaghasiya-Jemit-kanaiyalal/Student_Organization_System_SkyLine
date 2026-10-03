@@ -12,7 +12,7 @@ const apiClient = axios.create({
 // Interceptor to inject JWT token into all requests
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('connectu_jwt_token') || sessionStorage.getItem('connectu_jwt_token');
-  if (token) {
+  if (token && !token.startsWith('mock-')) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -25,12 +25,69 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Token expired or invalid
       console.warn('Session expired or unauthorized request.');
     }
     return Promise.reject(error);
   }
 );
+
+export const clubsApi = {
+  getAll: async () => {
+    const res = await apiClient.get('/clubs/');
+    return res.data;
+  },
+  getById: async (id) => {
+    const res = await apiClient.get(`/clubs/${id}/`);
+    return res.data;
+  },
+  create: async (data) => {
+    const res = await apiClient.post('/clubs/', data);
+    return res.data;
+  }
+};
+
+export const membershipApi = {
+  purchase: async (data) => {
+    const res = await apiClient.post('/membership/purchase/', data);
+    return res.data;
+  },
+  renew: async (data) => {
+    const res = await apiClient.post('/membership/renew/', data);
+    return res.data;
+  },
+  getMyStatus: async () => {
+    const res = await apiClient.get('/membership/my-status/');
+    return res.data;
+  },
+  adminGetMembers: async (params = {}) => {
+    const res = await apiClient.get('/admin/members/', { params });
+    return res.data;
+  },
+  getAdminMembers: async (params = {}) => {
+    const res = await apiClient.get('/admin/members/', { params });
+    return res.data;
+  },
+  adminUpdateMembership: async (id, data) => {
+    const res = await apiClient.put(`/admin/members/${id}/membership/`, data);
+    return res.data;
+  },
+  adminUpdateMember: async (id, data) => {
+    const res = await apiClient.put(`/admin/members/${id}/membership/`, data);
+    return res.data;
+  },
+  adminRenew: async (id, data = {}) => {
+    const res = await apiClient.post(`/admin/members/${id}/renew/`, data);
+    return res.data;
+  },
+  adminRenewMember: async (id, data = {}) => {
+    const res = await apiClient.post(`/admin/members/${id}/renew/`, data);
+    return res.data;
+  },
+  adminDiscardMember: async (id, data = {}) => {
+    const res = await apiClient.post(`/admin/members/${id}/discard/`, data);
+    return res.data;
+  }
+};
 
 export const eventsApi = {
   getAll: async (params = {}) => {

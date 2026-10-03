@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from accounts.urls import admin_urlpatterns as accounts_admin_urls
+from accounts.urls import admin_urlpatterns as accounts_admin_urls, membership_urlpatterns as accounts_membership_urls
 
 
 @api_view(['GET'])
@@ -70,6 +70,9 @@ urlpatterns = [
 
     # Authentication & Profile APIs
     path('api/auth/', include('accounts.urls')),
+
+    # Membership & Club APIs
+    path('api/', include(accounts_membership_urls)),
 
     # Admin Specific APIs
     path('api/admin/', include(accounts_admin_urls)),

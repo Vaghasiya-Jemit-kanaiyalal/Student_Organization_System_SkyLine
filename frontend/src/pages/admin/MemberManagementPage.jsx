@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { INITIAL_MEMBERS_DATA } from '../../data/membersData';
+import { membershipApi } from '../../services/api';
 import {
   Users,
   RefreshCw,
@@ -37,8 +38,85 @@ export const MemberManagementPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const subTabParam = searchParams.get('subtab') || (searchParams.get('tab') === 'renewals' ? 'renewals' : 'all');
 
-  // Master Members State
-  const [members, setMembers] = useState(INITIAL_MEMBERS_DATA);
+  // Master Members State with localStorage persistence
+  const [members, setMembers] = useState(() => {
+    try {
+      const saved = localStorage.getItem('skyline_members_roster');
+      if (saved) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const parsed = JSON.parse(saved);
+        // Automatic expiry check: if today > expiryDate, status is Expired
+        return parsed.map((m) => {
+          if (m.expiryDate && m.expiryDate < todayStr && m.membershipStatus === 'Active') {
+            return { ...m, membershipStatus: 'Expired' };
+          }
+          return m;
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved member roster:', e);
+    }
+    const todayStr = new Date().toISOString().split('T')[0];
+    return INITIAL_MEMBERS_DATA.map((m) => {
+      if (m.expiryDate && m.expiryDate < todayStr && m.membershipStatus === 'Active') {
+        return { ...m, membershipStatus: 'Expired' };
+      }
+      return m;
+    });
+  });
+
+  // Sync to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('skyline_members_roster', JSON.stringify(members));
+    } catch (e) {
+      console.warn('Failed to save members to localStorage:', e);
+    }
+  }, [members]);
+
+  // Load from backend API if available
+  useEffect(() => {
+    const fetchAdminMembers = async () => {
+      try {
+        const res = await membershipApi.getAdminMembers();
+        const data = Array.isArray(res) ? res : res?.results;
+        if (data && data.length > 0) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const mapped = data.map((u) => {
+            const rawName = u.full_name || u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email || 'Student';
+            const rawStatus = String(u.membership_status || 'NONE').toUpperCase();
+            const rawExpiry = u.membership_end_date || '2027-08-31';
+            const isFinished = rawExpiry && rawExpiry < todayStr;
+            const formattedStatus = (rawStatus === 'ACTIVE' && isFinished) ? 'Expired' : (rawStatus === 'ACTIVE' ? 'Active' : rawStatus === 'EXPIRED' ? 'Expired' : 'None');
+            const rawType = String(u.membership_type || 'ANNUAL').toUpperCase();
+            const formattedType = rawType === 'SEMESTER' ? 'Semester' : 'Annual';
+
+            return {
+              id: u.id,
+              name: rawName,
+              studentId: u.student_id || u.studentId || `STU-2026-${u.id}`,
+              email: u.email || '',
+              phone: u.phone || '+1 (555) 019-2834',
+              membershipType: formattedType,
+              membershipStatus: formattedStatus,
+              joinDate: u.membership_start_date || '2026-09-01',
+              expiryDate: rawExpiry,
+              totalRenewals: 1,
+              lastRenewalDate: u.membership_start_date || '2026-09-01',
+              eventHistory: [],
+              volunteerHistory: [],
+              certificates: [],
+              renewalHistory: [],
+            };
+          });
+          setMembers(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend admin members fallback to seed data:', err);
+      }
+    };
+    fetchAdminMembers();
+  }, []);
 
   // Active Sub-Page: 'all' | 'renewals'
   const [activeSubPage, setActiveSubPage] = useState(subTabParam === 'renewals' ? 'renewals' : 'all');
@@ -64,6 +142,8 @@ export const MemberManagementPage = () => {
   const [editingMember, setEditingMember] = useState(null);
   const [renewingMember, setRenewingMember] = useState(null);
   const [renewalHistoryMember, setRenewalHistoryMember] = useState(null);
+  const [discardingMember, setDiscardingMember] = useState(null);
+  const [isDiscarding, setIsDiscarding] = useState(false);
 
   // Toast Notification State
   const [toast, setToast] = useState(null);
@@ -84,8 +164,10 @@ export const MemberManagementPage = () => {
   // Helper to determine renewal status for Renewals table
   // Active, Expiring Soon (within 30 days of 2026-10-03), or Expired
   const getRenewalStatus = (expiryDateStr) => {
+    if (!expiryDateStr) return 'Expired';
     const today = new Date('2026-10-03').getTime();
     const expiry = new Date(expiryDateStr).getTime();
+    if (isNaN(expiry)) return 'Expired';
     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return 'Expired';
@@ -112,7 +194,7 @@ export const MemberManagementPage = () => {
     }).length;
     const expired = members.filter((m) => getRenewalStatus(m.expiryDate) === 'Expired').length;
     // Renewed this semester (renewed in 2026)
-    const renewedThisSemester = members.filter((m) => m.lastRenewalDate && m.lastRenewalDate.startsWith('2026')).length;
+    const renewedThisSemester = members.filter((m) => m.lastRenewalDate && String(m.lastRenewalDate).startsWith('2026')).length;
 
     return { totalRenewals, dueForRenewal, expired, renewedThisSemester };
   }, [members]);
@@ -120,11 +202,16 @@ export const MemberManagementPage = () => {
   // Filtered list for "ALL MEMBERS"
   const filteredAllMembers = useMemo(() => {
     return members.filter((m) => {
-      const query = allSearchTerm.toLowerCase();
+      const query = (allSearchTerm || '').toLowerCase().trim();
+      const mName = String(m.name || '').toLowerCase();
+      const mStudentId = String(m.studentId || '').toLowerCase();
+      const mEmail = String(m.email || '').toLowerCase();
+
       const matchesSearch =
-        m.name.toLowerCase().includes(query) ||
-        m.studentId.toLowerCase().includes(query) ||
-        m.email.toLowerCase().includes(query);
+        !query ||
+        mName.includes(query) ||
+        mStudentId.includes(query) ||
+        mEmail.includes(query);
 
       const matchesType = allTypeFilter === 'ALL' || m.membershipType === allTypeFilter;
       const matchesStatus = allStatusFilter === 'ALL' || m.membershipStatus === allStatusFilter;
@@ -136,10 +223,14 @@ export const MemberManagementPage = () => {
   // Filtered list for "RENEWALS"
   const filteredRenewals = useMemo(() => {
     return members.filter((m) => {
-      const query = renewalSearchTerm.toLowerCase();
+      const query = (renewalSearchTerm || '').toLowerCase().trim();
+      const mName = String(m.name || '').toLowerCase();
+      const mStudentId = String(m.studentId || '').toLowerCase();
+
       const matchesSearch =
-        m.name.toLowerCase().includes(query) ||
-        m.studentId.toLowerCase().includes(query);
+        !query ||
+        mName.includes(query) ||
+        mStudentId.includes(query);
 
       const matchesType = renewalTypeFilter === 'ALL' || m.membershipType === renewalTypeFilter;
 
@@ -147,26 +238,71 @@ export const MemberManagementPage = () => {
     });
   }, [members, renewalSearchTerm, renewalTypeFilter]);
 
+  // Cross-page sync helper: updates active student session if the admin modifies the currently logged-in user
+  const syncWithActiveUser = (updatedMember) => {
+    try {
+      const activeUserStr = localStorage.getItem('connectu_active_user');
+      if (activeUserStr) {
+        const activeUser = JSON.parse(activeUserStr);
+        if (
+          String(activeUser.id) === String(updatedMember.id) ||
+          activeUser.email?.toLowerCase() === updatedMember.email?.toLowerCase() ||
+          activeUser.studentId === updatedMember.studentId ||
+          activeUser.student_id === updatedMember.studentId
+        ) {
+          const isAct = String(updatedMember.membershipStatus).toUpperCase() === 'ACTIVE';
+          const updatedActiveUser = {
+            ...activeUser,
+            membership_status: isAct ? 'ACTIVE' : 'EXPIRED',
+            membershipStatus: isAct ? 'ACTIVE' : 'EXPIRED',
+            membership_type: String(updatedMember.membershipType || 'ANNUAL').toUpperCase(),
+            membershipType: String(updatedMember.membershipType || 'ANNUAL').toUpperCase(),
+            membership_end_date: updatedMember.expiryDate || activeUser.membership_end_date,
+            membershipEndDate: updatedMember.expiryDate || activeUser.membershipEndDate,
+            membershipBadge: isAct ? (String(updatedMember.membershipType).toUpperCase() === 'SEMESTER' ? 'Semester Member' : 'Annual Member') : 'Student',
+            is_active_member: isAct,
+            isActiveMember: isAct,
+          };
+          localStorage.setItem('connectu_active_user', JSON.stringify(updatedActiveUser));
+          window.dispatchEvent(new Event('skyline-user-updated'));
+        }
+      }
+    } catch (e) {
+      console.warn('Sync with active user failed:', e);
+    }
+  };
+
   // Action: Renew Membership
-  const handleConfirmRenew = (memberId, extensionMonths = 12) => {
+  const handleConfirmRenew = async (memberId, extensionMonths = 12) => {
+    try {
+      await membershipApi.adminRenewMember(memberId, {
+        extension_months: extensionMonths,
+        membership_type: renewingMember?.membershipType?.toUpperCase() || 'ANNUAL',
+      });
+    } catch (err) {
+      console.warn('API renew call fallback:', err);
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id === memberId) {
-          const currentExpiry = new Date(m.expiryDate > '2026-10-03' ? m.expiryDate : '2026-10-03');
+          const baseDate = m.expiryDate && m.expiryDate > todayStr ? m.expiryDate : todayStr;
+          const currentExpiry = new Date(baseDate);
           currentExpiry.setMonth(currentExpiry.getMonth() + extensionMonths);
           const newExpiryStr = currentExpiry.toISOString().split('T')[0];
-          const todayStr = '2026-10-03';
 
           const newHistoryItem = {
             id: `REN-${Date.now().toString().slice(-4)}`,
             renewalDate: todayStr,
             plan: m.membershipType === 'Annual' ? 'Annual Membership' : 'Semester Membership',
-            amount: m.membershipType === 'Annual' ? 45.00 : 25.00,
+            amount: m.membershipType === 'Annual' ? 499.00 : 299.00,
             receipt: `REC-${Date.now().toString().slice(-4)}.pdf`,
             approvedBy: 'Club Administrator'
           };
 
-          return {
+          const updated = {
             ...m,
             membershipStatus: 'Active',
             expiryDate: newExpiryStr,
@@ -174,6 +310,9 @@ export const MemberManagementPage = () => {
             lastRenewalDate: todayStr,
             renewalHistory: [newHistoryItem, ...(m.renewalHistory || [])]
           };
+
+          syncWithActiveUser(updated);
+          return updated;
         }
         return m;
       })
@@ -184,27 +323,84 @@ export const MemberManagementPage = () => {
   };
 
   // Action: Suspend Membership
-  const handleToggleSuspend = (memberId) => {
+  const handleToggleSuspend = async (memberId) => {
+    const targetMember = members.find((m) => m.id === memberId);
+    const nextStatus = targetMember?.membershipStatus === 'Active' ? 'Expired' : 'Active';
+    try {
+      await membershipApi.adminUpdateMember(memberId, {
+        membership_status: nextStatus === 'Active' ? 'ACTIVE' : 'EXPIRED',
+      });
+    } catch (err) {
+      console.warn('API update call fallback:', err);
+    }
+
     setMembers((prev) =>
       prev.map((m) => {
         if (m.id === memberId) {
-          const isCurrentlyActive = m.membershipStatus === 'Active';
-          const nextStatus = isCurrentlyActive ? 'Expired' : 'Active';
+          const updated = { ...m, membershipStatus: nextStatus };
+          syncWithActiveUser(updated);
           showToast(`Member ${m.name} status updated to ${nextStatus}.`, nextStatus === 'Active' ? 'success' : 'warning');
-          return { ...m, membershipStatus: nextStatus };
+          return updated;
         }
         return m;
       })
     );
   };
 
+  // Action: Discard Membership (Admin manual revocation)
+  const handleConfirmDiscard = async () => {
+    if (!discardingMember) return;
+    setIsDiscarding(true);
+    try {
+      await membershipApi.adminDiscardMember(discardingMember.id);
+      showToast(`Membership for ${discardingMember.name} discarded successfully.`, 'warning');
+    } catch (err) {
+      console.warn('API discard member fallback:', err);
+      showToast(`Membership for ${discardingMember.name} marked as expired.`, 'warning');
+    } finally {
+      setIsDiscarding(false);
+    }
+
+    setMembers((prev) =>
+      prev.map((m) => {
+        if (m.id === discardingMember.id) {
+          const updated = { ...m, membershipStatus: 'Expired' };
+          syncWithActiveUser(updated);
+          return updated;
+        }
+        return m;
+      })
+    );
+
+    if (selectedMemberDetails?.id === discardingMember.id) {
+      setSelectedMemberDetails((prev) => prev ? { ...prev, membershipStatus: 'Expired' } : null);
+    }
+
+    setDiscardingMember(null);
+  };
+
   // Action: Save Edit Member
-  const handleSaveEdit = (e) => {
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
     if (!editingMember) return;
 
+    try {
+      await membershipApi.adminUpdateMember(editingMember.id, {
+        membership_status: editingMember.membershipStatus === 'Active' ? 'ACTIVE' : 'EXPIRED',
+        membership_type: editingMember.membershipType === 'Semester' ? 'SEMESTER' : 'ANNUAL',
+      });
+    } catch (err) {
+      console.warn('API edit member fallback:', err);
+    }
+
     setMembers((prev) =>
-      prev.map((m) => (m.id === editingMember.id ? editingMember : m))
+      prev.map((m) => {
+        if (m.id === editingMember.id) {
+          syncWithActiveUser(editingMember);
+          return editingMember;
+        }
+        return m;
+      })
     );
 
     if (selectedMemberDetails?.id === editingMember.id) {
@@ -239,13 +435,12 @@ export const MemberManagementPage = () => {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-5 right-5 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg shadow-lg text-xs font-medium border transition-all duration-300 ${
-            toast.type === 'error'
+          className={`fixed bottom-5 right-5 z-50 flex items-center space-x-2.5 px-4 py-3 rounded-lg shadow-lg text-xs font-medium border transition-all duration-300 ${toast.type === 'error'
               ? 'bg-rose-50 text-rose-800 border-rose-200'
               : toast.type === 'warning'
-              ? 'bg-amber-50 text-amber-800 border-amber-200'
-              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-          }`}
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            }`}
         >
           {toast.type === 'error' ? (
             <XCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
@@ -294,18 +489,16 @@ export const MemberManagementPage = () => {
         <div className="border border-slate-200 bg-white rounded-lg p-1 shadow-2xs flex items-center space-x-1">
           <button
             onClick={() => handleTabChange('all')}
-            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${
-              activeSubPage === 'all'
+            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${activeSubPage === 'all'
                 ? 'bg-zinc-900 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-zinc-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>1. ALL MEMBERS</span>
             <span
-              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                activeSubPage === 'all' ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-slate-600'
-              }`}
+              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeSubPage === 'all' ? 'bg-zinc-800 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
             >
               {allMembersStats.total}
             </span>
@@ -313,18 +506,16 @@ export const MemberManagementPage = () => {
 
           <button
             onClick={() => handleTabChange('renewals')}
-            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${
-              activeSubPage === 'renewals'
+            className={`flex items-center space-x-2 h-8 px-3.5 rounded-md text-xs font-semibold transition ${activeSubPage === 'renewals'
                 ? 'bg-zinc-900 text-white shadow-2xs'
                 : 'text-slate-600 hover:text-zinc-900 hover:bg-slate-100'
-            }`}
+              }`}
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>2. RENEWALS</span>
             <span
-              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                activeSubPage === 'renewals' ? 'bg-zinc-800 text-white' : 'bg-amber-100 text-amber-800'
-              }`}
+              className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeSubPage === 'renewals' ? 'bg-zinc-800 text-white' : 'bg-amber-100 text-amber-800'
+                }`}
             >
               {renewalsStats.dueForRenewal} Due
             </span>
@@ -546,15 +737,25 @@ export const MemberManagementPage = () => {
                               {/* Suspend Membership */}
                               <button
                                 onClick={() => handleToggleSuspend(member.id)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${
-                                  member.membershipStatus === 'Active'
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${member.membershipStatus === 'Active'
                                     ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
                                     : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
-                                }`}
+                                  }`}
                                 title={member.membershipStatus === 'Active' ? 'Suspend Membership' : 'Activate Membership'}
                               >
                                 {member.membershipStatus === 'Active' ? 'Suspend' : 'Reactivate'}
                               </button>
+
+                              {/* Discard Membership */}
+                              {member.membershipStatus === 'Active' && (
+                                <button
+                                  onClick={() => setDiscardingMember(member)}
+                                  className="px-2 py-0.5 text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded text-[11px] font-semibold transition"
+                                  title="Discard Membership Immediately"
+                                >
+                                  Discard
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -751,6 +952,17 @@ export const MemberManagementPage = () => {
                                   Renew
                                 </button>
 
+                                {/* Discard Membership */}
+                                {member.membershipStatus === 'Active' && (
+                                  <button
+                                    onClick={() => setDiscardingMember(member)}
+                                    className="px-2 py-0.5 text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded text-[11px] font-semibold transition"
+                                    title="Discard Student Membership Immediately"
+                                  >
+                                    Discard
+                                  </button>
+                                )}
+
                                 {/* View Renewal History */}
                                 <button
                                   onClick={() => setRenewalHistoryMember(member)}
@@ -793,11 +1005,10 @@ export const MemberManagementPage = () => {
                     {selectedMemberDetails.name}
                   </h2>
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      selectedMemberDetails.membershipStatus === 'Active'
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${selectedMemberDetails.membershipStatus === 'Active'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : 'bg-rose-50 text-rose-700 border border-rose-200'
-                    }`}
+                      }`}
                   >
                     {selectedMemberDetails.membershipStatus}
                   </span>
@@ -944,7 +1155,15 @@ export const MemberManagementPage = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">
+              {selectedMemberDetails.membershipStatus === 'Active' ? (
+                <button
+                  onClick={() => setDiscardingMember(selectedMemberDetails)}
+                  className="h-8 px-3.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
+                >
+                  Discard Membership
+                </button>
+              ) : <div />}
               <button
                 onClick={() => setSelectedMemberDetails(null)}
                 className="h-8 px-4 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs"
@@ -1154,7 +1373,7 @@ export const MemberManagementPage = () => {
                         <td className="py-2 px-3 font-mono font-medium text-zinc-900">{ren.id}</td>
                         <td className="py-2 px-3 font-mono text-slate-500">{ren.renewalDate}</td>
                         <td className="py-2 px-3 font-semibold text-slate-800">{ren.plan}</td>
-                        <td className="py-2 px-3 font-bold font-mono text-emerald-800">${ren.amount.toFixed(2)}</td>
+                        <td className="py-2 px-3 font-bold font-mono text-emerald-800">₹{Number(ren.amount || 0).toFixed(0)}</td>
                         <td className="py-2 px-3 text-slate-500">{ren.approvedBy}</td>
                       </tr>
                     ))}
@@ -1170,6 +1389,59 @@ export const MemberManagementPage = () => {
                 className="h-8 px-4 rounded-lg bg-zinc-900 hover:bg-black text-white font-semibold text-xs shadow-xs"
               >
                 Close History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================== */}
+      {/* MODAL 5: DISCARD MEMBERSHIP CONFIRMATION MODAL             */}
+      {/* ========================================================== */}
+      {discardingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xs">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-xl border border-slate-200 p-4 sm:p-5 space-y-3.5 animate-fadeIn">
+            <div className="flex items-center space-x-3 text-rose-700">
+              <div className="p-2 bg-rose-50 rounded-lg border border-rose-200">
+                <AlertCircle className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900">
+                  Discard Student Membership
+                </h3>
+                <p className="text-[11px] text-slate-500">Revoke active privileges immediately</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to discard the active membership for <strong>{discardingMember.name}</strong> ({discardingMember.studentId})?
+            </p>
+
+            <div className="p-3 bg-rose-50/60 rounded-lg border border-rose-200/80 text-xs space-y-1.5 text-rose-900">
+              <p className="font-semibold text-rose-800">Consequences of discarding membership:</p>
+              <ul className="list-disc list-inside space-y-1 text-[11px] text-rose-700">
+                <li>Membership status will be immediately set to <strong>Expired</strong>.</li>
+                <li>Member discount badges and store perks will be revoked.</li>
+                <li>Any active club memberships will be terminated.</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+              <button
+                type="button"
+                disabled={isDiscarding}
+                onClick={() => setDiscardingMember(null)}
+                className="h-8 px-3.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDiscarding}
+                onClick={handleConfirmDiscard}
+                className="h-8 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs disabled:opacity-50"
+              >
+                {isDiscarding ? 'Discarding...' : 'Confirm Discard'}
               </button>
             </div>
           </div>

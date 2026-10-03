@@ -1,8 +1,13 @@
+from datetime import timedelta
+
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from accounts.models import Club, ClubMembership
 
 User = get_user_model()
 
@@ -47,7 +52,7 @@ class AuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('access', response.data)
         self.assertIn('refresh', response.data)
-        self.assertEqual(response.data['role'], 'MEMBER')
+        self.assertEqual(response.data['role'], 'STUDENT')
         self.assertEqual(response.data['user']['email'], 'new_student@studentorg.edu')
 
     def test_member_registration_duplicate_email(self):
@@ -200,3 +205,84 @@ class AuthTests(APITestCase):
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class MembershipTests(APITestCase):
+    def setUp(self):
+        self.student = User.objects.create_user(
+            email='membership_student@studentorg.edu',
+            password='MemberPassword123!',
+            full_name='Membership Test Student',
+            student_id='STU-MEM-001',
+            role=User.Role.STUDENT,
+            membership_status=User.MembershipStatus.NONE,
+        )
+        self.club = Club.objects.create(
+            id='club-test-001',
+            name='Test Robotics Society',
+            semester_fee=299.00,
+            annual_fee=499.00,
+        )
+        refresh = RefreshToken.for_user(self.student)
+        self.access = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.access}')
+
+    def test_registration_starts_with_none_membership(self):
+        self.assertEqual(self.student.membership_status, User.MembershipStatus.NONE)
+
+    def test_purchase_membership_activates_student(self):
+        url = reverse('membership-purchase')
+        response = self.client.post(
+            url,
+            {
+                'club_id': self.club.id,
+                'membership_type': 'ANNUAL',
+                'payment_method': 'Student Account (Bursar)',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.membership_status, User.MembershipStatus.ACTIVE)
+        self.assertEqual(self.student.membership_type, User.MembershipType.ANNUAL)
+        self.assertTrue(self.student.is_active_member)
+        self.assertEqual(ClubMembership.objects.filter(student=self.student, status='ACTIVE').count(), 1)
+
+    def test_renew_membership_after_expiry(self):
+        past_end = timezone.now().date() - timedelta(days=1)
+        self.student.membership_status = User.MembershipStatus.EXPIRED
+        self.student.membership_type = User.MembershipType.SEMESTER
+        self.student.membership_start_date = past_end - timedelta(days=180)
+        self.student.membership_end_date = past_end
+        self.student.save()
+
+        url = reverse('membership-renew')
+        response = self.client.post(
+            url,
+            {'club_id': self.club.id, 'membership_type': 'SEMESTER'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.membership_status, User.MembershipStatus.ACTIVE)
+        self.assertEqual(self.student.membership_type, User.MembershipType.SEMESTER)
+
+    def test_my_membership_status_endpoint(self):
+        url = reverse('membership-my-status')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['membership_status'], 'NONE')
+        self.assertFalse(response.data['is_active_member'])
+
+    def test_expired_membership_auto_updates_on_profile_fetch(self):
+        self.student.membership_status = User.MembershipStatus.ACTIVE
+        self.student.membership_type = User.MembershipType.ANNUAL
+        self.student.membership_start_date = timezone.now().date() - timedelta(days=400)
+        self.student.membership_end_date = timezone.now().date() - timedelta(days=1)
+        self.student.save()
+
+        url = reverse('auth-me')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['membership_status'], 'EXPIRED')
+        self.assertFalse(response.data['is_active_member'])

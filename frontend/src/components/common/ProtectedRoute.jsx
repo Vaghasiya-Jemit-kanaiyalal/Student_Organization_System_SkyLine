@@ -11,15 +11,29 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  const userRole = String(user.role || '').toUpperCase();
+  const normalizedAllowedRoles = allowedRoles?.map((r) => String(r).toUpperCase());
+
+  // Handle student role synonymity (Membership is a property of Student)
+  const effectiveAllowedRoles = normalizedAllowedRoles ? [...normalizedAllowedRoles] : null;
+  if (effectiveAllowedRoles) {
+    if (effectiveAllowedRoles.includes('MEMBER') && !effectiveAllowedRoles.includes('STUDENT')) {
+      effectiveAllowedRoles.push('STUDENT');
+    }
+    if (effectiveAllowedRoles.includes('STUDENT') && !effectiveAllowedRoles.includes('MEMBER')) {
+      effectiveAllowedRoles.push('MEMBER');
+    }
+  }
+
+  if (effectiveAllowedRoles && !effectiveAllowedRoles.includes(userRole)) {
     // Automatically redirect users to their assigned role dashboard
-    if (user.role === 'TREASURER') {
+    if (userRole === 'TREASURER') {
       return <Navigate to="/treasurer/dashboard" replace />;
     }
-    if (user.role === 'ADMIN') {
+    if (userRole === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
     }
-    if (user.role === 'MEMBER') {
+    if (userRole === 'STUDENT' || userRole === 'MEMBER') {
       return <Navigate to="/member/dashboard" replace />;
     }
 

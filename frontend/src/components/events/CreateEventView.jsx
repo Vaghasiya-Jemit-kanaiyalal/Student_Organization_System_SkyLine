@@ -55,7 +55,9 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('16:00');
   const [capacity, setCapacity] = useState(150);
-  const [ticketPrice, setTicketPrice] = useState(0);
+  const [ticketPrice, setTicketPrice] = useState(200);
+  const [memberTicketPrice, setMemberTicketPrice] = useState(100);
+  const [nonMemberTicketPrice, setNonMemberTicketPrice] = useState(200);
   const [eventBanner, setEventBanner] = useState(PRESET_BANNER_IMAGES[0].url);
 
   // Volunteer Configuration
@@ -139,7 +141,9 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
       start_time: startTime,
       end_time: endTime,
       capacity: Number(capacity),
-      ticket_price: Number(ticketPrice),
+      ticket_price: Number(nonMemberTicketPrice || ticketPrice),
+      member_ticket_price: Number(memberTicketPrice),
+      non_member_ticket_price: Number(nonMemberTicketPrice || ticketPrice),
       image: eventBanner,
       volunteers_required: volunteersRequired,
       volunteer_count_required: volunteersRequired ? Number(volunteerCountRequired) : 0,
@@ -165,7 +169,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         return;
       }
 
-      const formattedPrice = Number(ticketPrice) === 0 ? 'Free' : `$${Number(ticketPrice).toFixed(2)}`;
+      const formattedPrice = Number(memberTicketPrice) === 0 ? 'Free for Members' : `₹${Number(memberTicketPrice).toFixed(0)}`;
 
       const localEventObj = {
         ...createdEvent,
@@ -189,7 +193,12 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         availableSeats: Number(capacity),
         attendees: 0,
         price: formattedPrice,
-        ticketPrice: Number(ticketPrice),
+        ticketPrice: Number(nonMemberTicketPrice || ticketPrice),
+        ticket_price: Number(nonMemberTicketPrice || ticketPrice),
+        member_ticket_price: Number(memberTicketPrice),
+        non_member_ticket_price: Number(nonMemberTicketPrice || ticketPrice),
+        memberPriceNum: Number(memberTicketPrice),
+        nonMemberPriceNum: Number(nonMemberTicketPrice || ticketPrice),
         image: eventBanner,
         description: eventDescription,
         status: finalStatus,
@@ -400,19 +409,39 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
             <div>
               <label className="block text-xs font-semibold text-text-primary mb-1">
-                Ticket Price ($) <span className="text-status-error">*</span>
+                Member Ticket Price (₹) <span className="text-status-error">*</span>
               </label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 min="0"
                 required
-                value={ticketPrice}
-                onChange={(e) => setTicketPrice(e.target.value)}
-                placeholder="0.00 for Free admission"
+                value={memberTicketPrice}
+                onChange={(e) => setMemberTicketPrice(e.target.value)}
+                placeholder="e.g. 100"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-emerald-600 font-semibold text-emerald-700"
+              />
+              <span className="text-[10px] text-emerald-600 mt-0.5 block">Discounted price for Active Members (e.g. ₹100).</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Non-Member Ticket Price (₹) <span className="text-status-error">*</span>
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                required
+                value={nonMemberTicketPrice}
+                onChange={(e) => {
+                  setNonMemberTicketPrice(e.target.value);
+                  setTicketPrice(e.target.value);
+                }}
+                placeholder="e.g. 200"
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <span className="text-[10px] text-text-muted mt-0.5 block">Enter 0 for free student admission.</span>
+              <span className="text-[10px] text-text-muted mt-0.5 block">Standard price for non-members / guests (e.g. ₹200).</span>
             </div>
           </div>
 

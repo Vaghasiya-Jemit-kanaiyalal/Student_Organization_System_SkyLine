@@ -39,10 +39,22 @@ class Event(models.Model):
     end_time = models.TimeField(_('end time'), default='17:00:00')
     capacity = models.PositiveIntegerField(_('attendee capacity'), default=150)
     ticket_price = models.DecimalField(
-        _('ticket price'),
+        _('ticket price (regular/non-member)'),
         max_digits=10,
         decimal_places=2,
-        default=0.00
+        default=200.00
+    )
+    member_ticket_price = models.DecimalField(
+        _('member ticket price'),
+        max_digits=10,
+        decimal_places=2,
+        default=100.00
+    )
+    non_member_ticket_price = models.DecimalField(
+        _('non-member ticket price'),
+        max_digits=10,
+        decimal_places=2,
+        default=200.00
     )
     image = models.TextField(
         _('event banner url'),
@@ -93,11 +105,23 @@ class Event(models.Model):
             self.location = self.venue
         elif not self.venue and self.location:
             self.venue = self.location
+        if not self.non_member_ticket_price and self.ticket_price:
+            self.non_member_ticket_price = self.ticket_price
+        elif not self.ticket_price and self.non_member_ticket_price:
+            self.ticket_price = self.non_member_ticket_price
         if self.status == self.Status.PUBLISHED:
             self.is_active = True
         elif self.status in [self.Status.CANCELLED, self.Status.COMPLETED]:
             self.is_active = False
         super().save(*args, **kwargs)
+
+    @property
+    def member_price(self):
+        return self.member_ticket_price
+
+    @property
+    def non_member_price(self):
+        return self.non_member_ticket_price or self.ticket_price
 
     @property
     def roles_list(self):
@@ -128,7 +152,6 @@ class VolunteerApplication(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='volunteer_applications',
-        limit_choices_to={'role': 'MEMBER'}
     )
     event = models.ForeignKey(
         Event,

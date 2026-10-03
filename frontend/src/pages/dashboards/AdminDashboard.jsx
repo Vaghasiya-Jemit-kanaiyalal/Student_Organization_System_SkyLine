@@ -292,8 +292,11 @@ export const AdminDashboard = () => {
 
   // Filtered Merchandise
   const filteredMerchandise = MERCHANDISE_ITEMS.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(merchSearch.toLowerCase()) ||
-      item.category.toLowerCase().includes(merchSearch.toLowerCase());
+    const q = (merchSearch || '').toLowerCase().trim();
+    const itemName = String(item.name || '').toLowerCase();
+    const itemCat = String(item.category || '').toLowerCase();
+
+    const matchesSearch = !q || itemName.includes(q) || itemCat.includes(q);
     const matchesCategory = merchCategoryFilter === 'ALL' || item.category === merchCategoryFilter;
     return matchesSearch && matchesCategory;
   });

@@ -24,11 +24,17 @@ import {
 
 export const MemberMerchStore = () => {
   const { user } = useAuth();
-  const { products, orders, placeOrder, getProductTotalStock } = useMerchandise();
+  const { products, orders, placeOrder, getProductPricing, getProductTotalStock } = useMerchandise();
 
   // Active membership check
-  const isClubMember = (user?.memberships && user.memberships.length > 0) || user?.role === 'ADMIN' || user?.role === 'TREASURER';
-  const getProductPrice = (item) => isClubMember ? item.price : item.price + 10;
+  const isMember = String(user?.membership_status || user?.membershipStatus || '').toUpperCase() === 'ACTIVE';
+  const isClubMember = isMember;
+  const getProductPrice = (item) => {
+    if (getProductPricing) {
+      return getProductPricing(item, isMember).price;
+    }
+    return isMember ? (item.member_price || item.memberPrice || item.price * 0.8) : (item.regular_price || item.regularPrice || item.price);
+  };
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -321,29 +327,35 @@ export const MemberMerchStore = () => {
                   {/* Price & Action Button */}
                   <div className="p-4 pt-2 border-t border-border flex items-center justify-between">
                     <div>
-                      {isClubMember ? (
-                        <div>
-                          <span className="text-[10px] text-emerald-700 font-bold uppercase block">Club Member Price</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-lg font-bold text-emerald-700">
-                              ${item.price.toFixed(2)}
+                      {(() => {
+                        const pricing = getProductPricing ? getProductPricing(item, isMember) : {
+                          regularPrice: item.regular_price || item.regularPrice || item.price || 1000,
+                          memberPrice: item.member_price || item.memberPrice || (item.price * 0.8),
+                        };
+                        return isMember ? (
+                          <div>
+                            <span className="text-[10px] text-emerald-700 font-bold uppercase block">Member Price</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-lg font-bold text-emerald-700">
+                                ₹{pricing.memberPrice}
+                              </span>
+                              <span className="text-xs text-text-muted line-through">
+                                ₹{pricing.regularPrice}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-[10px] text-text-muted uppercase block">Regular Price</span>
+                            <span className="text-lg font-bold text-text-primary">
+                              ₹{pricing.regularPrice}
                             </span>
-                            <span className="text-xs text-text-muted line-through">
-                              ${(item.price + 10).toFixed(2)}
+                            <span className="block text-[10px] text-amber-700 font-semibold">
+                              Member Price: ₹{pricing.memberPrice}
                             </span>
                           </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <span className="text-[10px] text-text-muted uppercase block">Standard Student Price</span>
-                          <span className="text-lg font-bold text-text-primary">
-                            ${(item.price + 10).toFixed(2)}
-                          </span>
-                          <span className="block text-[10px] text-amber-700 font-semibold">
-                            Member Price: ${item.price.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
 
                     <button

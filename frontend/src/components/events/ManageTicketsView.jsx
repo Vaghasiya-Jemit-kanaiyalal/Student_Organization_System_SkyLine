@@ -553,29 +553,29 @@ export const ManageTicketsView = ({
             </div>
 
             {/* Pass Body */}
-            <div className="p-4 bg-gradient-to-b from-primary-800 to-primary text-white rounded-lg space-y-3 text-center relative overflow-hidden">
-              <div className="text-[10px] uppercase tracking-widest text-accent font-semibold">
+            <div className="p-4 bg-gradient-to-b from-zinc-900 via-slate-900 to-zinc-900 text-white rounded-lg space-y-3 text-center relative overflow-hidden border border-zinc-800">
+              <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold">
                 Official SkyLine Event Ticket
               </div>
               <h4 className="text-base font-bold text-white">
                 {activeEvent.title}
               </h4>
-              <p className="text-xs text-primary-100">
+              <p className="text-xs text-zinc-300">
                 {activeEvent.dateDisplay} • {activeEvent.venue}
               </p>
 
               {/* QR Code Container */}
-              <div className="my-3 p-3 bg-white text-text-primary rounded-md inline-block border-2 border-accent">
-                <QrCode className="w-32 h-32 mx-auto text-primary" />
-                <div className="font-mono text-[10px] font-bold text-text-primary mt-1">
+              <div className="my-3 p-3 bg-white text-zinc-900 rounded-md inline-block border-2 border-emerald-500 shadow-sm">
+                <QrCode className="w-32 h-32 mx-auto text-zinc-900" />
+                <div className="font-mono text-[10px] font-bold text-zinc-900 mt-1">
                   {activeTicketModal.qrCode || activeTicketModal.id}
                 </div>
               </div>
 
-              <div className="text-xs text-primary-100 space-y-0.5">
+              <div className="text-xs text-zinc-300 space-y-0.5">
                 <div>Holder: <strong className="text-white">{activeTicketModal.attendeeName}</strong></div>
-                <div>Pass Type: <span className="text-accent font-semibold">{activeTicketModal.ticketType}</span></div>
-                <div className="font-mono text-[10px] text-accent">ID: {activeTicketModal.id}</div>
+                <div>Pass Type: <span className="text-emerald-400 font-semibold">{activeTicketModal.ticketType}</span></div>
+                <div className="font-mono text-[10px] text-zinc-400">ID: {activeTicketModal.id}</div>
               </div>
             </div>
 

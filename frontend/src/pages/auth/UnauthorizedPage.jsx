@@ -20,9 +20,11 @@ export const UnauthorizedPage = () => {
   const requiredRoles = location.state?.requiredRoles || ['ADMIN', 'TREASURER'];
   const attemptedPath = location.state?.attemptedPath || 'Restricted Area';
 
+  const cleanRole = String(currentRole || '').toUpperCase();
+
   const handleReturnToDashboard = () => {
-    if (currentRole === 'ADMIN') navigate('/admin/dashboard');
-    else if (currentRole === 'TREASURER') navigate('/treasurer/dashboard');
+    if (cleanRole === 'ADMIN') navigate('/admin/dashboard');
+    else if (cleanRole === 'TREASURER') navigate('/treasurer/dashboard');
     else navigate('/member/dashboard');
   };
 

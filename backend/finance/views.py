@@ -10,7 +10,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsTreasurer
+from accounts.permissions import IsTreasurer, IsTreasurerOrAdminReadOnly
 from .models import ReimbursementRequest, Transaction
 from .serializers import (
     RecordPaymentSerializer,
@@ -70,9 +70,9 @@ def _is_finance_officer(user):
 class FinanceDashboardView(APIView):
     """
     GET /api/finance/  |  GET /api/finance/dashboard/  |  GET /api/finance/summary/
-    Treasurer/Admin finance KPIs from live ledger rows.
+    Protected: Treasurer full access; Admin read-only summary from live ledger rows.
     """
-    permission_classes = [IsTreasurer]
+    permission_classes = [IsTreasurerOrAdminReadOnly]
 
     def get(self, request):
         income_qs = active_income_queryset()
@@ -184,12 +184,18 @@ class FinanceDashboardView(APIView):
 
 class TransactionListCreateView(generics.ListCreateAPIView):
     """
-    GET/POST /api/finance/transactions/
+    GET /api/finance/transactions/ -> List transactions (Treasurer; Admin read-only)
+    POST /api/finance/transactions/ -> Record a transaction (Treasurer only)
     Supports filters: type, category, status, search, start_date, end_date, ordering
     """
-    permission_classes = [IsTreasurer]
+    permission_classes = [IsTreasurerOrAdminReadOnly]
     serializer_class = TransactionSerializer
     pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsTreasurer()]
+        return super().get_permissions()
 
     def get_queryset(self):
         queryset = Transaction.objects.select_related('recorded_by').all()

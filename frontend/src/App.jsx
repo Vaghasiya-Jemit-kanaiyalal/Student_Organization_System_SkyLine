@@ -30,8 +30,9 @@ const RootRedirector = () => {
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
-  if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
-  if (user.role === 'TREASURER') return <Navigate to="/treasurer/dashboard" replace />;
+  const cleanRole = String(user.role || '').toUpperCase();
+  if (cleanRole === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  if (cleanRole === 'TREASURER') return <Navigate to="/treasurer/dashboard" replace />;
   return <Navigate to="/member/dashboard" replace />;
 };
 
@@ -105,11 +106,12 @@ const AppContent = () => {
           <Route
             path="/member/dashboard"
             element={
-              <ProtectedRoute allowedRoles={['MEMBER', 'ADMIN', 'TREASURER']}>
+              <ProtectedRoute allowedRoles={['STUDENT', 'MEMBER', 'ADMIN', 'TREASURER']}>
                 <MemberDashboard />
               </ProtectedRoute>
             }
           />
+          <Route path="/student/dashboard" element={<Navigate to="/member/dashboard" replace />} />
 
           <Route
             path="/admin/dashboard"
@@ -147,21 +149,82 @@ const AppContent = () => {
   );
 };
 
+// Global Error Boundary Component to prevent blank screens
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('SkyLine UI Error Boundary caught an error:', error, errorInfo);
+  }
+
+  handleReset = () => {
+    try {
+      localStorage.removeItem('connectu_active_user');
+      localStorage.removeItem('connectu_jwt_token');
+    } catch {
+      // ignore
+    }
+    window.location.href = '/login';
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center font-sans">
+          <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-8 space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xl">
+              !
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Application Error Encountered</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              An unexpected display issue occurred ({this.state.error?.message || 'Rendering error'}). Click below to reload or reset session.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition cursor-pointer"
+              >
+                Reload Page
+              </button>
+              <button
+                onClick={this.handleReset}
+                className="flex-1 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition cursor-pointer"
+              >
+                Reset & Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export const App = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <MerchandiseProvider>
-          <FinanceProvider>
-            <FundraiserProvider>
-              <TreasurerProvider>
-                <AppContent />
-              </TreasurerProvider>
-            </FundraiserProvider>
-          </FinanceProvider>
-        </MerchandiseProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <MerchandiseProvider>
+            <FinanceProvider>
+              <FundraiserProvider>
+                <TreasurerProvider>
+                  <AppContent />
+                </TreasurerProvider>
+              </FundraiserProvider>
+            </FinanceProvider>
+          </MerchandiseProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };
 

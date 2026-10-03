@@ -1,21 +1,22 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta, date, time
-from accounts.models import User
-from volunteers.models import Event, VolunteerApplication, VolunteerAssignment, Certificate
+from accounts.models import User, Club, ClubMembership
+from volunteers.models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement
 from finance.models import Transaction, ReimbursementRequest
 
 
 class Command(BaseCommand):
-    help = 'Seeds initial users (Admin, Treasurer, Members), Events, Volunteers, Assignments, and Certificates.'
+    help = 'Seeds initial users, clubs, memberships, events, and student organization data.'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.NOTICE('Seeding student organization system data...'))
+        self.stdout.write(self.style.NOTICE('Seeding complete student membership system data...'))
+
+        today = timezone.now().date()
 
         # 1. Create System Admin
-        admin_email = 'admin@studentorg.edu'
         admin, _ = User.objects.get_or_create(
-            email=admin_email,
+            email='admin@studentorg.edu',
             defaults={
                 'full_name': 'System Administrator',
                 'role': User.Role.ADMIN,
@@ -27,7 +28,7 @@ class Command(BaseCommand):
         admin.set_password('AdminPassword123!')
         admin.save()
 
-        # Demo Admin: admin@university.edu
+        # Demo Admin
         demo_admin, _ = User.objects.get_or_create(
             email='admin@university.edu',
             defaults={
@@ -42,9 +43,8 @@ class Command(BaseCommand):
         demo_admin.save()
 
         # 2. Create Treasurer
-        treasurer_email = 'treasurer@treasurer.gmail.com'
         treasurer, _ = User.objects.get_or_create(
-            email=treasurer_email,
+            email='treasurer@treasurer.gmail.com',
             defaults={
                 'full_name': 'Marcus Vance',
                 'role': User.Role.TREASURER,
@@ -55,59 +55,268 @@ class Command(BaseCommand):
         treasurer.set_password('TreasurerPassword123!')
         treasurer.save()
 
-        # 3. Create Organization Members
-        demo_student, _ = User.objects.get_or_create(
-            email='student@university.edu',
-            defaults={
+        # 3. Create Campus Clubs
+        clubs_data = [
+            {
+                'id': 'club-robotics',
+                'name': 'Skyline Robotics & AI Society',
+                'short_name': 'Robotics & AI',
+                'tagline': 'Autonomous Systems, Rover Engineering & Neural Hardware',
+                'category': 'Engineering & Technology',
+                'badge': 'Flagship Chapter',
+                'faculty_advisor': 'Dr. Alexander Vance (Faculty Advisor)',
+                'meeting_schedule': 'Tuesdays & Thursdays • 5:30 PM (Turing Lab 108)',
+                'available_spots': 28,
+                'total_spots': 120,
+                'annual_fee': 499.00,
+                'semester_fee': 299.00,
+                'banner_image': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    '100% Free VIP admission to Annual Robotics Showcase (Save ₹100)',
+                    'Subsidized entry to Web3 & Cloud Hackathons (Save ₹150)',
+                    'Direct access to Turing Quad Robotics Lab & 3D Printing suite',
+                    'Certified Academic Volunteer & Technical Service Hours',
+                    'Exclusive club crest apparel and discount at merch store'
+                ]
+            },
+            {
+                'id': 'club-coding',
+                'name': 'Skyline Coding & Hackathon Guild',
+                'short_name': 'Coding & Dev',
+                'tagline': 'Competitive Programming, Full-Stack Architecture & Cloud Ops',
+                'category': 'Computer Science',
+                'badge': 'Most Active',
+                'faculty_advisor': 'Prof. Sarah Jenkins (Advisor)',
+                'meeting_schedule': 'Wednesdays • 6:00 PM (Innovation Center 402)',
+                'available_spots': 35,
+                'total_spots': 150,
+                'annual_fee': 499.00,
+                'semester_fee': 299.00,
+                'banner_image': 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    '50% Member discount on 24h & 48h campus hackathon passes',
+                    'Free GitHub Copilot & AWS Cloud credits for student teams',
+                    'Mentorship & mock technical interviews with tech alumni',
+                    'Priority registration for regional ACM-ICPC team qualifiers',
+                    'Specialized software engineering workshops'
+                ]
+            },
+            {
+                'id': 'club-finance',
+                'name': 'Skyline Business & Investment League',
+                'short_name': 'Finance & League',
+                'tagline': 'Corporate Finance, Venture Capital & Student Portfolio Fund',
+                'category': 'Finance & Business',
+                'badge': 'Career Accelerator',
+                'faculty_advisor': 'Marcus Sterling & Dean of Business',
+                'meeting_schedule': 'Mondays • 5:00 PM (Finance Hall Suite 201)',
+                'available_spots': 18,
+                'total_spots': 80,
+                'annual_fee': 599.00,
+                'semester_fee': 349.00,
+                'banner_image': 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    'Free admission to Career & Industry Networking Night (Save ₹150)',
+                    'Access to Bloomberg Terminals & Mock Trading competitions',
+                    'Invitation to exclusive Venture Capital & Private Equity dinners',
+                    'Resume distribution to top corporate finance recruitment partners',
+                    'Official Dean endorsement on graduating transcript'
+                ]
+            },
+            {
+                'id': 'club-arts',
+                'name': 'Campus Cultural & Creative Arts Society',
+                'short_name': 'Cultural & Arts',
+                'tagline': 'Performing Arts, Cultural Festivals & Creative Media',
+                'category': 'Arts & Media',
+                'badge': 'Cultural Grant',
+                'faculty_advisor': 'Sophia Montgomery (Creative Director)',
+                'meeting_schedule': 'Fridays • 4:30 PM (Fine Arts Amphitheater)',
+                'available_spots': 45,
+                'total_spots': 160,
+                'annual_fee': 399.00,
+                'semester_fee': 249.00,
+                'banner_image': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    'Complimentary passes to all University Gala & Music nights',
+                    'Access to recording studio and rehearsal spaces',
+                    'Subsidized festival tickets and artist meet-and-greets',
+                    'Participation in annual inter-university cultural leagues',
+                    'Special discount on limited-edition festival merchandise'
+                ]
+            },
+            {
+                'id': 'club-debate',
+                'name': 'University Debate & Model UN Council',
+                'short_name': 'Debate & MUN',
+                'tagline': 'Parliamentary Debate, Global Policy & Rhetorical Strategy',
+                'category': 'Leadership & Policy',
+                'badge': 'National Finalist',
+                'faculty_advisor': 'Julian Chen (President)',
+                'meeting_schedule': 'Thursdays • 6:30 PM (Student Senate Chambers)',
+                'available_spots': 20,
+                'total_spots': 70,
+                'annual_fee': 499.00,
+                'semester_fee': 299.00,
+                'banner_image': 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    'Subsidized travel and accommodation for national competitions',
+                    'Voting delegate seat at University Senate mock parliaments',
+                    'Direct executive public speaking masterclasses',
+                    'Access to constitutional law archives and research leads',
+                    'Official leadership credentials for law/graduate school'
+                ]
+            },
+            {
+                'id': 'club-environment',
+                'name': 'Campus Environmental & Sustainability Alliance',
+                'short_name': 'Green Alliance',
+                'tagline': 'Climate Action, Eco-Logistics & Community Solar Projects',
+                'category': 'Civic & Ecology',
+                'badge': 'Green Campus',
+                'faculty_advisor': 'Priya Patel (Project Lead)',
+                'meeting_schedule': 'Saturdays • 10:00 AM (Botanical Research Quad)',
+                'available_spots': 50,
+                'total_spots': 200,
+                'annual_fee': 399.00,
+                'semester_fee': 199.00,
+                'banner_image': 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
+                'benefits': [
+                    'Certified Environmental Volunteer Hours for graduation honor cord',
+                    'Free Organic Campus Farm produce and eco-starter kit',
+                    'Community solar & recycling initiative management',
+                    'Priority volunteer badge at university-wide clean drives',
+                    'Free admission to sustainability conferences & banquets'
+                ]
+            }
+        ]
+
+        created_clubs = {}
+        for cdata in clubs_data:
+            c, _ = Club.objects.update_or_create(
+                id=cdata['id'],
+                defaults=cdata
+            )
+            created_clubs[c.id] = c
+
+        # 4. Create Students with diverse Membership Statuses
+        students_info = [
+            {
+                'email': 'student@university.edu',
                 'full_name': 'Sophia Montgomery',
                 'student_id': 'STU-2026-100',
-                'role': User.Role.MEMBER,
-                'is_active': True,
-            }
-        )
-        demo_student.set_password('password123')
-        demo_student.save()
-
-        members_data = [
+                'role': User.Role.STUDENT,
+                'password': 'password123',
+                'membership_status': User.MembershipStatus.ACTIVE,
+                'membership_type': User.MembershipType.ANNUAL,
+                'start_date': today - timedelta(days=60),
+                'end_date': today + timedelta(days=305),
+                'club_id': 'club-robotics'
+            },
+            {
+                'email': 'yug@gmail.com',
+                'full_name': 'Yug',
+                'student_id': 'STU-2026-9901',
+                'role': User.Role.STUDENT,
+                'password': 'Yug@123',
+                'membership_status': User.MembershipStatus.ACTIVE,
+                'membership_type': User.MembershipType.ANNUAL,
+                'start_date': today - timedelta(days=30),
+                'end_date': today + timedelta(days=335),
+                'club_id': 'club-robotics'
+            },
             {
                 'email': 'alex.rivera@studentorg.edu',
                 'full_name': 'Alex Rivera',
                 'student_id': 'STU-2026-001',
-                'password': 'MemberPassword123!'
+                'role': User.Role.STUDENT,
+                'password': 'MemberPassword123!',
+                'membership_status': User.MembershipStatus.ACTIVE,
+                'membership_type': User.MembershipType.SEMESTER,
+                'start_date': today - timedelta(days=20),
+                'end_date': today + timedelta(days=160),
+                'club_id': 'club-coding'
             },
             {
                 'email': 'sarah.chen@studentorg.edu',
                 'full_name': 'Sarah Chen',
                 'student_id': 'STU-2026-002',
-                'password': 'MemberPassword123!'
+                'role': User.Role.STUDENT,
+                'password': 'MemberPassword123!',
+                'membership_status': User.MembershipStatus.EXPIRED,
+                'membership_type': User.MembershipType.SEMESTER,
+                'start_date': today - timedelta(days=200),
+                'end_date': today - timedelta(days=20),
+                'club_id': 'club-robotics'
             },
             {
                 'email': 'jordan.taylor@studentorg.edu',
                 'full_name': 'Jordan Taylor',
                 'student_id': 'STU-2026-003',
-                'password': 'MemberPassword123!'
+                'role': User.Role.STUDENT,
+                'password': 'MemberPassword123!',
+                'membership_status': User.MembershipStatus.NONE,
+                'membership_type': None,
+                'start_date': None,
+                'end_date': None,
+                'club_id': None
+            },
+            {
+                'email': 'rohan.sharma@studentorg.edu',
+                'full_name': 'Rohan Sharma',
+                'student_id': 'STU-2026-905',
+                'role': User.Role.STUDENT,
+                'password': 'MemberPassword123!',
+                'membership_status': User.MembershipStatus.NONE,
+                'membership_type': None,
+                'start_date': None,
+                'end_date': None,
+                'club_id': None
             }
         ]
 
-        members = [demo_student]
-        for m_data in members_data:
-            member, _ = User.objects.get_or_create(
-                email=m_data['email'],
+        created_students = {}
+        for sinfo in students_info:
+            stu, _ = User.objects.get_or_create(
+                email=sinfo['email'],
                 defaults={
-                    'full_name': m_data['full_name'],
-                    'student_id': m_data['student_id'],
-                    'role': User.Role.MEMBER,
-                    'is_active': True,
+                    'full_name': sinfo['full_name'],
+                    'student_id': sinfo['student_id'],
+                    'role': sinfo['role'],
+                    'membership_status': sinfo['membership_status'],
+                    'membership_type': sinfo['membership_type'],
+                    'membership_start_date': sinfo['start_date'],
+                    'membership_end_date': sinfo['end_date'],
+                    'is_active': True
                 }
             )
-            member.set_password(m_data['password'])
-            member.save()
-            members.append(member)
+            stu.set_password(sinfo['password'])
+            stu.membership_status = sinfo['membership_status']
+            stu.membership_type = sinfo['membership_type']
+            stu.membership_start_date = sinfo['start_date']
+            stu.membership_end_date = sinfo['end_date']
+            stu.save()
+            created_students[sinfo['email']] = stu
 
-        # 4. Create Events with Volunteer Configuration
-        today = timezone.now().date()
+            # Create ClubMembership record if club is assigned
+            if sinfo['club_id'] and sinfo['club_id'] in created_clubs:
+                c = created_clubs[sinfo['club_id']]
+                ClubMembership.objects.update_or_create(
+                    student=stu,
+                    club=c,
+                    defaults={
+                        'club_name_snapshot': c.name,
+                        'membership_type': sinfo['membership_type'] or ClubMembership.MembershipType.ANNUAL,
+                        'fee': c.annual_fee if sinfo['membership_type'] == User.MembershipType.ANNUAL else c.semester_fee,
+                        'start_date': sinfo['start_date'] or today,
+                        'end_date': sinfo['end_date'] or today + timedelta(days=365),
+                        'status': ClubMembership.Status.ACTIVE if sinfo['membership_status'] == User.MembershipStatus.ACTIVE else ClubMembership.Status.EXPIRED,
+                        'payment_method': 'Student ID Account (Bursar)'
+                    }
+                )
 
-        event1, _ = Event.objects.get_or_create(
+        # 5. Create Events with Member Ticket Price & Non-Member Ticket Price
+        event1, _ = Event.objects.update_or_create(
             title='SkyLine Annual Robotics Showcase 2026',
             defaults={
                 'description': 'Live autonomous rovers, drone swarms, and AI vision systems demonstration with industry judges and awards.',
@@ -117,7 +326,9 @@ class Command(BaseCommand):
                 'start_time': time(14, 0),
                 'end_time': time(18, 0),
                 'capacity': 200,
-                'ticket_price': 0.00,
+                'ticket_price': 200.00,
+                'non_member_ticket_price': 200.00,
+                'member_ticket_price': 100.00,
                 'image': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
                 'volunteers_required': True,
                 'volunteer_count_required': 12,
@@ -128,7 +339,7 @@ class Command(BaseCommand):
             }
         )
 
-        event2, _ = Event.objects.get_or_create(
+        event2, _ = Event.objects.update_or_create(
             title='Full-Stack Web3 & Cloud Hackathon',
             defaults={
                 'description': '11-hour intensive team hackathon building microservices, AI pipelines, and decentralized systems.',
@@ -138,7 +349,9 @@ class Command(BaseCommand):
                 'start_time': time(9, 0),
                 'end_time': time(20, 0),
                 'capacity': 120,
-                'ticket_price': 5.00,
+                'ticket_price': 300.00,
+                'non_member_ticket_price': 300.00,
+                'member_ticket_price': 150.00,
                 'image': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80',
                 'volunteers_required': True,
                 'volunteer_count_required': 8,
@@ -149,7 +362,7 @@ class Command(BaseCommand):
             }
         )
 
-        event3, _ = Event.objects.get_or_create(
+        event3, _ = Event.objects.update_or_create(
             title='Career & Industry Networking Night',
             defaults={
                 'description': 'Connect directly with engineering directors and software architects from regional tech employers.',
@@ -159,7 +372,9 @@ class Command(BaseCommand):
                 'start_time': time(17, 30),
                 'end_time': time(20, 30),
                 'capacity': 250,
-                'ticket_price': 0.00,
+                'ticket_price': 250.00,
+                'non_member_ticket_price': 250.00,
+                'member_ticket_price': 100.00,
                 'image': 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
                 'volunteers_required': True,
                 'volunteer_count_required': 6,
@@ -170,182 +385,18 @@ class Command(BaseCommand):
             }
         )
 
-        event4, _ = Event.objects.get_or_create(
-            title='Hands-on Microcontroller & IoT Workshop',
+        # 6. Volunteer Applications & Announcements
+        Announcement.objects.update_or_create(
+            title='Welcome to Academic Year 2026–2027: Membership & Club Enrollments Now Open!',
             defaults={
-                'description': 'ESP32 microcontroller sensor nodes and real-time MQTT telemetry lab. Completed event with certified service.',
-                'event_type': Event.EventType.WORKSHOP,
-                'venue': 'Makerspace Lab 108',
-                'date': today - timedelta(days=5),
-                'start_time': time(13, 0),
-                'end_time': time(16, 0),
-                'capacity': 40,
-                'ticket_price': 10.00,
-                'image': 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=800&q=80',
-                'volunteers_required': True,
-                'volunteer_count_required': 4,
-                'volunteer_deadline': today - timedelta(days=7),
-                'volunteer_roles_required': 'Technical Support, Registration Desk',
-                'status': Event.Status.COMPLETED,
-                'created_by': admin,
+                'content': 'All students can now enroll in semester or annual club memberships to unlock 50% event ticket discounts, merchandise savings, lab access, and certified service credits.',
+                'category': 'Membership Notice',
+                'priority': 'Important',
+                'status': Announcement.Status.SENT,
+                'author': 'Dr. Alexander Vance (Faculty Advisor)',
+                'pinned': True,
+                'created_by': admin
             }
         )
 
-        # 5. Volunteer Applications
-        # Pending Application from demo student (Rohan Sharma) for Robotics Showcase
-        app_rohan, _ = VolunteerApplication.objects.update_or_create(
-            student=demo_student,
-            event=event1,
-            defaults={
-                'preferred_role': 'Technical Support',
-                'reason': 'I have built ROS 2 robots and want to manage the stage and obstacle arena.',
-                'experience': 'Volunteered at high school science expo; 2 years robotics lab experience.',
-                'status': VolunteerApplication.Status.PENDING,
-            }
-        )
-
-        # Pending Application from Jordan Taylor for Hackathon
-        app_jordan, _ = VolunteerApplication.objects.update_or_create(
-            student=members[3],
-            event=event2,
-            defaults={
-                'preferred_role': 'Event Coordinator',
-                'reason': 'Want to guide teams, distribute sponsor swag, and assist with schedule timing.',
-                'experience': 'Coordinated departmental orientation week.',
-                'status': VolunteerApplication.Status.PENDING,
-            }
-        )
-
-        # Approved Application from Alex Rivera for Robotics Showcase
-        app_alex, _ = VolunteerApplication.objects.update_or_create(
-            student=members[1],
-            event=event1,
-            defaults={
-                'preferred_role': 'Registration Desk',
-                'reason': 'Fast typist, verified 500+ attendees at last semester showcase.',
-                'experience': 'Student Senate ambassador.',
-                'status': VolunteerApplication.Status.APPROVED,
-                'reviewed_by': admin,
-                'reviewed_at': timezone.now() - timedelta(days=1),
-                'admin_feedback': 'Approved for Primary Registration Desk. Check-in starts at 1:30 PM.'
-            }
-        )
-
-        # Active Volunteer Assignment for Alex Rivera
-        assign_alex, _ = VolunteerAssignment.objects.update_or_create(
-            student=members[1],
-            event=event1,
-            defaults={
-                'application': app_alex,
-                'assigned_role': 'Registration Desk Lead',
-                'duration': '4 Hours (1:30 PM - 5:30 PM)',
-                'notes': 'Responsible for iPad QR scanning kiosk at Entrance A.',
-                'status': VolunteerAssignment.Status.ACTIVE,
-                'approved_at': timezone.now() - timedelta(days=1)
-            }
-        )
-
-        # Completed Application and Assignment for Sarah Chen (IoT Workshop)
-        app_sarah, _ = VolunteerApplication.objects.update_or_create(
-            student=members[2],
-            event=event4,
-            defaults={
-                'preferred_role': 'Technical Support',
-                'reason': 'Proficient with ESP-IDF and Arduino IDE hardware debugging.',
-                'experience': 'Electronics lab TA.',
-                'status': VolunteerApplication.Status.APPROVED,
-                'reviewed_by': admin,
-                'reviewed_at': timezone.now() - timedelta(days=6),
-                'admin_feedback': 'Approved. Assigned as Hardware Bench Facilitator.'
-            }
-        )
-
-        assign_sarah, _ = VolunteerAssignment.objects.update_or_create(
-            student=members[2],
-            event=event4,
-            defaults={
-                'application': app_sarah,
-                'assigned_role': 'Hardware Bench Facilitator',
-                'duration': '3 Hours (1:00 PM - 4:00 PM)',
-                'notes': 'Distributed hardware kits and debugged wiring issues.',
-                'status': VolunteerAssignment.Status.COMPLETED,
-                'approved_at': timezone.now() - timedelta(days=6),
-                'completed_at': timezone.now() - timedelta(days=5)
-            }
-        )
-
-        # Completed Assignment for Demo Student on IoT Workshop with Certificate
-        assign_rohan_comp, _ = VolunteerAssignment.objects.update_or_create(
-            student=demo_student,
-            event=event4,
-            defaults={
-                'assigned_role': 'Lab Coordinator & Registration',
-                'duration': '3.5 Hours',
-                'notes': 'Managed attendee check-in and inventory tracking.',
-                'status': VolunteerAssignment.Status.COMPLETED,
-                'approved_at': timezone.now() - timedelta(days=6),
-                'completed_at': timezone.now() - timedelta(days=5)
-            }
-        )
-
-        # 6. Official Certificates
-        cert1, _ = Certificate.objects.update_or_create(
-            student=demo_student,
-            event=event4,
-            defaults={
-                'assignment': assign_rohan_comp,
-                'volunteer_role': 'Lab Coordinator & Registration',
-                'duration': '3.5 Certified Hours',
-                'issue_date': today - timedelta(days=4),
-            }
-        )
-
-        cert2, _ = Certificate.objects.update_or_create(
-            student=members[2],
-            event=event4,
-            defaults={
-                'assignment': assign_sarah,
-                'volunteer_role': 'Hardware Bench Facilitator',
-                'duration': '3.0 Certified Hours',
-                'issue_date': today - timedelta(days=4),
-            }
-        )
-
-        # 7. Financial Transactions
-        Transaction.objects.get_or_create(
-            title='Spring Semester Membership Dues',
-            defaults={
-                'amount': 2500.00,
-                'transaction_type': Transaction.Type.INCOME,
-                'category': Transaction.Category.MEMBERSHIP_FEE,
-                'description': 'Aggregated student organization membership registrations.',
-                'date': today - timedelta(days=10),
-                'recorded_by': treasurer,
-            }
-        )
-
-        Transaction.objects.get_or_create(
-            title='Title Sponsorship from Tech Corp',
-            defaults={
-                'amount': 5000.00,
-                'transaction_type': Transaction.Type.INCOME,
-                'category': Transaction.Category.SPONSORSHIP,
-                'description': 'Annual hackathon main stage sponsorship.',
-                'date': today - timedelta(days=5),
-                'recorded_by': treasurer,
-            }
-        )
-
-        Transaction.objects.get_or_create(
-            title='Robotics Lab Hardware Components',
-            defaults={
-                'amount': 1200.00,
-                'transaction_type': Transaction.Type.EXPENSE,
-                'category': Transaction.Category.EVENT_EXPENSE,
-                'description': 'Sensors and microcontrollers for upcoming competition.',
-                'date': today - timedelta(days=3),
-                'recorded_by': treasurer,
-            }
-        )
-
-        self.stdout.write(self.style.SUCCESS('Successfully seeded all Events, Volunteers, Assignments, and Certificates!'))
+        self.stdout.write(self.style.SUCCESS('Successfully seeded complete Student Membership System data!'))

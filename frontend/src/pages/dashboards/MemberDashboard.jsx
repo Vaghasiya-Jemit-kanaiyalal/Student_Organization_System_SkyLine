@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useMerchandise } from '../../context/MerchandiseContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
-import { eventsApi, volunteerApi, certificateApi, announcementsApi, financeApi } from '../../services/api';
+import { eventsApi, volunteerApi, certificateApi, announcementsApi, clubsApi, membershipApi, financeApi } from '../../services/api';
 import { CAMPUS_CLUBS } from '../../data/clubsData';
 import {
   LayoutDashboard,
@@ -38,25 +39,64 @@ import {
   Upload,
   Printer,
   ShoppingBag,
+  RotateCw,
+  Tag,
+  Share2,
+  ExternalLink,
+  Trash2,
   Package
 } from 'lucide-react';
 import { StudentMerchStore } from '../../components/merchandise/StudentMerchStore';
 
 export const MemberDashboard = () => {
-  const { user, buyClubMembership, updateUserProfile } = useAuth();
+  const { user, buyClubMembership, renewMembership, updateUserProfile } = useAuth();
+  const { products, getProductPricing, placeOrder } = useMerchandise();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Active user's memberships
+  // Derived student membership properties (auto-discard if finish duration has passed)
+  const rawStatus = user?.membership_status || user?.membershipStatus || (user?.memberships?.length > 0 ? 'ACTIVE' : 'NONE');
+  const rawEndDate = user?.membership_end_date || user?.membershipEndDate;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isFinished = rawEndDate && rawEndDate < todayStr;
+  const membershipStatus = (String(rawStatus).toUpperCase() === 'ACTIVE' && isFinished) ? 'EXPIRED' : String(rawStatus).toUpperCase();
+  const isMember = membershipStatus === 'ACTIVE';
+  const rawType = user?.membership_type || user?.membershipType || (user?.memberships?.[0]?.membership_type);
+  const membershipType = rawType ? String(rawType).toUpperCase() : (isMember ? 'ANNUAL' : 'NONE');
+
+  // Badge based on membership status
+  let membershipBadge = 'Student';
+  if (isMember) {
+    membershipBadge = membershipType === 'SEMESTER' ? 'Semester Member' : 'Annual Member';
+  }
+
+  // Active user's memberships list
   const userMemberships = user?.memberships || [];
-  const hasAnyClubMembership = userMemberships.length > 0;
-  const isClubMember = (clubId) => userMemberships.some((m) => m.clubId === clubId && m.duesPaid);
-  const isEligibleForMemberPrice = () => hasAnyClubMembership;
+  const isClubMember = (clubId) => {
+    if (!isMember && userMemberships.length === 0) return false;
+    return userMemberships.some((m) => {
+      const mClubId = m.clubId || m.club_id || (typeof m.club === 'object' ? m.club?.id : m.club);
+      const isActive = String(m.status || 'ACTIVE').toUpperCase() === 'ACTIVE' || m.duesPaid === true;
+      return mClubId === clubId && isActive;
+    });
+  };
+  const hasAnyClubMembership = isMember && userMemberships.some((m) => String(m.status || 'ACTIVE').toUpperCase() === 'ACTIVE');
+  const isEligibleForMemberPrice = () => isMember;
 
   // Active tab synchronized with URL query params
   const queryParams = new URLSearchParams(location.search);
   const initialTab = queryParams.get('tab') || 'overview';
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Merchandise modal & active category
+  const [selectedProductForOrder, setSelectedProductForOrder] = useState(null);
+  const [selectedProductSize, setSelectedProductSize] = useState('M');
+  const [orderQuantity, setOrderQuantity] = useState(1);
+  const [merchCategory, setMerchCategory] = useState('ALL');
+
+  // Club purchase plan modal state: 'Semester' | 'Annual'
+  const [selectedClubForPurchase, setSelectedClubForPurchase] = useState(null);
+  const [selectedPlanForPurchase, setSelectedPlanForPurchase] = useState('Annual');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -85,15 +125,14 @@ export const MemberDashboard = () => {
     name: user?.name || user?.fullName || 'Rohan Sharma',
     studentId: user?.studentId || user?.student_id || 'STU-2026-905',
     email: user?.email || 'rohan.sharma@studentorg.edu',
-    phone: '+1 (555) 234-8910',
+    phone: user?.phone || '+1 (555) 234-8910',
     department: user?.department || 'Computer Science & Software Engineering',
-    semester: user?.semester || 'Junior (Year 3, Semester 5)',
-    membershipType: hasAnyClubMembership
-      ? userMemberships.map((m) => m.clubName).join(', ')
-      : 'General Student (Non-Member)',
-    membershipStatus: hasAnyClubMembership ? 'Active' : 'Non-Member',
-    joinDate: hasAnyClubMembership ? userMemberships[0]?.joinDate || 'Oct 01, 2026' : 'Not Enrolled',
-    expiryDate: hasAnyClubMembership ? userMemberships[0]?.expiryDate || 'June 30, 2027' : 'N/A',
+    semester: user?.semester || 'Semester 4 • 2026',
+    membershipStatus: membershipStatus,
+    membershipType: isMember ? (membershipType === 'SEMESTER' ? 'Semester' : 'Annual') : 'None',
+    membershipBadge: membershipBadge,
+    membershipStartDate: user?.membership_start_date || user?.membershipStartDate || (isMember ? '2026-09-01' : 'N/A'),
+    membershipEndDate: user?.membership_end_date || user?.membershipEndDate || (isMember ? '2027-08-31' : 'N/A'),
     avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
     bio: 'Undergraduate student passionate about robotics, software architecture, and campus leadership.'
   }));
@@ -101,27 +140,31 @@ export const MemberDashboard = () => {
   // Sync profile when user changes
   useEffect(() => {
     if (user) {
+      const uStatus = String(user.membership_status || user.membershipStatus || 'NONE').toUpperCase();
+      const uIsMember = uStatus === 'ACTIVE';
+      const uType = user.membership_type || user.membershipType || (uIsMember ? 'ANNUAL' : 'NONE');
+      const uBadge = uIsMember ? (String(uType).toUpperCase() === 'SEMESTER' ? 'Semester Member' : 'Annual Member') : 'Student';
+
       setStudentProfile((prev) => ({
         ...prev,
         name: user.name || user.fullName || prev.name,
         studentId: user.studentId || user.student_id || prev.studentId,
         email: user.email || prev.email,
-        membershipType:
-          user.memberships && user.memberships.length > 0
-            ? user.memberships.map((m) => m.clubName).join(', ')
-            : 'General Student (Non-Member)',
-        membershipStatus: user.memberships && user.memberships.length > 0 ? 'Active' : 'Non-Member',
-        joinDate:
-          user.memberships && user.memberships.length > 0
-            ? user.memberships[0]?.joinDate || prev.joinDate
-            : 'Not Enrolled',
-        expiryDate:
-          user.memberships && user.memberships.length > 0
-            ? user.memberships[0]?.expiryDate || prev.expiryDate
-            : 'N/A'
+        phone: user.phone || prev.phone,
+        department: user.department || prev.department,
+        semester: user.semester || prev.semester,
+        membershipStatus: uStatus,
+        membershipType: uIsMember ? (String(uType).toUpperCase() === 'SEMESTER' ? 'Semester' : 'Annual') : 'None',
+        membershipBadge: uBadge,
+        membershipStartDate: user.membership_start_date || user.membershipStartDate || (uIsMember ? '2026-09-01' : 'N/A'),
+        membershipEndDate: user.membership_end_date || user.membershipEndDate || (uIsMember ? '2027-08-31' : 'N/A'),
+        avatar: user.avatar || prev.avatar,
       }));
     }
   }, [user]);
+
+  // Campus Clubs Master State
+  const [clubsList, setClubsList] = useState(CAMPUS_CLUBS);
 
   // Events Master State
   const [eventsList, setEventsList] = useState([
@@ -237,36 +280,76 @@ export const MemberDashboard = () => {
     }
   ]);
 
-  // Tickets Master State
-  const [ticketsList, setTicketsList] = useState(() => {
-    if (user?.memberships && user.memberships.length > 0) {
-      return [
-        {
-          id: 'TCK-2026-8812',
-          eventTitle: 'SkyLine Annual Robotics Showcase 2026',
-          date: 'Oct 14, 2026 • 2:00 PM – 6:00 PM',
-          venue: 'Grand Hall, Turing Science Quad',
-          seat: 'Member General Admission • Section B-14',
-          pricePaid: '$0.00 (Member Pass)',
-          purchaseDate: 'Oct 02, 2026',
-          status: 'Confirmed',
-          qrCodeData: 'CONNECTU-ROBOTICS-ROH-8812'
-        },
-        {
-          id: 'TCK-2026-9043',
-          eventTitle: 'Full-Stack Web3 & Cloud Hackathon',
-          date: 'Oct 28, 2026 • 9:00 AM – 8:00 PM',
-          venue: 'Innovation Center, Room 402',
-          seat: 'Hacker Pass • Team Table #06',
-          pricePaid: '$5.00',
-          purchaseDate: 'Oct 03, 2026',
-          status: 'Confirmed',
-          qrCodeData: 'CONNECTU-HACK-ROH-9043'
-        }
-      ];
+  // Tickets Master State with localStorage persistence
+  const DEFAULT_INITIAL_TICKETS = [
+    {
+      id: 'TCK-2026-8812',
+      eventTitle: 'SkyLine Annual Robotics Showcase 2026',
+      date: 'Oct 14, 2026 • 2:00 PM – 6:00 PM',
+      venue: 'Grand Hall, Turing Science Quad',
+      seat: 'Member Pass • Section B-14',
+      gate: 'Gate 2 (North)',
+      pricePaid: '₹0.00 (Member Pass)',
+      purchaseDate: 'Oct 02, 2026',
+      status: 'Confirmed',
+      tier: 'VIP Member',
+      category: 'Robotics & Tech',
+      qrCodeData: 'CONNECTU-ROBOTICS-8812',
+      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=700&q=80'
+    },
+    {
+      id: 'TCK-2026-9043',
+      eventTitle: 'Full-Stack Web3 & Cloud Hackathon',
+      date: 'Oct 28, 2026 • 9:00 AM – 8:00 PM',
+      venue: 'Innovation Center, Room 402',
+      seat: 'Hacker Pass • Team Table #06',
+      gate: 'Gate 4 (Innovation Wing)',
+      pricePaid: '₹100 (Member Discount)',
+      purchaseDate: 'Oct 03, 2026',
+      status: 'Confirmed',
+      tier: 'Competitor Pass',
+      category: 'Computer Science',
+      qrCodeData: 'CONNECTU-HACK-9043',
+      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=700&q=80'
+    },
+    {
+      id: 'TCK-2026-7219',
+      eventTitle: 'Youth Fest: Technology & Innovation Summit',
+      date: 'Nov 20, 2026 • 10:00 AM – 4:00 PM',
+      venue: 'Charusat University Convention Auditorium',
+      seat: 'Delegate Pass • Row A, Seat #12',
+      gate: 'Main Auditorium Foyer',
+      pricePaid: '₹200',
+      purchaseDate: 'Sep 25, 2026',
+      status: 'Confirmed',
+      tier: 'Standard Pass',
+      category: 'Social & Culture',
+      qrCodeData: 'CONNECTU-YOUTH-7219',
+      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80'
     }
-    return [];
+  ];
+
+  const [ticketsList, setTicketsList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('skyline_my_tickets_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed reading saved tickets:', e);
+    }
+    return DEFAULT_INITIAL_TICKETS;
   });
+
+  // Sync ticketsList to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(ticketsList));
+    } catch (e) {
+      console.warn('Failed saving tickets:', e);
+    }
+  }, [ticketsList]);
 
   // Volunteer Opportunities State
   const [volunteerOpportunities] = useState([
@@ -429,12 +512,17 @@ export const MemberDashboard = () => {
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
 
+  // Tickets Page State
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [ticketFilterStatus, setTicketFilterStatus] = useState('ALL');
+  const [transferTicketModal, setTransferTicketModal] = useState(null);
+  const [transferRecipientEmail, setTransferRecipientEmail] = useState('');
+  const [cancelTicketModal, setCancelTicketModal] = useState(null);
+
   // Volunteer Sub-Tab Navigation: 1. Available Opportunities, 2. My Applications, 3. My Volunteer Assignments
   const [volunteerSubTab, setVolunteerSubTab] = useState('opportunities');
 
   // Membership Purchase Modal State
-  const [selectedClubForPurchase, setSelectedClubForPurchase] = useState(null);
-  const [selectedPlanForPurchase, setSelectedPlanForPurchase] = useState('Annual');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Student Account (Bursar)');
   const [volunteerMotivation, setVolunteerMotivation] = useState('');
   const [volunteerPreferredRole, setVolunteerPreferredRole] = useState('');
@@ -448,39 +536,74 @@ export const MemberDashboard = () => {
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
-        const [eventsRes, appsRes, activeRes, certsRes, announcementsRes] = await Promise.all([
+        const [eventsRes, appsRes, activeRes, certsRes, announcementsRes, clubsRes] = await Promise.all([
           eventsApi.getAll().catch(() => null),
           volunteerApi.getApplications().catch(() => null),
           volunteerApi.getActive().catch(() => null),
           certificateApi.getStudentCertificates().catch(() => null),
           announcementsApi.getAll({ status: 'Sent' }).catch(() => null),
+          clubsApi.getAll().catch(() => null),
         ]);
+
+        if (clubsRes) {
+          const rawClubs = Array.isArray(clubsRes) ? clubsRes : clubsRes?.results || [];
+          if (rawClubs.length > 0) {
+            const mappedClubs = rawClubs.map((c) => {
+              const matchedFallback = CAMPUS_CLUBS.find((fc) => String(fc.id) === String(c.id) || fc.name.toLowerCase() === c.name.toLowerCase()) || {};
+              return {
+                ...matchedFallback,
+                id: c.id,
+                name: c.name,
+                category: c.category || matchedFallback.category || 'General Club',
+                tagline: c.description ? c.description.slice(0, 80) : (matchedFallback.tagline || 'Student organization'),
+                description: c.description || matchedFallback.description || '',
+                semester_fee: c.semester_fee !== undefined ? Number(c.semester_fee) : (matchedFallback.semester_fee || 299),
+                annual_fee: c.annual_fee !== undefined ? Number(c.annual_fee) : (matchedFallback.annual_fee || 499),
+                semesterFee: c.semester_fee !== undefined ? Number(c.semester_fee) : (matchedFallback.semesterFee || 299),
+                annualFee: c.annual_fee !== undefined ? Number(c.annual_fee) : (matchedFallback.annualFee || 499),
+                image: c.image || matchedFallback.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80',
+                availableSeats: c.capacity || matchedFallback.availableSeats || 30
+              };
+            });
+            setClubsList(mappedClubs);
+          }
+        }
 
         if (eventsRes) {
           const rawEvents = Array.isArray(eventsRes) ? eventsRes : eventsRes?.results || [];
           if (rawEvents.length > 0) {
-            const mapped = rawEvents.map((evt) => ({
-              id: evt.id,
-              title: evt.title,
-              date: evt.date && evt.start_time ? `${new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} • ${evt.start_time} – ${evt.end_time || ''}` : evt.date,
-              rawDate: evt.date,
-              venue: evt.venue || evt.location,
-              availableSeats: evt.capacity || 100,
-              totalSeats: evt.capacity || 100,
-              memberPrice: Number(evt.ticket_price) === 0 ? '$0.00 (Free for Members)' : `$${Number(evt.ticket_price).toFixed(2)}`,
-              nonMemberPrice: Number(evt.ticket_price) === 0 ? '$10.00' : `$${(Number(evt.ticket_price) * 1.5).toFixed(2)}`,
-              status: evt.status || 'Published',
-              category: evt.event_type || 'Campus Event',
-              description: evt.description,
-              image: evt.image,
-              volunteers_required: evt.volunteers_required,
-              volunteersRequired: evt.volunteers_required,
-              volunteer_count_required: evt.volunteer_count_required,
-              volunteer_slots_remaining: evt.volunteer_slots_remaining ?? evt.volunteer_count_required ?? 5,
-              roles_list: evt.roles_list || evt.volunteer_roles_required || ['General Volunteer'],
-              volunteer_roles_required: evt.volunteer_roles_required || evt.roles_list || ['General Volunteer'],
-              volunteer_deadline: evt.volunteer_deadline,
-            }));
+            const mapped = rawEvents.map((evt) => {
+              const mPriceNum = evt.member_price !== undefined ? Number(evt.member_price) : Number(evt.ticket_price || 0);
+              const nmPriceNum = evt.non_member_price !== undefined ? Number(evt.non_member_price) : (mPriceNum === 0 ? 15.0 : mPriceNum * 1.5);
+              return {
+                id: evt.id,
+                title: evt.title || 'Campus Event',
+                clubId: evt.club || 'club-default',
+                clubName: evt.club_name || evt.club_details?.name || 'SkyLine Organization',
+                date: evt.date && evt.start_time ? `${new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} • ${evt.start_time} – ${evt.end_time || ''}` : (evt.date || 'TBD'),
+                rawDate: evt.date,
+                venue: evt.venue || evt.location || 'Campus Center',
+                availableSeats: evt.capacity || 100,
+                totalSeats: evt.capacity || 100,
+                memberPrice: mPriceNum === 0 ? '$0.00 (Free for Members)' : `₹${mPriceNum.toFixed(2)}`,
+                nonMemberPrice: `₹${nmPriceNum.toFixed(2)}`,
+                memberPriceNum: mPriceNum,
+                nonMemberPriceNum: nmPriceNum,
+                member_price: mPriceNum,
+                non_member_price: nmPriceNum,
+                status: evt.status || 'Published',
+                category: evt.event_type || 'Campus Event',
+                description: evt.description || '',
+                image: evt.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
+                volunteers_required: evt.volunteers_required,
+                volunteersRequired: evt.volunteers_required,
+                volunteer_count_required: evt.volunteer_count_required,
+                volunteer_slots_remaining: evt.volunteer_slots_remaining ?? evt.volunteer_count_required ?? 5,
+                roles_list: evt.roles_list || evt.volunteer_roles_required || ['General Volunteer'],
+                volunteer_roles_required: evt.volunteer_roles_required || evt.roles_list || ['General Volunteer'],
+                volunteer_deadline: evt.volunteer_deadline,
+              };
+            });
             setEventsList(mapped);
           }
         }
@@ -529,7 +652,7 @@ export const MemberDashboard = () => {
               duration: c.duration,
               issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
               authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
-              credentialHash: c.verification_hash || `sha256-${c.certificate_id.toLowerCase()}`,
+              credentialHash: c.verification_hash || `sha256-${String(c.certificate_id || '').toLowerCase()}`,
             }));
             setCertificatesList(mappedCerts);
           }
@@ -600,20 +723,24 @@ export const MemberDashboard = () => {
     const newTicket = {
       id: `TCK-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       eventTitle: buyTicketModalEvent.title,
-      date: buyTicketModalEvent.date,
+      date: buyTicketModalEvent.dateDisplay || buyTicketModalEvent.date,
       venue: buyTicketModalEvent.venue,
       seat: isMemberEligible
         ? `Member Pass • Row B, Seat #${Math.floor(10 + Math.random() * 90)}`
         : `Standard Pass • Row D, Seat #${Math.floor(10 + Math.random() * 90)}`,
-      pricePaid: finalPricePaid,
+      gate: 'Main Entrance (Gate 1)',
+      pricePaid: typeof finalPricePaid === 'number' ? `₹${finalPricePaid}` : (finalPricePaid || '₹100'),
       purchaseDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
       status: 'Confirmed',
-      qrCodeData: `CONNECTU-${buyTicketModalEvent.id}-${studentProfile.studentId}`
+      tier: isMemberEligible ? 'Member Pass' : 'Standard Pass',
+      category: buyTicketModalEvent.category || 'Campus Event',
+      qrCodeData: `CONNECTU-${buyTicketModalEvent.id}-${studentProfile.studentId}`,
+      image: buyTicketModalEvent.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80'
     };
 
     setTicketsList((prev) => [newTicket, ...prev]);
     setBuyTicketModalEvent(null);
-    showToast(`Ticket for "${newTicket.eventTitle}" reserved successfully at ${finalPricePaid}!`);
+    showToast(`🎉 Ticket for "${newTicket.eventTitle}" reserved successfully! Added to My Tickets.`);
 
     // Synchronize ticket payment into finance ledger
     const numericPrice = parseFloat(String(finalPricePaid).replace(/[^0-9.]/g, '')) || 0;
@@ -634,60 +761,193 @@ export const MemberDashboard = () => {
     }
   };
 
-  const handleConfirmBuyMembership = () => {
-    if (!selectedClubForPurchase) return;
-    const duesAmount =
-      selectedPlanForPurchase === 'Annual'
-        ? selectedClubForPurchase.annualDues
-        : selectedClubForPurchase.semesterDues;
+  // Ticket Operations
+  const handlePrintOrDownloadTicket = (ticket) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast('Popup blocker prevented ticket print view. Please allow popups.', 'warning');
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Ticket Pass - ${ticket.id}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; padding: 40px; color: #0f172a; }
+          .pass { max-width: 520px; margin: 0 auto; background: white; border: 2px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+          .header { background: #090d14; color: white; padding: 24px; text-align: left; }
+          .header h2 { margin: 0; font-size: 20px; font-weight: 700; }
+          .badge { display: inline-block; background: #059669; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+          .body { padding: 24px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+          .label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+          .value { font-size: 14px; color: #0f172a; font-weight: 600; }
+          .qr-box { background: #f1f5f9; padding: 20px; border-radius: 12px; text-align: center; border: 2px dashed #cbd5e1; margin-top: 16px; }
+          .barcode { font-family: monospace; letter-spacing: 4px; font-size: 16px; font-weight: 700; color: #0f172a; margin-top: 12px; }
+          .footer { background: #f8fafc; padding: 16px 24px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="pass">
+          <div class="header">
+            <span class="badge">OFFICIAL ADMISSION PASS</span>
+            <h2>${ticket.eventTitle}</h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #94a3b8;">${ticket.venue}</p>
+          </div>
+          <div class="body">
+            <div class="grid">
+              <div><div class="label">Date & Time</div><div class="value">${ticket.date}</div></div>
+              <div><div class="label">Seat / Tier</div><div class="value">${ticket.seat}</div></div>
+              <div><div class="label">Ticket Ref</div><div class="value" style="font-family: monospace;">${ticket.id}</div></div>
+              <div><div class="label">Attendee</div><div class="value">${studentProfile.name || user?.full_name || 'Student'} (${studentProfile.studentId})</div></div>
+              <div><div class="label">Status</div><div class="value" style="color: #059669;">${ticket.status}</div></div>
+              <div><div class="label">Admission Rate</div><div class="value">${ticket.pricePaid}</div></div>
+            </div>
+            <div class="qr-box">
+              <div style="font-size: 13px; font-weight: 700; color: #059669;">SCAN AT GATE: ${ticket.gate || 'Main Entrance'}</div>
+              <div class="barcode">||| | | |||| ||| |||| | ||| |</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 4px; font-family: monospace;">${ticket.qrCodeData || ticket.id}</div>
+            </div>
+          </div>
+          <div class="footer">SkyLine Student Organization Management System • Validated University QR Pass</div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
-    const result = buyClubMembership(
-      selectedClubForPurchase,
-      selectedPlanForPurchase,
-      duesAmount,
-      selectedPaymentMethod
-    );
+  const handleAddToCalendar = (ticket) => {
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ticket.eventTitle)}&location=${encodeURIComponent(ticket.venue)}&details=${encodeURIComponent('Ticket Pass: ' + ticket.id + ' • Seat: ' + ticket.seat)}`;
+    window.open(calendarUrl, '_blank');
+  };
 
-    if (result.success) {
-      const newHistoryItem = {
-        term: `Academic Year 2026–2027`,
-        plan: `${selectedClubForPurchase.name} (${selectedPlanForPurchase} Membership)`,
-        amount: `$${duesAmount.toFixed(2)}`,
-        paymentDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        receiptId: result.membership.receiptId,
-        status: 'Paid & Active'
-      };
-      setMembershipHistory((prev) => [newHistoryItem, ...prev]);
-
-      // Synchronize membership fee into finance ledger
-      if (duesAmount > 0) {
-        try {
-          financeApi.recordPayment({
-            title: `Membership - ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
-            amount: duesAmount,
-            reference_type: 'MEMBERSHIP',
-            reference_id: result.membership.receiptId,
-            party_name: studentProfile.name || 'Student Member',
-            description: `Club membership fee for ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
-            category: 'MEMBERSHIP_FEE',
-          }).catch(() => {});
-        } catch {
-          // Handled silently
-        }
+  const handleTransferTicket = () => {
+    if (!transferTicketModal || !transferRecipientEmail) return;
+    setTicketsList(prev => prev.map(t => {
+      if (t.id === transferTicketModal.id) {
+        return {
+          ...t,
+          status: 'Transferred',
+          transferredTo: transferRecipientEmail
+        };
       }
+      return t;
+    }));
+    showToast(`Ticket ${transferTicketModal.id} transferred to ${transferRecipientEmail}!`);
+    setTransferTicketModal(null);
+    setTransferRecipientEmail('');
+  };
 
-      setStudentProfile((prev) => ({
-        ...prev,
-        membershipStatus: 'Active',
-        membershipType: `${selectedClubForPurchase.shortName} (${selectedPlanForPurchase})`,
-        joinDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-        expiryDate: selectedPlanForPurchase === 'Annual' ? 'June 30, 2027' : 'Dec 31, 2026'
-      }));
+  const handleCancelTicket = () => {
+    if (!cancelTicketModal) return;
+    setTicketsList(prev => prev.map(t => {
+      if (t.id === cancelTicketModal.id) {
+        return {
+          ...t,
+          status: 'Cancelled'
+        };
+      }
+      return t;
+    }));
+    showToast(`Ticket ${cancelTicketModal.id} cancelled. Seat released.`);
+    setCancelTicketModal(null);
+  };
 
-      setSelectedClubForPurchase(null);
-      showToast(`🎉 Welcome to ${selectedClubForPurchase.name}! Your membership is active. Membered prices are now unlocked across all events!`);
-    } else {
-      showToast(result.error || 'Failed to activate membership.', 'error');
+  // Filtered Tickets
+  const filteredTickets = useMemo(() => {
+    return ticketsList.filter((tck) => {
+      const q = ticketSearchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (tck.eventTitle && tck.eventTitle.toLowerCase().includes(q)) ||
+        (tck.venue && tck.venue.toLowerCase().includes(q)) ||
+        (tck.id && tck.id.toLowerCase().includes(q));
+
+      const matchesFilter =
+        ticketFilterStatus === 'ALL' ||
+        (ticketFilterStatus === 'CONFIRMED' && tck.status === 'Confirmed') ||
+        (ticketFilterStatus === 'TRANSFERRED' && tck.status === 'Transferred') ||
+        (ticketFilterStatus === 'CANCELLED' && tck.status === 'Cancelled');
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [ticketsList, ticketSearchQuery, ticketFilterStatus]);
+
+
+  const [isActivatingMembership, setIsActivatingMembership] = useState(false);
+
+  const handleConfirmBuyMembership = async () => {
+    if (!selectedClubForPurchase || isActivatingMembership) return;
+    setIsActivatingMembership(true);
+
+    const duesAmount = selectedPlanForPurchase === 'Annual'
+      ? (Number(selectedClubForPurchase.annual_fee) || Number(selectedClubForPurchase.annualFee) || 499.00)
+      : (Number(selectedClubForPurchase.semester_fee) || Number(selectedClubForPurchase.semesterFee) || 299.00);
+
+    try {
+      const result = await buyClubMembership(
+        selectedClubForPurchase,
+        selectedPlanForPurchase,
+        duesAmount,
+        selectedPaymentMethod
+      );
+
+      if (result && result.success) {
+        const todayFormatted = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        const expiryFormatted = selectedPlanForPurchase === 'Annual'
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+          : new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+        const newHistoryItem = {
+          term: `Academic Year 2026–2027`,
+          plan: `${selectedClubForPurchase.name} (${selectedPlanForPurchase} Membership)`,
+          amount: `₹${duesAmount.toFixed(0)}`,
+          paymentDate: todayFormatted,
+          receiptId: result.membership?.transaction_id || result.membership?.receiptId || `RCP-${Date.now().toString().slice(-5)}`,
+          status: 'Paid & Active'
+        };
+        setMembershipHistory((prev) => [newHistoryItem, ...prev]);
+
+        // Synchronize membership fee into finance ledger
+        if (duesAmount > 0) {
+          try {
+            financeApi.recordPayment({
+              title: `Membership - ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+              amount: duesAmount,
+              reference_type: 'MEMBERSHIP',
+              reference_id: result.membership?.transaction_id || result.membership?.receiptId || `MBR-${Date.now()}`,
+              party_name: studentProfile.name || user?.full_name || 'Student Member',
+              description: `Club membership fee for ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+              category: 'MEMBERSHIP_FEE',
+            }).catch(() => {});
+          } catch {
+            // Handled silently
+          }
+        }
+
+        setStudentProfile((prev) => ({
+          ...prev,
+          membershipStatus: 'Active',
+          membershipType: `${selectedClubForPurchase.shortName || selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+          joinDate: todayFormatted,
+          expiryDate: expiryFormatted
+        }));
+
+        setSelectedClubForPurchase(null);
+        showToast(`🎉 Welcome to ${selectedClubForPurchase.name}! Your ${selectedPlanForPurchase} membership is now active!`);
+      } else {
+        showToast(result?.error || 'Failed to activate membership.', 'error');
+      }
+    } catch (err) {
+      console.error('Error activating membership:', err);
+      showToast('Failed to activate membership. Please try again.', 'error');
+    } finally {
+      setIsActivatingMembership(false);
     }
   };
 
@@ -763,13 +1023,16 @@ export const MemberDashboard = () => {
 
   // Filtered Events
   const filteredEvents = eventsList.filter((evt) => {
-    const matchesQuery =
-      evt.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
-      evt.venue.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
-      evt.clubName.toLowerCase().includes(eventSearchQuery.toLowerCase());
-    const matchesCategory =
-      eventCategoryFilter === 'ALL' ||
-      evt.category.toLowerCase().includes(eventCategoryFilter.toLowerCase());
+    const q = (eventSearchQuery || '').toLowerCase().trim();
+    const cat = (eventCategoryFilter || 'ALL').toLowerCase().trim();
+
+    const titleStr = String(evt?.title || '').toLowerCase();
+    const venueStr = String(evt?.venue || '').toLowerCase();
+    const clubStr = String(evt?.clubName || '').toLowerCase();
+    const categoryStr = String(evt?.category || '').toLowerCase();
+
+    const matchesQuery = !q || titleStr.includes(q) || venueStr.includes(q) || clubStr.includes(q);
+    const matchesCategory = cat === 'all' || categoryStr.includes(cat);
     return matchesQuery && matchesCategory;
   });
 
@@ -806,20 +1069,117 @@ export const MemberDashboard = () => {
                 </p>
               </div>
 
-              {/* Status Indicator */}
+              {/* Status Indicator Badge */}
               <div>
-                {hasAnyClubMembership ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                    Active Member ({userMemberships.length} Society)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 text-zinc-800 border border-zinc-300">
-                    <AlertCircle className="w-3.5 h-3.5 mr-1.5 text-zinc-600" />
-                    Standard Student (Non-Member)
-                  </span>
-                )}
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
+                  isMember
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs'
+                    : membershipStatus === 'EXPIRED'
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}>
+                  {isMember ? (
+                    <BadgeCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                  ) : (
+                    <User className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                  )}
+                  {membershipBadge}
+                </span>
               </div>
+            </div>
+
+            {/* ===================================================== */}
+            {/* DEDICATED MEMBERSHIP CARD                             */}
+            {/* ===================================================== */}
+            <div className={`rounded-xl border p-5 shadow-xs transition-all ${
+              isMember
+                ? 'bg-gradient-to-r from-[#0B1A14] via-[#0F291E] to-[#0A1610] text-white border-emerald-500/40'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}>
+              {isMember ? (
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        {membershipType === 'SEMESTER' ? 'Semester Member' : 'Annual Member'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-800/60">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Benefits Active</span>
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-zinc-300 space-y-0.5">
+                      <p>
+                        Valid Until: <strong className="text-white font-semibold">{studentProfile.membershipEndDate}</strong>
+                      </p>
+                      <p className="text-[11px] text-zinc-400">
+                        Enrolled Society: <span className="text-zinc-200 font-medium">{userMemberships[0]?.clubName || userMemberships[0]?.club_name_snapshot || 'Skyline Robotics & AI Society'}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300 pt-1">
+                      <span className="flex items-center gap-1 text-emerald-300">✓ Event Ticket Discounts (₹100 Member Pass)</span>
+                      <span className="flex items-center gap-1 text-emerald-300">✓ Merchandise Discounts (Save ₹200)</span>
+                      <span className="flex items-center gap-1 text-emerald-300">✓ Priority Registration</span>
+                      <span className="flex items-center gap-1 text-emerald-300">✓ Exclusive Club Activities</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-shrink-0 self-stretch md:self-auto justify-end">
+                    <button
+                      onClick={() => {
+                        const targetClubId = userMemberships[0]?.clubId || userMemberships[0]?.club_id || (typeof userMemberships[0]?.club === 'object' ? userMemberships[0]?.club?.id : userMemberships[0]?.club);
+                        const matchedClub = clubsList.find(c => c.id === targetClubId) || CAMPUS_CLUBS.find(c => c.id === targetClubId) || clubsList[0] || CAMPUS_CLUBS[0];
+                        setSelectedPlanForPurchase(membershipType === 'SEMESTER' ? 'Semester' : 'Annual');
+                        setSelectedClubForPurchase(matchedClub);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <RotateCw className="w-3.5 h-3.5" />
+                      <span>Renew Membership</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                        Not a Member
+                      </span>
+                      {membershipStatus === 'EXPIRED' && (
+                        <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                          Membership Expired
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Unlock Premium Member Benefits</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Join a campus society to access discounted event tickets, exclusive merchandise savings, and certified leadership credits.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700 pt-1">
+                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Event Ticket Discounts (Save ₹100+)</span>
+                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Merchandise Discounts (Save ₹200)</span>
+                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Exclusive Club Activities</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-shrink-0 self-stretch md:self-auto justify-end">
+                    <button
+                      onClick={() => handleTabSelect('membership')}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>Purchase Membership</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 4 Crisp Key Metric Cards */}
@@ -1230,15 +1590,17 @@ export const MemberDashboard = () => {
               </div>
             </div>
 
-            {/* Clubs Grid (6 Available Clubs) */}
+            {/* Clubs Grid (Available Clubs) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {CAMPUS_CLUBS.filter((club) => {
-                const matchesCat =
-                  selectedClubCategory === 'ALL' ||
-                  club.category.toLowerCase().includes(selectedClubCategory.toLowerCase());
-                const matchesSearch =
-                  club.name.toLowerCase().includes(clubSearchQuery.toLowerCase()) ||
-                  club.tagline.toLowerCase().includes(clubSearchQuery.toLowerCase());
+              {clubsList.filter((club) => {
+                const catFilter = (selectedClubCategory || 'ALL').toLowerCase();
+                const q = (clubSearchQuery || '').toLowerCase().trim();
+                const clubCat = String(club.category || '').toLowerCase();
+                const clubName = String(club.name || '').toLowerCase();
+                const clubTag = String(club.tagline || '').toLowerCase();
+
+                const matchesCat = catFilter === 'all' || clubCat.includes(catFilter);
+                const matchesSearch = !q || clubName.includes(q) || clubTag.includes(q);
                 return matchesCat && matchesSearch;
               }).map((club) => {
                 const isEnrolled = isClubMember(club.id);
@@ -1264,7 +1626,7 @@ export const MemberDashboard = () => {
                         </div>
                         <div className="absolute bottom-2.5 right-2.5">
                           <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-white/95 text-slate-800 shadow-xs">
-                            {club.availableSeats} spots open
+                            {club.availableSeats || 25} spots open
                           </span>
                         </div>
                       </div>
@@ -1283,60 +1645,87 @@ export const MemberDashboard = () => {
                             )}
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                            {club.tagline}
+                            {club.description || club.tagline}
                           </p>
                         </div>
 
-                        {/* Meeting Schedule */}
-                        <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100">
+                        {/* Advisor & Schedule */}
+                        <div className="text-xs text-slate-600 space-y-1.5 pt-2 border-t border-slate-100">
                           <div className="flex items-center gap-1.5 truncate">
-                            <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                            <span>{club.meetingTime}</span>
+                            <User className="w-3.5 h-3.5 text-emerald-700 flex-shrink-0" />
+                            <span><strong className="text-slate-700">Advisor:</strong> {club.facultyAdvisor || club.advisor || 'Faculty Lead'}</span>
                           </div>
                           <div className="flex items-center gap-1.5 truncate">
-                            <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                            <span>{club.advisor}</span>
+                            <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span><strong className="text-slate-700">Schedule:</strong> {club.meetingSchedule || club.meetingTime || 'Weekly on Thursdays'}</span>
                           </div>
                         </div>
 
-                        {/* Perks */}
+                        {/* Member Benefits Checklist */}
                         <div className="pt-2 border-t border-slate-100 space-y-1">
-                          <span className="text-[11px] font-semibold text-slate-700 block">Member Benefits:</span>
-                          <ul className="text-xs text-slate-600 space-y-0.5">
-                            {club.benefits.slice(0, 2).map((benefit, idx) => (
-                              <li key={idx} className="flex items-start gap-1.5 text-[11px]">
-                                <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                                <span className="line-clamp-1">{benefit}</span>
-                              </li>
-                            ))}
+                          <span className="text-[11px] font-bold text-slate-800 block">Member Benefits:</span>
+                          <ul className="text-xs text-slate-600 space-y-1">
+                            <li className="flex items-center gap-1.5 text-[11px]">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                              <span>Event Ticket Discounts (₹100 Member Pass)</span>
+                            </li>
+                            <li className="flex items-center gap-1.5 text-[11px]">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                              <span>Merchandise Discounts (Save ₹200)</span>
+                            </li>
+                            <li className="flex items-center gap-1.5 text-[11px]">
+                              <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                              <span>Priority Registration & Lab Privileges</span>
+                            </li>
                           </ul>
+                        </div>
+
+                        {/* Membership Fee Options */}
+                        <div className="pt-2.5 border-t border-slate-100 bg-slate-50/80 p-2.5 rounded-lg text-xs space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Membership Plans</span>
+                          <div className="flex justify-between items-center text-slate-700">
+                            <span>1. Semester Membership:</span>
+                            <strong className="text-slate-900 font-bold">₹{club.semester_fee || club.semesterFee || 299}</strong>
+                          </div>
+                          <div className="flex justify-between items-center text-slate-700">
+                            <span>2. Annual Membership:</span>
+                            <strong className="text-emerald-700 font-bold">₹{club.annual_fee || club.annualFee || 499}</strong>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Dues & Action */}
-                    <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
+                    <div className="p-4 pt-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
                       <div>
-                        <span className="text-[10px] text-slate-400 block uppercase">Annual Dues</span>
-                        <span className="text-sm font-semibold text-slate-900">${club.annualDues.toFixed(2)}/yr</span>
+                        <span className="text-[10px] text-slate-400 block uppercase">Spots Available</span>
+                        <span className="text-xs font-semibold text-slate-700">{club.availableSeats || 28} Open</span>
                       </div>
 
-                      {isEnrolled ? (
-                        <span className="px-3 py-1.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium flex items-center gap-1">
-                          <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Active Member</span>
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedClubForPurchase(club);
-                            setSelectedPlanForPurchase('Annual');
-                          }}
-                          className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer shadow-2xs"
-                        >
-                          Join Club (${club.annualDues.toFixed(0)})
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isEnrolled ? (
+                          <button
+                            onClick={() => {
+                              setSelectedClubForPurchase(club);
+                              setSelectedPlanForPurchase(membershipType === 'SEMESTER' ? 'Semester' : 'Annual');
+                            }}
+                            className="px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition cursor-pointer shadow-2xs flex items-center gap-1"
+                          >
+                            <RotateCw className="w-3 h-3" />
+                            <span>Renew Membership</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedClubForPurchase(club);
+                              setSelectedPlanForPurchase('Annual');
+                            }}
+                            className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer shadow-2xs flex items-center gap-1"
+                          >
+                            <span>Join Club</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1588,19 +1977,42 @@ export const MemberDashboard = () => {
                             </div>
                           </div>
 
-                          {/* Available Seats & Ticket Price */}
-                          <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
-                            <div>
-                              <span className="text-text-muted text-[11px] block">Available Seats</span>
-                              <span className="font-bold text-text-primary">
-                                {evt.availableSeats} / {evt.totalSeats || evt.capacity || 100}
+                          {/* Available Seats & Ticket Price Logic */}
+                          <div className="pt-2.5 border-t border-slate-100 space-y-2 text-xs">
+                            <div className="flex items-center justify-between text-slate-500">
+                              <span className="text-[11px]">Available Capacity</span>
+                              <span className="font-semibold text-slate-800">
+                                {evt.availableSeats || 48} / {evt.totalSeats || evt.capacity || 200}
                               </span>
                             </div>
-                            <div className="text-right">
-                              <span className="text-text-muted text-[11px] block">Ticket Price</span>
-                              <span className="font-bold text-status-success">
-                                {evt.memberPrice}
-                              </span>
+
+                            <div className="pt-1 border-t border-slate-50 flex items-start justify-between">
+                              <span className="text-slate-500 text-[11px] pt-0.5">Admission:</span>
+                              {isEligibleForMemberPrice() ? (
+                                <div className="text-right space-y-0.5">
+                                  <div className="flex items-center gap-1.5 justify-end">
+                                    <span className="text-[11px] text-slate-400 line-through">
+                                      ₹{evt.non_member_ticket_price || evt.nonMemberPriceNum || 200}
+                                    </span>
+                                    <span className="font-bold text-emerald-700 text-sm">
+                                      ₹{evt.member_ticket_price !== undefined ? evt.member_ticket_price : (evt.memberPriceNum !== undefined ? evt.memberPriceNum : 100)}
+                                    </span>
+                                  </div>
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                                    <span>Member Discount Applied</span>
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-right space-y-0.5">
+                                  <span className="font-bold text-slate-900 text-sm">
+                                    ₹{evt.non_member_ticket_price || evt.nonMemberPriceNum || evt.ticketPrice || 200}
+                                  </span>
+                                  <p className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-medium mt-0.5">
+                                    Become a member to unlock discounted pricing.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1653,84 +2065,294 @@ export const MemberDashboard = () => {
         {/* TAB 4: MY TICKETS (Purpose = Manage Passes & QR Check-in) */}
         {/* ========================================================= */}
         {activeTab === 'tickets' && (
-          <div className="space-y-6">
-            <div className="pb-2 border-b border-slate-200">
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                My Event Tickets
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Present QR credentials at the door for electronic attendee verification.
-              </p>
-            </div>
+          <div className="space-y-6 animate-fadeIn">
+            {/* Page Header */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200">
+                  <Ticket className="w-5 h-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    My Event Tickets & Passes
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live digital admissions, fast QR door validation, and transfer management.
+                  </p>
+                </div>
+              </div>
 
-            {ticketsList.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 p-10 text-center space-y-2">
-                <Ticket className="w-8 h-8 text-slate-400 mx-auto" />
-                <h3 className="text-sm font-semibold text-slate-800">No Tickets Reserved Yet</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Browse campus events and reserve your digital admission ticket.
-                </p>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleTabSelect('events')}
-                  className="mt-2 px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold cursor-pointer shadow-2xs"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
                 >
-                  Explore Events
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Browse More Events</span>
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ticketsList.map((tck) => (
-                  <div
-                    key={tck.id}
-                    className="bg-white rounded-lg border border-slate-200 shadow-xs p-5 flex flex-col justify-between hover:border-slate-300 transition"
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                <div className="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                  <span>Confirmed Passes</span>
+                  <Ticket className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="mt-2 text-2xl font-bold font-mono text-slate-900">
+                  {ticketsList.filter(t => t.status === 'Confirmed').length} Active
+                </div>
+                <span className="text-[11px] text-emerald-700 font-medium">Ready for Entrance Scanner</span>
+              </div>
+
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                <div className="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                  <span>Member Savings</span>
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="mt-2 text-2xl font-bold font-mono text-emerald-700">
+                  {isMember ? '₹350 Saved' : '₹0 (Join for ₹350+ Savings)'}
+                </div>
+                <span className="text-[11px] text-slate-500 font-medium">VIP Student Membership Rate</span>
+              </div>
+
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+                <div className="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                  <span>Next Event Date</span>
+                  <Clock className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="mt-2 text-sm font-bold text-slate-900 truncate">
+                  {ticketsList.find(t => t.status === 'Confirmed')?.eventTitle || 'No upcoming event'}
+                </div>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {ticketsList.find(t => t.status === 'Confirmed')?.date?.split('•')[0] || 'Browse campus events'}
+                </span>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
+                {[
+                  { id: 'ALL', label: 'All Tickets', count: ticketsList.length },
+                  { id: 'CONFIRMED', label: 'Confirmed', count: ticketsList.filter(t => t.status === 'Confirmed').length },
+                  { id: 'TRANSFERRED', label: 'Transferred', count: ticketsList.filter(t => t.status === 'Transferred').length },
+                  { id: 'CANCELLED', label: 'Cancelled', count: ticketsList.filter(t => t.status === 'Cancelled').length },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setTicketFilterStatus(f.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                      ticketFilterStatus === f.id
+                        ? 'bg-zinc-900 text-white shadow-xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80'
+                    }`}
                   >
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start">
-                        <span className="font-mono text-xs font-semibold text-zinc-900">{tck.id}</span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span>{f.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      ticketFilterStatus === f.id ? 'bg-zinc-800 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {f.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative min-w-[240px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search event, venue, or ID..."
+                  value={ticketSearchQuery}
+                  onChange={(e) => setTicketSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+            </div>
+
+            {/* Tickets Grid */}
+            {filteredTickets.length === 0 ? (
+              <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
+                <Ticket className="w-10 h-10 text-slate-300 mx-auto" />
+                <h3 className="text-base font-semibold text-slate-800">No Tickets Found</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  {ticketSearchQuery || ticketFilterStatus !== 'ALL'
+                    ? 'No passes match your selected filter criteria. Try resetting filters.'
+                    : 'You haven\'t reserved any event tickets yet. Explore campus events and reserve your seat!'}
+                </p>
+                <div className="pt-2 flex justify-center gap-2">
+                  {(ticketSearchQuery || ticketFilterStatus !== 'ALL') ? (
+                    <button
+                      onClick={() => {
+                        setTicketSearchQuery('');
+                        setTicketFilterStatus('ALL');
+                      }}
+                      className="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+                    >
+                      Reset Filters
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleTabSelect('events')}
+                      className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+                    >
+                      Explore Campus Events
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {filteredTickets.map((tck) => {
+                  const isConfirmed = tck.status === 'Confirmed';
+                  const isTransferred = tck.status === 'Transferred';
+                  const isCancelled = tck.status === 'Cancelled';
+
+                  return (
+                    <div
+                      key={tck.id}
+                      className={`bg-white rounded-xl border transition shadow-xs flex flex-col justify-between overflow-hidden ${
+                        isConfirmed
+                          ? 'border-slate-200 hover:border-emerald-300 hover:shadow-md'
+                          : isTransferred
+                          ? 'border-purple-200 bg-purple-50/20'
+                          : 'border-rose-200 bg-rose-50/20 opacity-80'
+                      }`}
+                    >
+                      {/* Top Header Banner */}
+                      <div className="p-4 bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-900 text-white flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-xs font-bold text-emerald-400">{tck.id}</span>
+                          <span className="text-[10px] text-zinc-400">• {tck.category || 'Campus Event'}</span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                            isConfirmed
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              : isTransferred
+                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                          }`}
+                        >
                           {tck.status}
                         </span>
                       </div>
 
-                      <h3 className="text-base font-semibold text-slate-900 leading-snug">
-                        {tck.eventTitle}
-                      </h3>
+                      {/* Ticket Body Content */}
+                      <div className="p-5 space-y-3.5">
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 leading-snug">
+                            {tck.eventTitle}
+                          </h3>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                            <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px]">
+                              {tck.tier || 'Pass'}
+                            </span>
+                            <span>• Reserved on {tck.purchaseDate}</span>
+                          </div>
+                        </div>
 
-                      <div className="text-xs text-slate-500 space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{tck.date}</span>
+                        {/* Specs Grid */}
+                        <div className="grid grid-cols-2 gap-2.5 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Date & Time</span>
+                            <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
+                              <Calendar className="w-3 h-3 text-emerald-600" />
+                              <span className="truncate">{tck.date}</span>
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Venue</span>
+                            <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3 text-rose-500" />
+                              <span className="truncate">{tck.venue}</span>
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Assigned Seat / Gate</span>
+                            <span className="font-semibold text-slate-800 mt-0.5 block truncate">
+                              {tck.seat}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Price Paid</span>
+                            <span className="font-bold text-emerald-700 font-mono mt-0.5 block">
+                              {tck.pricePaid}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{tck.venue}</span>
-                        </div>
+
+                        {/* Transferred Notice */}
+                        {isTransferred && tck.transferredTo && (
+                          <div className="p-2.5 bg-purple-50 text-purple-800 rounded-lg border border-purple-200 text-xs flex items-center gap-2">
+                            <Share2 className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                            <span>Transferred to: <strong>{tck.transferredTo}</strong></span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 flex justify-between text-xs text-slate-600">
-                        <span>Seat: <strong>{tck.seat}</strong></span>
-                        <span>Rate: <strong>{tck.pricePaid}</strong></span>
+                      {/* Ticket Footer Action Buttons */}
+                      <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleAddToCalendar(tck)}
+                            className="px-2.5 py-1 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                            title="Add event to Google Calendar"
+                          >
+                            <Calendar className="w-3 h-3 text-slate-500" />
+                            <span>Calendar</span>
+                          </button>
+
+                          {isConfirmed && (
+                            <>
+                              <button
+                                onClick={() => setTransferTicketModal(tck)}
+                                className="px-2.5 py-1 text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                                title="Transfer pass to a student"
+                              >
+                                <Share2 className="w-3 h-3 text-purple-600" />
+                                <span>Transfer</span>
+                              </button>
+
+                              <button
+                                onClick={() => setCancelTicketModal(tck)}
+                                className="px-2.5 py-1 text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                                title="Cancel pass reservation"
+                              >
+                                <Trash2 className="w-3 h-3 text-rose-600" />
+                                <span>Cancel</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handlePrintOrDownloadTicket(tck)}
+                            className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-slate-500" />
+                            <span>Print PDF</span>
+                          </button>
+
+                          <button
+                            onClick={() => setSelectedTicketModal(tck)}
+                            className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>View Pass QR</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedTicketModal(tck)}
-                        className="px-3 py-1.5 rounded-md border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        <span>View Pass QR</span>
-                      </button>
-                      <button
-                        onClick={() => showToast(`Ticket ${tck.id} downloaded.`)}
-                        className="px-3 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>PDF</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2156,22 +2778,226 @@ export const MemberDashboard = () => {
         )}
 
         {/* ========================================================= */}
+        {/* TAB: MERCHANDISE STORE (Purpose = Exclusive Member Deals) */}
+        {/* ========================================================= */}
+        {activeTab === 'merchandise' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header & Promo Banner */}
+            <div className="pb-2 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                  Official Campus Merchandise
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Exclusive student organization apparel, gear, and accessories with member discounts.
+                </p>
+              </div>
+
+              {/* Status Indicator */}
+              <div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
+                  isMember
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}>
+                  {isMember ? (
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                  ) : (
+                    <Tag className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                  )}
+                  {isMember ? 'Member Discounts Active (Save ₹200+)' : 'Standard Pricing Active'}
+                </span>
+              </div>
+            </div>
+
+            {/* Member Discount Status Card */}
+            {isMember ? (
+              <div className="rounded-xl border p-4 bg-gradient-to-r from-[#0B1A14] to-[#0A1610] text-white border-emerald-500/40 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Member Tier Pricing Active</h3>
+                    <p className="text-xs text-emerald-200/80">
+                      As an active <strong className="text-emerald-300">{membershipBadge}</strong>, you save up to ₹200 on every official gear item!
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 flex-shrink-0">
+                  ✓ Discounts Applied Automatically
+                </span>
+              </div>
+            ) : (
+              <div className="rounded-xl border p-4 bg-white border-amber-200 text-slate-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Member Discounts Available</h3>
+                    <p className="text-xs text-slate-600">
+                      Active society members save ₹200 on Club Hoodies and apparel. Join a society today to unlock member pricing.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleTabSelect('membership')}
+                  className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition flex-shrink-0 cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Purchase Membership</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Merchandise Catalog Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => {
+                const pricing = getProductPricing ? getProductPricing(product, isMember) : {
+                  regularPrice: product.regularPrice || product.price || 1000,
+                  memberPrice: product.memberPrice || 800,
+                  effectivePrice: isMember ? (product.memberPrice || 800) : (product.regularPrice || product.price || 1000),
+                  discountAmount: (product.regularPrice || 1000) - (product.memberPrice || 800),
+                  isMemberDiscountApplied: isMember
+                };
+
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition overflow-hidden flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Product Image */}
+                      <div className="relative h-48 bg-slate-100 overflow-hidden">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover hover:scale-105 transition duration-300"
+                        />
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900/90 text-white">
+                            {product.category || 'Apparel'}
+                          </span>
+                        </div>
+                        {isMember && pricing.discountAmount > 0 && (
+                          <div className="absolute top-2.5 right-2.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                              Save ₹{pricing.discountAmount}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Body */}
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 leading-snug">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                            {product.description || 'Premium official student organization edition with embroidered crest.'}
+                          </p>
+                        </div>
+
+                        {/* Pricing Logic Container */}
+                        <div className="p-3 rounded-lg bg-slate-50 border border-slate-100 space-y-1.5">
+                          {isMember ? (
+                            <div>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-lg font-bold text-emerald-700">
+                                  ₹{pricing.memberPrice}
+                                </span>
+                                <span className="text-xs text-slate-400 line-through">
+                                  ₹{pricing.regularPrice}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 pt-0.5">
+                                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
+                                  You saved ₹{pricing.discountAmount}
+                                </span>
+                                <span className="text-[10px] text-emerald-800 font-semibold">
+                                  Member Discount Applied
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-lg font-bold text-slate-900">
+                                  ₹{pricing.regularPrice}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-medium mt-1">
+                                Member discount available: Save ₹{pricing.discountAmount}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Order Action */}
+                    <div className="p-4 pt-2 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+                      <span className="text-xs text-slate-500">
+                        Stock: <strong className="text-slate-800">{product.inStock ? `${product.stock || 24} left` : 'Out of stock'}</strong>
+                      </span>
+
+                      <button
+                        onClick={() => {
+                          const order = placeOrder ? placeOrder({ productId: product.id, size: 'M', quantity: 1, member: user }) : null;
+                          showToast(`Ordered ${product.name} successfully at ₹${pricing.effectivePrice}! Order receipt generated.`);
+                        }}
+                        className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>Order Now</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
         {/* TAB 8: PROFILE (Purpose = Student Records & Credentials)  */}
         {/* ========================================================= */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
-            <div className="pb-2 border-b border-slate-200">
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                Student Profile
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Manage your academic record, contact details, and account credentials.
-              </p>
+            <div className="pb-2 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                  Student Profile
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Academic credentials, membership status, and verified institutional affiliation.
+                </p>
+              </div>
+
+              {/* Top Membership Badge */}
+              <div>
+                <span className={`inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${
+                  isMember
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : membershipStatus === 'EXPIRED'
+                    ? 'bg-rose-50 text-rose-800 border-rose-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}>
+                  {isMember ? (
+                    <BadgeCheck className="w-4 h-4 mr-1.5 text-emerald-600" />
+                  ) : (
+                    <User className="w-4 h-4 mr-1.5 text-slate-500" />
+                  )}
+                  {membershipBadge}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Profile Card */}
-              <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-xs text-center space-y-3">
+              {/* Photo & Actions Card */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs text-center space-y-3">
                 {/* Photo Upload Input (hidden) */}
                 <input
                   type="file"
@@ -2210,8 +3036,8 @@ export const MemberDashboard = () => {
                 </div>
 
                 <div className="pt-1">
-                  <h3 className="text-base font-semibold text-slate-900">{studentProfile.name}</h3>
-                  <p className="text-xs font-mono text-slate-500">{studentProfile.studentId}</p>
+                  <h3 className="text-base font-bold text-slate-900">{studentProfile.name}</h3>
+                  <p className="text-xs font-mono font-semibold text-slate-500">{studentProfile.studentId}</p>
                   <p className="text-xs text-slate-600 mt-0.5">{studentProfile.department}</p>
                 </div>
 
@@ -2232,33 +3058,90 @@ export const MemberDashboard = () => {
                 </div>
               </div>
 
-              {/* Academic Details */}
-              <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-5 shadow-xs space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 pb-2 border-b border-slate-100">
-                  Academic & Registration Information
-                </h3>
+              {/* SPECIFICATION-COMPLIANT STUDENT PROFILE CARD */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Student Profile Information</h2>
+                    <p className="text-xs text-slate-500">Official university registration and membership status</p>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${
+                    isMember
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : membershipStatus === 'EXPIRED'
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {membershipBadge}
+                  </span>
+                </div>
 
+                {/* 7 Required Profile Fields Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 block">Email Address</span>
-                    <span className="font-medium text-slate-800">{studentProfile.email}</span>
+                  {/* Field 1: Student Name */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Student Name</span>
+                    <span className="font-bold text-slate-900 text-sm mt-0.5 block">{studentProfile.name}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block">Phone Number</span>
-                    <span className="font-medium text-slate-800">{studentProfile.phone}</span>
+
+                  {/* Field 2: Student ID */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Student ID</span>
+                    <span className="font-mono font-bold text-slate-900 text-sm mt-0.5 block">{studentProfile.studentId}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block">Academic Standing</span>
-                    <span className="font-medium text-emerald-700">Good Standing (FERPA Verified)</span>
+
+                  {/* Field 3: University Email */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 sm:col-span-2">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">University Email</span>
+                    <span className="font-semibold text-slate-800 mt-0.5 block">{studentProfile.email}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block">Semester Term</span>
-                    <span className="font-medium text-slate-800">{studentProfile.semester}</span>
+
+                  {/* Field 4: Membership Status */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Status</span>
+                    <span className={`font-bold mt-0.5 inline-flex items-center gap-1.5 ${
+                      membershipStatus === 'ACTIVE'
+                        ? 'text-emerald-700'
+                        : membershipStatus === 'EXPIRED'
+                        ? 'text-rose-700'
+                        : 'text-slate-700'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${
+                        membershipStatus === 'ACTIVE' ? 'bg-emerald-500' : membershipStatus === 'EXPIRED' ? 'bg-rose-500' : 'bg-slate-400'
+                      }`} />
+                      {membershipStatus}
+                    </span>
                   </div>
-                  <div className="sm:col-span-2">
-                    <span className="text-slate-400 block">Student Statement</span>
-                    <p className="text-slate-600 mt-0.5 leading-relaxed">{studentProfile.bio}</p>
+
+                  {/* Field 5: Membership Type */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Type</span>
+                    <span className="font-bold text-slate-900 mt-0.5 block">
+                      {studentProfile.membershipType || (isMember ? 'Annual' : 'None')}
+                    </span>
                   </div>
+
+                  {/* Field 6: Membership Start Date */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Start Date</span>
+                    <span className="font-mono font-medium text-slate-700 mt-0.5 block">
+                      {studentProfile.membershipStartDate || (isMember ? '2026-09-01' : 'N/A')}
+                    </span>
+                  </div>
+
+                  {/* Field 7: Membership Expiry Date */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Membership Expiry Date</span>
+                    <span className="font-mono font-medium text-slate-700 mt-0.5 block">
+                      {studentProfile.membershipEndDate || (isMember ? '2027-08-31' : 'N/A')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Additional Academic Context */}
+                <div className="pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-xs text-slate-500 gap-2">
+                  <span>Department: <strong className="text-slate-700">{studentProfile.department}</strong></span>
+                  <span>Semester: <strong className="text-slate-700">{studentProfile.semester}</strong></span>
                 </div>
               </div>
             </div>
@@ -2278,44 +3161,172 @@ export const MemberDashboard = () => {
       </div>
 
       {/* ========================================================= */}
+      {/* ========================================================= */}
       {/* MODAL 1: VIEW TICKET QR PASS                             */}
       {/* ========================================================= */}
       {selectedTicketModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <div className="max-w-sm w-full rounded-lg bg-white border border-slate-200 shadow-md p-6 space-y-4 relative">
-            <button
-              onClick={() => setSelectedTicketModal(null)}
-              className="absolute top-4 right-4 p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="max-w-sm w-full rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden relative">
+            {/* Pass Top Banner */}
+            <div className="p-5 bg-gradient-to-r from-zinc-900 via-slate-900 to-zinc-900 text-white relative">
+              <button
+                onClick={() => setSelectedTicketModal(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <div className="text-center space-y-1">
-              <h3 className="text-base font-semibold text-slate-900">Digital Admission Pass</h3>
-              <p className="text-xs text-slate-500">Present at entrance gate for scanner</p>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Official Campus Admission Pass
+              </span>
+              <h3 className="text-base font-bold text-white mt-1.5 leading-snug">
+                {selectedTicketModal.eventTitle}
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">{selectedTicketModal.venue}</p>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-lg text-center space-y-3 border border-slate-200">
-              <div className="w-36 h-36 mx-auto bg-white p-2 rounded border border-slate-200 flex flex-col items-center justify-center">
-                <QrCode className="w-24 h-24 text-slate-800" />
-                <span className="text-[9px] font-mono text-slate-400 mt-1">{selectedTicketModal.id}</span>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900 text-xs">{selectedTicketModal.eventTitle}</p>
-                <p className="text-[11px] text-slate-500">{selectedTicketModal.venue}</p>
-                <p className="text-[11px] text-slate-600 font-medium">{selectedTicketModal.date}</p>
-              </div>
+            {/* Notch Cutout Styling */}
+            <div className="relative flex justify-between -mt-3 px-0">
+              <div className="w-6 h-6 rounded-full bg-slate-900/60 -ml-3" />
+              <div className="flex-1 border-b-2 border-dashed border-slate-200 my-auto mx-2" />
+              <div className="w-6 h-6 rounded-full bg-slate-900/60 -mr-3" />
             </div>
 
-            <button
-              onClick={() => {
-                showToast('Ticket PDF downloaded.');
-                setSelectedTicketModal(null);
-              }}
-              className="w-full py-2 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer shadow-2xs"
-            >
-              Download PDF Pass
-            </button>
+            {/* QR Scan Area with animated line */}
+            <div className="p-6 text-center space-y-4">
+              <div className="relative w-44 h-44 mx-auto bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col items-center justify-center shadow-inner overflow-hidden">
+                <QrCode className="w-32 h-32 text-slate-900" />
+                <span className="text-[10px] font-mono font-bold text-emerald-700 mt-1">{selectedTicketModal.id}</span>
+                {/* Laser scan line effect */}
+                <div className="absolute inset-x-2 top-0 h-0.5 bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
+              </div>
+
+              {/* Details List */}
+              <div className="grid grid-cols-2 gap-2 text-left bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Attendee</span>
+                  <span className="font-semibold text-slate-800 truncate block">
+                    {studentProfile.name || user?.full_name || 'Student'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Student ID</span>
+                  <span className="font-mono font-semibold text-slate-800 truncate block">
+                    {studentProfile.studentId || user?.student_id || 'STU-2026-101'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Seat / Gate</span>
+                  <span className="font-semibold text-slate-800 truncate block">
+                    {selectedTicketModal.seat}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Status</span>
+                  <span className="font-bold text-emerald-700 block">
+                    {selectedTicketModal.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => handlePrintOrDownloadTicket(selectedTicketModal)}
+                  className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print / Save Ticket PDF</span>
+                </button>
+
+                <button
+                  onClick={() => handleAddToCalendar(selectedTicketModal)}
+                  className="w-full py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Add to Google Calendar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1B: TRANSFER TICKET MODAL */}
+      {transferTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center space-x-2 text-purple-700">
+              <Share2 className="w-5 h-5 text-purple-600" />
+              <h3 className="text-base font-bold text-slate-900">Transfer Event Ticket</h3>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Transfer admission pass for <strong>{transferTicketModal.eventTitle}</strong> ({transferTicketModal.id}) to another registered university student.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Recipient University Email:</label>
+              <input
+                type="email"
+                placeholder="student@university.edu"
+                value={transferRecipientEmail}
+                onChange={(e) => setTransferRecipientEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+              />
+              <span className="text-[10px] text-slate-400">Note: Once transferred, this ticket pass cannot be retrieved by your account.</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTransferTicketModal(null)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!transferRecipientEmail}
+                onClick={handleTransferTicket}
+                className="px-4 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1C: CANCEL TICKET MODAL */}
+      {cancelTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="max-w-md w-full bg-white rounded-xl shadow-xl border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center space-x-2 text-rose-700">
+              <AlertCircle className="w-5 h-5 text-rose-600" />
+              <h3 className="text-base font-bold text-slate-900">Cancel Pass Reservation</h3>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Are you sure you want to cancel your pass reservation for <strong>{cancelTicketModal.eventTitle}</strong> ({cancelTicketModal.id})? Your seat will be released back to other students.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelTicketModal(null)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Keep Ticket
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelTicket}
+                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs"
+              >
+                Release & Cancel Pass
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2829,43 +3840,43 @@ export const MemberDashboard = () => {
                       {/* Term Selector */}
                       <div className="space-y-1.5">
                         <label className="block text-xs font-semibold text-slate-700">
-                          Choose Membership Term:
+                          Choose Membership Plan:
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                           <button
                             type="button"
-                            onClick={() => setSelectedPlanForPurchase('Annual')}
-                            className={`p-3 rounded-md border text-left transition cursor-pointer ${selectedPlanForPurchase === 'Annual'
-                                ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
+                            onClick={() => setSelectedPlanForPurchase('Semester')}
+                            className={`p-3 rounded-md border text-left transition cursor-pointer ${selectedPlanForPurchase === 'Semester'
+                                ? 'border-emerald-600 bg-emerald-50/50 ring-1 ring-emerald-600'
                                 : 'border-slate-200 hover:bg-slate-50'
                               }`}
                           >
                             <div className="flex justify-between items-center text-xs font-semibold text-slate-900">
-                              <span>Full Year</span>
-                              {selectedPlanForPurchase === 'Annual' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
+                              <span>1. Semester Membership</span>
+                              {selectedPlanForPurchase === 'Semester' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                             </div>
-                            <div className="text-base font-bold text-slate-900 mt-1">
-                              ${selectedClubForPurchase.annualDues.toFixed(2)}
+                            <div className="text-base font-bold text-emerald-700 mt-1">
+                              ₹{selectedClubForPurchase.semester_fee || selectedClubForPurchase.semesterFee || 299}
                             </div>
-                            <span className="text-[10px] text-slate-500">Valid thru June 2027</span>
+                            <span className="text-[10px] text-slate-500">Single Semester Plan</span>
                           </button>
 
                           <button
                             type="button"
-                            onClick={() => setSelectedPlanForPurchase('Semester')}
-                            className={`p-3 rounded-md border text-left transition cursor-pointer ${selectedPlanForPurchase === 'Semester'
-                                ? 'border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900'
+                            onClick={() => setSelectedPlanForPurchase('Annual')}
+                            className={`p-3 rounded-md border text-left transition cursor-pointer ${selectedPlanForPurchase === 'Annual'
+                                ? 'border-emerald-600 bg-emerald-50/50 ring-1 ring-emerald-600'
                                 : 'border-slate-200 hover:bg-slate-50'
                               }`}
                           >
                             <div className="flex justify-between items-center text-xs font-semibold text-slate-900">
-                              <span>Single Semester</span>
-                              {selectedPlanForPurchase === 'Semester' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
+                              <span>2. Annual Membership</span>
+                              {selectedPlanForPurchase === 'Annual' && <Check className="w-3.5 h-3.5 text-emerald-700" />}
                             </div>
-                            <div className="text-base font-bold text-slate-900 mt-1">
-                              ${selectedClubForPurchase.semesterDues.toFixed(2)}
+                            <div className="text-base font-bold text-emerald-700 mt-1">
+                              ₹{selectedClubForPurchase.annual_fee || selectedClubForPurchase.annualFee || 499}
                             </div>
-                            <span className="text-[10px] text-slate-500">Valid thru Dec 2026</span>
+                            <span className="text-[10px] text-slate-500">Full Year (Best Value)</span>
                           </button>
                         </div>
                       </div>
@@ -2873,8 +3884,9 @@ export const MemberDashboard = () => {
                       {/* Instant Benefits */}
                       <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200 text-xs text-emerald-800 space-y-1">
                         <span className="font-semibold block">Member Privileges:</span>
-                        <p>• 100% Free or subsidized passes across events</p>
-                        <p>• Official digital society credential & voting seat</p>
+                        <p>✓ Event Ticket Discounts (₹100 Member Pass vs ₹200 Regular)</p>
+                        <p>✓ Merchandise Discounts (Save ₹200 on Hoodies)</p>
+                        <p>✓ Priority Registration & Exclusive Club Activities</p>
                       </div>
 
                       {/* Payment Method */}
@@ -2886,14 +3898,15 @@ export const MemberDashboard = () => {
                           className="w-full px-3 py-1.5 rounded-md border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 text-xs"
                         >
                           <option value="Student Account (Bursar)">Student ID Bursar Account (Pre-Authorized)</option>
+                          <option value="UPI / Online Payment">UPI / QR Payment</option>
                           <option value="Credit / Debit Card">Credit / Debit Card</option>
-                          <option value="Campus Pay / Mobile Wallet">Campus Pay</option>
                         </select>
                       </div>
 
                       <div className="flex space-x-2 pt-2">
                         <button
                           type="button"
+                          disabled={isActivatingMembership}
                           onClick={() => setSelectedClubForPurchase(null)}
                           className="flex-1 py-2 rounded-md border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                         >
@@ -2901,10 +3914,18 @@ export const MemberDashboard = () => {
                         </button>
                         <button
                           type="button"
+                          disabled={isActivatingMembership}
                           onClick={handleConfirmBuyMembership}
-                          className="flex-1 py-2 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition cursor-pointer shadow-2xs"
+                          className="flex-1 py-2 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition cursor-pointer shadow-2xs disabled:opacity-50 flex items-center justify-center gap-1.5"
                         >
-                          Pay ${selectedPlanForPurchase === 'Annual' ? selectedClubForPurchase.annualDues.toFixed(2) : selectedClubForPurchase.semesterDues.toFixed(2)} & Activate
+                          {isActivatingMembership ? (
+                            <>
+                              <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Activating...</span>
+                            </>
+                          ) : (
+                            <span>Pay {selectedPlanForPurchase === 'Annual' ? '₹499' : '₹299'} & Activate</span>
+                          )}
                         </button>
                       </div>
                     </div>
