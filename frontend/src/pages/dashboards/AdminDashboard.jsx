@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import MemberManagementPage from '../admin/MemberManagementPage';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
@@ -41,9 +41,17 @@ import {
 export const AdminDashboard = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const normalizeTab = (t) => {
+    if (t === 'roster') return 'members';
+    if (t === 'broadcasts' || t === 'broadcast') return 'announcements';
+    if (t === 'store') return 'merchandise';
+    return t;
+  };
 
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get('tab') || 'overview';
+  const initialTab = normalizeTab(queryParams.get('tab') || 'overview');
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [eventsSubTab, setEventsSubTab] = useState('all');
@@ -53,7 +61,9 @@ export const AdminDashboard = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     if (tab) {
-      setActiveTab(tab);
+      setActiveTab(normalizeTab(tab));
+    } else {
+      setActiveTab('overview');
     }
   }, [location.search]);
 
@@ -140,14 +150,21 @@ export const AdminDashboard = () => {
   });
 
   // Navigation Helpers
+  const handleTabSelect = (tabId) => {
+    setActiveTab(tabId);
+    navigate(`/admin/dashboard?tab=${tabId}`);
+  };
+
   const navigateToEvents = (subTab = 'all') => {
     setEventsSubTab(subTab);
     setActiveTab('events');
+    navigate('/admin/dashboard?tab=events');
   };
 
   const navigateToAnnouncements = (subTab = 'all') => {
     setAnnouncementsSubTab(subTab);
     setActiveTab('announcements');
+    navigate('/admin/dashboard?tab=announcements');
   };
 
   const handleCreateTreasurer = (e) => {
@@ -215,16 +232,6 @@ export const AdminDashboard = () => {
 
   const scheduledAnnouncementsCount = announcements.filter((a) => a.status === 'Scheduled').length;
 
-  const tabs = [
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'members', label: 'Member Management', icon: Users, badge: memberRoster.length },
-    { id: 'events', label: 'Events Management', icon: Calendar, badge: events.length },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, badge: scheduledAnnouncementsCount },
-    { id: 'merchandise', label: 'Merchandise Stock', icon: ShoppingBag, badge: MERCHANDISE_ITEMS.length },
-    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign, badge: '3 Active' },
-    { id: 'volunteers', label: 'Volunteer Control', icon: HeartHandshake, badge: '28 hrs' },
-    { id: 'reports', label: 'Council Reports', icon: FileText }
-  ];
 
   // Governance Log Mock Data
   const governanceLogs = [
@@ -287,108 +294,6 @@ export const AdminDashboard = () => {
     <div className="min-h-screen bg-ivory py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Executive Admin Header Card */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-          <div className="flex items-center space-x-5 z-10">
-            <div className="relative flex-shrink-0">
-              <img
-                src={user?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"}
-                alt={user?.name || "Advisor"}
-                className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-primary object-cover shadow-sm"
-              />
-              <span className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-surface shadow-xs">
-                <UniversityCrest className="w-4 h-4" variant="gold" />
-              </span>
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold text-text-primary">
-                  {user?.name || 'Dr. Alexander Vance'}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-primary text-white tracking-wide shadow-xs">
-                  Lead Organizer & Faculty Advisor
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Accredited Chapter
-                </span>
-              </div>
-              <p className="text-xs text-text-secondary mt-1 flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-primary">Robotics & AI Society</span>
-                <span>•</span>
-                <span>Council Chapter #SOC-2026-ENG</span>
-                <span>•</span>
-                <span className="font-mono text-accent">ID: {user?.studentId || 'FAC-2026-1049'}</span>
-                <span>•</span>
-                <span className="text-text-muted">Term: Fall 2026 Academic Year</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Action Header Bar */}
-          <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
-            <button
-              onClick={() => setIsCreateTreasurerModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
-              title="Grant fiscal authority and credentials"
-            >
-              <ShieldPlus className="w-3.5 h-3.5" />
-              <span>Appoint Treasurer</span>
-            </button>
-            <button
-              onClick={() => setIsAddMemberModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Enroll Member</span>
-            </button>
-            <button
-              onClick={() => navigateToEvents('create')}
-              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5 text-primary" />
-              <span>New Event</span>
-            </button>
-            <button
-              onClick={() => navigateToAnnouncements('create')}
-              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
-            >
-              <Megaphone className="w-3.5 h-3.5 text-accent" />
-              <span>Broadcast</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="border-b border-border bg-surface rounded-xl p-1.5 shadow-subtle overflow-x-auto">
-          <nav className="flex space-x-1.5 min-w-max">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-campus ${isActive
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                    }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-accent' : 'text-text-muted'}`} />
-                  <span>{tab.label}</span>
-                  {tab.badge !== undefined && (
-                    <span
-                      className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
-                        }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
         {/* ========================================================= */}
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {/* ========================================================= */}
@@ -419,10 +324,10 @@ export const AdminDashboard = () => {
                 <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-[11px] text-text-muted">Quorum Reached</span>
                   <button
-                    onClick={() => setActiveTab('members')}
+                    onClick={() => handleTabSelect('members')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
-                    <span>View Roster</span>
+                    <span>Member Management</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -481,7 +386,7 @@ export const AdminDashboard = () => {
                 <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-[11px] text-text-muted">Dues 92% Collected</span>
                   <button
-                    onClick={() => setActiveTab('fundraisers')}
+                    onClick={() => handleTabSelect('fundraisers')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
                     <span>View Funds</span>
@@ -495,7 +400,7 @@ export const AdminDashboard = () => {
                 <div>
                   <div className="flex justify-between items-start">
                     <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                      Broadcast Center
+                      Announcements Center
                     </span>
                     <div className="w-8 h-8 rounded-lg bg-ivory-200 flex items-center justify-center text-text-secondary">
                       <Megaphone className="w-4 h-4 text-primary" />
@@ -517,7 +422,7 @@ export const AdminDashboard = () => {
                     onClick={() => navigateToAnnouncements('all')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
-                    <span>Open Center</span>
+                    <span>Announcement</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
