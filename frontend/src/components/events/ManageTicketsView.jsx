@@ -555,7 +555,7 @@ export const ManageTicketsView = ({
             {/* Pass Body */}
             <div className="p-4 bg-gradient-to-b from-primary-800 to-primary text-white rounded-lg space-y-3 text-center relative overflow-hidden">
               <div className="text-[10px] uppercase tracking-widest text-accent font-semibold">
-                Official ConnectU Event Ticket
+                Official SkyLine Event Ticket
               </div>
               <h4 className="text-base font-bold text-white">
                 {activeEvent.title}

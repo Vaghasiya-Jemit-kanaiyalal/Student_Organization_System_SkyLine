@@ -56,7 +56,7 @@ export const SessionExpiredPage = () => {
         </div>
 
         <div className="py-3 px-6 bg-ivory-200 border-t border-border text-center text-[11px] text-text-muted">
-          ConnectU Identity Service • Session Reference: ID-TIMEOUT-2026
+          SkyLine Identity Service • Session Reference: ID-TIMEOUT-2026
         </div>
 
       </div>

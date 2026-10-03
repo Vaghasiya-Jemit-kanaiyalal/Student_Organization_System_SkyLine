@@ -9,13 +9,9 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
-  CheckCircle2,
-  ShieldCheck,
-  Building2,
   Users,
-  CalendarCheck,
   Sparkles,
-  Info
+  Check
 } from 'lucide-react';
 
 export const LoginPage = () => {
@@ -31,15 +27,9 @@ export const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showDemoDrawer, setShowDemoDrawer] = useState(false);
 
-  // If already authenticated, redirect to appropriate role dashboard
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      redirectByRole(user.role);
-    }
-  }, [isAuthenticated, user]);
-
-  const redirectByRole = (role) => {
+  const redirectByRole = React.useCallback((role) => {
     const destination = location.state?.from?.pathname;
 
     // Validate that destination belongs to the user's role
@@ -71,14 +61,21 @@ export const LoginPage = () => {
         navigate('/member/dashboard', { replace: true });
         break;
     }
-  };
+  }, [location.state?.from?.pathname, navigate]);
+
+  // If already authenticated, redirect to appropriate role dashboard
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      redirectByRole(user.role);
+    }
+  }, [isAuthenticated, user, redirectByRole]);
 
   const validateForm = () => {
     const errors = {};
     if (!email.trim()) {
       errors.email = 'University email address is required.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = 'Please provide a valid email format (e.g. name@university.edu).';
+      errors.email = 'Please provide a valid university email address.';
     }
 
     if (!password) {
@@ -112,7 +109,7 @@ export const LoginPage = () => {
     }
   };
 
-  // Demo auto-fill convenience for Hackathon judges
+  // Demo auto-fill convenience for Hackathon judges & testers
   const handleAutoFill = (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
@@ -121,284 +118,263 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 bg-ivory">
-      <div className="max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 rounded-xl border border-border bg-surface shadow-card overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center py-10 px-4 sm:px-6 relative bg-[#f0f4f9] overflow-x-hidden font-sans">
+      {/* Soft atmospheric ambient glow background */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-br from-blue-100/50 via-indigo-50/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute -bottom-20 -left-20 w-[420px] h-[420px] bg-blue-50/60 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute -top-10 -right-10 w-[380px] h-[380px] bg-sky-50/50 rounded-full blur-3xl pointer-events-none -z-10" />
 
-        {/* Left Side: Classical University Academic Identity */}
-        <div className="lg:col-span-5 bg-gradient-to-b from-primary to-primary-hover text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
-          {/* Subtle watermark crest in background */}
-          <div className="absolute -right-16 -bottom-16 opacity-10 pointer-events-none">
-            <UniversityCrest className="w-80 h-80" variant="white" />
+      {/* Quick Demo Helper Pill for Judges */}
+      <div className="mb-4 flex flex-col items-center z-10">
+        <button
+          type="button"
+          onClick={() => setShowDemoDrawer(!showDemoDrawer)}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200/80 text-[11px] font-medium text-slate-600 hover:text-blue-600 hover:border-blue-300 shadow-xs transition-all"
+        >
+          <Sparkles className="w-3 h-3 text-blue-500" />
+          <span>Demo Accounts (1-Click Fill)</span>
+          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full font-mono">
+            {showDemoDrawer ? 'Hide' : 'Quick Test'}
+          </span>
+        </button>
+
+        {showDemoDrawer && (
+          <div className="mt-2.5 p-2 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-lg flex flex-wrap items-center justify-center gap-2 animate-fadeIn max-w-md">
+            <button
+              type="button"
+              onClick={() => handleAutoFill('student@university.edu', 'password123')}
+              className="px-2.5 py-1.5 rounded-lg bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-[11px] font-medium transition text-left flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span>Student Member</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAutoFill('admin@university.edu', 'password123')}
+              className="px-2.5 py-1.5 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 text-indigo-800 text-[11px] font-medium transition text-left flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>Club Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAutoFill('treasurer@treasurer.gmail.com', 'TreasurerPassword123!')}
+              className="px-2.5 py-1.5 rounded-lg bg-amber-50/70 hover:bg-amber-100 text-amber-800 text-[11px] font-medium transition text-left flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Club Treasurer</span>
+            </button>
           </div>
+        )}
+      </div>
 
-          <div>
-            {/* Campus Crest & Name */}
-            <div className="flex items-center space-x-3 mb-8">
-              <UniversityCrest className="w-12 h-12" variant="gold" />
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white leading-tight">
-                  ConnectU
-                </h1>
-                <p className="text-xs uppercase tracking-widest text-accent font-semibold">
-                  University Student Affairs
-                </p>
-              </div>
-            </div>
+      {/* Main Auth Card */}
+      <div className="w-full max-w-[460px] bg-white rounded-[24px] sm:rounded-[28px] border border-[#e4ebf5] shadow-[0_20px_50px_-15px_rgba(20,50,90,0.07),0_1px_3px_rgba(0,0,0,0.02)] p-7 sm:p-9 md:p-10 relative z-10">
 
-            {/* Platform Description */}
-            <div className="space-y-4 mb-8">
-              <span className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-medium bg-primary-800/80 text-accent border border-accent/30">
-                <Building2 className="w-3.5 h-3.5 mr-1.5 text-accent" />
-                Campus Governance & Society Hub
-              </span>
-
-              <h2 className="text-2xl sm:text-3xl text-white font-normal leading-snug">
-                Where student leadership meets academic tradition.
-              </h2>
-
-              <p className="text-sm text-primary-100 font-light leading-relaxed">
-                ConnectU is the premier administration platform for university clubs, societies, student government, and athletic councils.
-              </p>
-            </div>
-
-            {/* University Key Highlights */}
-            <div className="space-y-3 pt-2 border-t border-primary-500/40">
-              <div className="flex items-start space-x-3 text-xs text-primary-100">
-                <Users className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                <span><strong className="text-white">Role-Based Access:</strong> Tailored workspaces for Members, Club Organizers, and Fiscal Treasurers.</span>
-              </div>
-              <div className="flex items-start space-x-3 text-xs text-primary-100">
-                <CalendarCheck className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                <span><strong className="text-white">Campus Events & Tickets:</strong> Real-time RSVP, digital QR admissions, and volunteer tracking.</span>
-              </div>
-              <div className="flex items-start space-x-3 text-xs text-primary-100">
-                <ShieldCheck className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                <span><strong className="text-white">Audited Financials:</strong> Institutional ledger with reimbursement approvals and grant allocations.</span>
-              </div>
-            </div>
+        {/* Brand Crest & Header */}
+        <div className="flex flex-col items-center text-center mb-7 sm:mb-8">
+          <div className="relative mb-2.5">
+            <UniversityCrest
+              className="w-16 h-16 sm:w-[72px] sm:h-[72px] text-[#1d64e0]"
+              variant="skyline"
+              color="#1d64e0"
+            />
           </div>
-
-          {/* Academic Trust Seal at bottom */}
-          <div className="mt-8 pt-6 border-t border-primary-500/30 flex items-center justify-between text-[11px] text-primary-200">
-            <span>Official University System</span>
-            <span className="font-mono text-accent">Est. 2026</span>
-          </div>
+          <h1 className="text-2xl sm:text-[28px] font-bold text-[#0f172a] tracking-tight leading-tight">
+            SkyLine
+          </h1>
+          <p className="text-sm sm:text-[15px] font-medium text-[#64748b] mt-0.5">
+            Organization Portal
+          </p>
         </div>
 
-        {/* Right Side: Clean SaaS Authentication Form */}
-        <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center bg-surface">
+        {/* Error Alert Banner */}
+        {errorMessage && (
+          <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-xs flex items-start gap-2.5 animate-fadeIn">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+            <div className="flex-1 leading-relaxed">{errorMessage}</div>
+          </div>
+        )}
 
-          {/* Quick Demo Credentials Bar for Judges */}
-          <div className="mb-6 p-3.5 bg-ivory-100 border border-border rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] uppercase tracking-wider font-semibold text-text-secondary flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
-                Quick Demo Accounts (1-Click Fill)
-              </span>
-              <span className="text-[10px] text-accent font-medium">Odoo Hackathon Demo</span>
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-4.5" noValidate>
+          {/* University Email Address */}
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5"
+            >
+              University Email Address <span className="text-[#ef4444]">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                <Mail className="w-[18px] h-[18px]" strokeWidth={1.8} />
+              </div>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+                }}
+                placeholder="Enter your university email"
+                className={`w-full h-11 pl-10 pr-3.5 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                  fieldErrors.email
+                    ? 'border-red-400 focus:border-red-500'
+                    : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                }`}
+                autoComplete="email"
+                disabled={isLoading}
+              />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleAutoFill('student@university.edu', 'password123')}
-                className="text-left px-2.5 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-[11px] transition-campus group"
-              >
-                <div className="font-semibold text-primary group-hover:text-primary-hover flex items-center justify-between">
-                  <span>Student Member</span>
-                  <span className="text-[10px] text-text-muted">Fill</span>
-                </div>
-                <div className="text-[10px] text-text-muted truncate">student@university.edu</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAutoFill('admin@university.edu', 'password123')}
-                className="text-left px-2.5 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-[11px] transition-campus group"
-              >
-                <div className="font-semibold text-primary group-hover:text-primary-hover flex items-center justify-between">
-                  <span>Club Admin</span>
-                  <span className="text-[10px] text-text-muted">Fill</span>
-                </div>
-                <div className="text-[10px] text-text-muted truncate">admin@university.edu</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleAutoFill('treasurer@treasurer.gmail.com', 'TreasurerPassword123!')}
-                className="text-left px-2.5 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-[11px] transition-campus group"
-              >
-                <div className="font-semibold text-primary group-hover:text-primary-hover flex items-center justify-between">
-                  <span>Club Treasurer</span>
-                  <span className="text-[10px] text-text-muted">Fill</span>
-                </div>
-                <div className="text-[10px] text-text-muted truncate">treasurer@treasurer.gmail.com</div>
-              </button>
-            </div>
+            {fieldErrors.email && (
+              <p className="text-red-600 text-[11px] mt-1.5 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span>{fieldErrors.email}</span>
+              </p>
+            )}
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-2xl sm:text-3xl font-normal text-text-primary">
-              Portal Sign In
-            </h2>
-            <p className="text-xs sm:text-sm text-text-secondary mt-1">
-              Enter your credentials to access your organization dashboard.
-            </p>
-          </div>
-
-          {/* Error Banner */}
-          {errorMessage && (
-            <div className="mb-5 p-3.5 rounded bg-status-error-bg border border-status-error/30 text-status-error text-xs flex items-start space-x-2.5 animate-fadeIn">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">{errorMessage}</div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-text-primary mb-1.5">
-                University Email Address <span className="text-status-error">*</span>
+          {/* Password */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                htmlFor="password"
+                className="block text-xs sm:text-[13px] font-semibold text-[#0f172a]"
+              >
+                Password <span className="text-[#ef4444]">*</span>
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
-                  }}
-                  placeholder="e.g. s.montgomery@university.edu"
-                  className={`w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                    fieldErrors.email
-                      ? 'border-status-error focus:border-status-error'
-                      : 'border-border focus:border-primary'
-                  }`}
-                  autoComplete="email"
-                  disabled={isLoading}
-                />
-              </div>
-              {fieldErrors.email && (
-                <p className="text-status-error text-[11px] mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {fieldErrors.email}
-                </p>
-              )}
+              <Link
+                to="/forgot-password"
+                className="text-xs sm:text-[13px] font-medium text-[#1d64e0] hover:text-[#1550b8] transition-colors"
+              >
+                Forgot password?
+              </Link>
             </div>
-
-            {/* Password Field */}
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label htmlFor="password" className="block text-xs font-semibold text-text-primary">
-                  Password <span className="text-status-error">*</span>
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs text-accent hover:text-accent-hover font-medium transition-campus"
-                >
-                  Forgot password?
-                </Link>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                <Lock className="w-[18px] h-[18px]" strokeWidth={1.8} />
               </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
-                  }}
-                  placeholder="Enter your security password"
-                  className={`w-full pl-9 pr-10 py-2.5 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                    fieldErrors.password
-                      ? 'border-status-error focus:border-status-error'
-                      : 'border-border focus:border-primary'
-                  }`}
-                  autoComplete="current-password"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary transition"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {fieldErrors.password && (
-                <p className="text-status-error text-[11px] mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {fieldErrors.password}
-                </p>
-              )}
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
+                }}
+                placeholder="Enter your password"
+                className={`w-full h-11 pl-10 pr-10 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                  fieldErrors.password
+                    ? 'border-red-400 focus:border-red-500'
+                    : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                }`}
+                autoComplete="current-password"
+                disabled={isLoading}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94a3b8] hover:text-[#475569] transition-colors cursor-pointer"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                ) : (
+                  <Eye className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                )}
+              </button>
             </div>
+            {fieldErrors.password && (
+              <p className="text-red-600 text-[11px] mt-1.5 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                <span>{fieldErrors.password}</span>
+              </p>
+            )}
+          </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center space-x-2 cursor-pointer select-none">
+          {/* Keep me signed in Checkbox */}
+          <div className="pt-0.5">
+            <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
+              <div className="relative flex items-center justify-center">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 transition"
+                  className="sr-only"
                 />
-                <span className="text-xs text-text-secondary">Keep me signed in on this workstation</span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-2 py-2.5 px-4 rounded bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold shadow-sm transition-campus flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Authenticating Credentials...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In to Organization Portal</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Member Registration & Role Guidance */}
-          <div className="mt-8 pt-6 border-t border-border">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <span className="text-text-secondary">
-                Are you a new student joining a club?
+                <div
+                  className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center transition-all duration-150 ${
+                    rememberMe
+                      ? 'bg-[#1d64e0] border border-[#1d64e0] text-white shadow-xs'
+                      : 'border border-[#cbd5e1] bg-white group-hover:border-[#94a3b8]'
+                  }`}
+                >
+                  {rememberMe && (
+                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  )}
+                </div>
+              </div>
+              <span className="text-xs sm:text-[13px] text-[#334155] font-normal">
+                Keep me signed in on this device
               </span>
-              <Link
-                to="/register"
-                className="font-semibold text-primary hover:text-primary-hover underline underline-offset-4 transition"
-              >
-                Create Member Account →
-              </Link>
-            </div>
+            </label>
+          </div>
 
-            {/* Administrative Role Note */}
-            <div className="mt-4 p-2.5 rounded bg-ivory-100 border border-border text-[11px] text-text-muted flex items-start space-x-2">
-              <Info className="w-3.5 h-3.5 text-accent flex-shrink-0 mt-0.5" />
-              <span>
-                <strong>Administrative Access Note:</strong> Club Admin credentials are authenticated by Council Faculty. Club Treasurers are appointed and created directly by Club Admins.
-              </span>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-11 sm:h-12 rounded-[10px] bg-[#1d64e0] hover:bg-[#1855c3] active:bg-[#1447a3] text-white text-sm sm:text-[15px] font-semibold flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(29,100,224,0.28)] hover:shadow-[0_6px_18px_rgba(29,100,224,0.38)] transition-all duration-150 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-2"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Signing In...</span>
+              </div>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight className="w-4 h-4 ml-0.5" strokeWidth={2.2} />
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Divider OR */}
+        <div className="relative flex items-center justify-center my-6">
+          <div className="w-full border-t border-[#e5e9f0]" />
+          <span className="absolute bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-[#94a3b8]">
+            OR
+          </span>
+        </div>
+
+        {/* Bottom Banner: New student joining a club? */}
+        <div className="bg-[#f2f6fc] border border-[#e1eaf5] rounded-[14px] p-3 sm:p-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-[#dbe8fa] flex items-center justify-center text-[#1d64e0] flex-shrink-0">
+              <Users className="w-4 h-4" strokeWidth={2} />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-xs sm:text-[12.5px] font-semibold text-[#0f172a] leading-tight truncate">
+                New student joining a club?
+              </p>
+              <p className="text-[11px] text-[#64748b] leading-tight mt-0.5 truncate">
+                Create a member account to get started.
+              </p>
             </div>
           </div>
+          <Link
+            to="/register"
+            className="flex-shrink-0 border border-[#1d64e0] bg-white hover:bg-[#1d64e0] text-[#1d64e0] hover:text-white px-3 py-1.5 rounded-[8px] text-xs font-semibold whitespace-nowrap transition-all duration-150 flex items-center gap-1 shadow-xs"
+          >
+            <span>Create Member Account</span>
+            <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+          </Link>
         </div>
 
       </div>

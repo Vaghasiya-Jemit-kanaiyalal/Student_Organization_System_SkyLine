@@ -9,6 +9,19 @@ import { UniversityCrest } from '../common/UniversityCrest';
 export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
   if (!event) return null;
 
+  const formatEventDateTime = (e) => {
+    if (!e) return '';
+    if (e.date && e.date.includes('•')) {
+      return e.date;
+    }
+    const dateStr = e.dateDisplay || e.date || '';
+    const timeStr = e.timeDisplay || '';
+    if (dateStr && timeStr) {
+      return `${dateStr} • ${timeStr}`;
+    }
+    return dateStr || timeStr;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs overflow-y-auto">
       <div className="max-w-2xl w-full bg-surface border border-border rounded-xl shadow-elevated overflow-hidden animate-fadeIn my-8">
@@ -58,7 +71,7 @@ export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
               <Calendar className="w-4 h-4 text-primary mt-0.5" />
               <div>
                 <span className="font-semibold block text-text-primary">Date & Time</span>
-                <span className="text-text-secondary">{event.dateDisplay || event.date} • {event.timeDisplay || '2:00 PM - 6:00 PM'}</span>
+                <span className="text-text-secondary">{formatEventDateTime(event)}</span>
               </div>
             </div>
 

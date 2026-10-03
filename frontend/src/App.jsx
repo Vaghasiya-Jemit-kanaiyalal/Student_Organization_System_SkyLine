@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MerchandiseProvider } from './context/MerchandiseContext';
+import { FinanceProvider } from './context/FinanceContext';
+import { FundraiserProvider } from './context/FundraiserContext';
+import { TreasurerProvider } from './context/TreasurerContext';
 import { Navbar } from './components/common/Navbar';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { UniversityCrest } from './components/common/UniversityCrest';
@@ -67,70 +70,95 @@ const UniversityFooter = () => {
   );
 };
 
+// Main App Layout that conditionally hides Navbar and Footer on public auth pages
+const AppContent = () => {
+  const location = useLocation();
+  const authRoutes = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/verify-success',
+    '/session-expired',
+    '/unauthorized'
+  ];
+  const isAuthRoute = authRoutes.includes(location.pathname);
+
+  return (
+    <div className={`min-h-screen flex flex-col text-text-primary antialiased selection:bg-blue-100 selection:text-blue-800 ${isAuthRoute ? 'bg-[#f0f4f9]' : 'bg-ivory'}`}>
+      {!isAuthRoute && <Navbar />}
+      <main className="flex-1 flex flex-col">
+        <Routes>
+          {/* Root default */}
+          <Route path="/" element={<RootRedirector />} />
+
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/session-expired" element={<SessionExpiredPage />} />
+
+          {/* Protected Role-Based Routes */}
+          <Route
+            path="/member/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['MEMBER', 'ADMIN', 'TREASURER']}>
+                <MemberDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/members"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <MemberManagementPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/treasurer/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['TREASURER']}>
+                <TreasurerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </main>
+      {!isAuthRoute && <UniversityFooter />}
+    </div>
+  );
+};
+
 export const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
         <MerchandiseProvider>
-          <div className="min-h-screen flex flex-col bg-ivory text-text-primary antialiased selection:bg-primary-100 selection:text-primary-800">
-            <Navbar />
-            <main className="flex-1">
-              <Routes>
-                {/* Root default */}
-                <Route path="/" element={<RootRedirector />} />
-
-                {/* Public Auth Routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />
-                <Route path="/unauthorized" element={<UnauthorizedPage />} />
-                <Route path="/session-expired" element={<SessionExpiredPage />} />
-
-                {/* Protected Role-Based Routes */}
-                <Route
-                  path="/member/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['MEMBER']}>
-                      <MemberDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['ADMIN']}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/admin/members"
-                  element={
-                    <ProtectedRoute allowedRoles={['ADMIN']}>
-                      <MemberManagementPage />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="/treasurer/dashboard"
-                  element={
-                    <ProtectedRoute allowedRoles={['TREASURER']}>
-                      <TreasurerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </main>
-            <UniversityFooter />
-          </div>
+          <FinanceProvider>
+            <FundraiserProvider>
+              <TreasurerProvider>
+                <AppContent />
+              </TreasurerProvider>
+            </FundraiserProvider>
+          </FinanceProvider>
         </MerchandiseProvider>
       </AuthProvider>
     </BrowserRouter>
