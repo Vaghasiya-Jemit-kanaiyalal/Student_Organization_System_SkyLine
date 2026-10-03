@@ -85,7 +85,7 @@ const AppContent = () => {
   const isAuthRoute = authRoutes.includes(location.pathname);
 
   return (
-    <div className={`min-h-screen flex flex-col text-text-primary antialiased selection:bg-blue-100 selection:text-blue-800 ${isAuthRoute ? 'bg-[#f0f4f9]' : 'bg-ivory'}`}>
+    <div className={`min-h-screen flex flex-col text-text-primary antialiased selection:bg-emerald-100 selection:text-emerald-900 ${isAuthRoute ? 'bg-slate-50' : 'bg-slate-50'}`}>
       {!isAuthRoute && <Navbar />}
       <main className="flex-1 flex flex-col">
         <Routes>
