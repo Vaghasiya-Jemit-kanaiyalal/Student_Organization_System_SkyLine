@@ -323,6 +323,8 @@ class TicketSerializer(serializers.ModelSerializer):
     qrToken = serializers.CharField(source='qr_token', read_only=True)
     checkedIn = serializers.BooleanField(source='checked_in', read_only=True)
     checkedInAt = serializers.DateTimeField(source='checked_in_at', read_only=True)
+    ticketUuid = serializers.CharField(source='ticket_uuid', read_only=True)
+    verificationUrl = serializers.SerializerMethodField()
     pdfUrl = serializers.SerializerMethodField()
     qrUrl = serializers.SerializerMethodField()
     paymentId = serializers.SerializerMethodField()
@@ -334,6 +336,9 @@ class TicketSerializer(serializers.ModelSerializer):
             'id',
             'pk',
             'ticket_id',
+            'ticket_uuid',
+            'ticketUuid',
+            'verificationUrl',
             'event',
             'event_details',
             'student',
@@ -370,7 +375,12 @@ class TicketSerializer(serializers.ModelSerializer):
             'paymentId',
             'paymentStatus',
         ]
-        read_only_fields = ['id', 'pk', 'ticket_id', 'student', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'pk', 'ticket_id', 'ticket_uuid', 'student', 'created_at', 'updated_at']
+
+    def get_verificationUrl(self, obj):
+        if hasattr(obj, 'get_verification_url'):
+            return obj.get_verification_url()
+        return None
 
     def get_pdfUrl(self, obj):
         if obj.pdf_file:

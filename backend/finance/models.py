@@ -246,19 +246,37 @@ class ReimbursementRequest(models.Model):
 
 class Payment(models.Model):
     """
-    Razorpay & Skyline Core Payment record for Event Tickets, Merchandise, and Memberships.
+    Skyline Core Payment record for Event Tickets, Merchandise, Memberships, and Donations.
+    Supports both simulated DemoPaymentService and future Payment Gateways.
     """
     class Status(models.TextChoices):
         PENDING = 'PENDING', _('Pending')
+        PROCESSING = 'PROCESSING', _('Processing')
         SUCCESS = 'SUCCESS', _('Success')
         FAILED = 'FAILED', _('Failed')
+        CANCELLED = 'CANCELLED', _('Cancelled')
         REFUNDED = 'REFUNDED', _('Refunded')
 
     class PaymentType(models.TextChoices):
         EVENT_TICKET = 'EVENT_TICKET', _('Event Ticket')
         MERCHANDISE = 'MERCHANDISE', _('Merchandise')
         MEMBERSHIP = 'MEMBERSHIP', _('Membership')
+        DONATION = 'DONATION', _('Donation')
+        OTHER_PURCHASE = 'OTHER_PURCHASE', _('Other Purchase')
 
+    class PaymentMode(models.TextChoices):
+        DEMO = 'DEMO', _('Demo / Simulated')
+        RAZORPAY = 'RAZORPAY', _('Razorpay Gateway')
+        OFFLINE = 'OFFLINE', _('Offline / Cash')
+
+    transaction_id = models.CharField(
+        _('transaction ID'),
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -266,7 +284,14 @@ class Payment(models.Model):
     )
     amount = models.DecimalField(_('amount'), max_digits=12, decimal_places=2)
     currency = models.CharField(_('currency'), max_length=10, default='INR')
-    razorpay_order_id = models.CharField(_('razorpay order ID'), max_length=100, db_index=True)
+    payment_mode = models.CharField(
+        _('payment mode'),
+        max_length=20,
+        choices=PaymentMode.choices,
+        default=PaymentMode.DEMO,
+        db_index=True
+    )
+    razorpay_order_id = models.CharField(_('razorpay order ID'), max_length=100, blank=True, default='', db_index=True)
     razorpay_payment_id = models.CharField(
         _('razorpay payment ID'),
         max_length=100,
@@ -286,9 +311,32 @@ class Payment(models.Model):
         _('payment type'),
         max_length=30,
         choices=PaymentType.choices,
-        default=PaymentType.EVENT_TICKET
+        default=PaymentType.EVENT_TICKET,
+        db_index=True
+    )
+    event = models.ForeignKey(
+        'volunteers.Event',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments'
+    )
+    ticket = models.ForeignKey(
+        'volunteers.Ticket',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ticket_payments'
+    )
+    merchandise_order = models.ForeignKey(
+        'finance.MerchandiseOrder',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='order_payments'
     )
     metadata = models.JSONField(_('extra payment metadata'), default=dict, blank=True)
+    completed_at = models.DateTimeField(_('completed at'), null=True, blank=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
     updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 
@@ -297,13 +345,25 @@ class Payment(models.Model):
         verbose_name = _('Payment')
         verbose_name_plural = _('Payments')
         indexes = [
-            models.Index(fields=['razorpay_order_id']),
-            models.Index(fields=['razorpay_payment_id']),
+            models.Index(fields=['transaction_id']),
+            models.Index(fields=['payment_mode']),
             models.Index(fields=['status']),
+            models.Index(fields=['payment_type']),
         ]
 
+    def save(self, *args, **kwargs):
+        if not self.transaction_id:
+            import random
+            today_str = timezone.now().strftime('%Y%m%d')
+            rand_code = f"{random.randint(100000, 999999)}"
+            self.transaction_id = f"SKY-DEMO-{today_str}-{rand_code}"
+        if not self.razorpay_order_id:
+            self.razorpay_order_id = f"order_{self.transaction_id}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Payment #{self.id} ({self.payment_type}) - ₹{self.amount} [{self.status}]"
+        return f"{self.transaction_id} ({self.payment_type}) - ₹{self.amount} [{self.status}]"
+
 
 
 class MerchandiseProduct(models.Model):

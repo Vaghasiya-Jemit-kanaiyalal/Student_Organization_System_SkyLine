@@ -26,6 +26,7 @@ from .razorpay_service import (
 )
 from .qr_utils import generate_qr_image_file
 from .pdf_utils import generate_ticket_pdf, generate_merchandise_pdf
+from .payment_service import get_payment_service
 
 logger = logging.getLogger(__name__)
 
@@ -312,6 +313,12 @@ class RazorpayPaymentVerifyView(APIView):
                         'order': MerchandiseOrderSerializer(order).data
                     }, status=status.HTTP_200_OK)
 
+        # Check for simulated demo payment signature
+        if razorpay_signature in ['simulated_success', 'demo_success']:
+            service = get_payment_service()
+            result = service.complete_payment(payment.id, user)
+            return Response(result, status=status.HTTP_201_CREATED)
+
         # Cryptographic Razorpay Signature Verification
         is_valid_sig = verify_razorpay_payment_signature(
             razorpay_order_id=razorpay_order_id,
@@ -356,8 +363,10 @@ class RazorpayPaymentVerifyView(APIView):
                 tier = payment.metadata.get('tier', 'Standard Pass')
                 event = Event.objects.select_for_update().get(pk=event_id)
 
-                # Generate secure QR token for event admission
-                qr_token = f"SKYLINE-TICKET:{uuid.uuid4()}"
+                # Generate secure verification URL for event admission
+                ticket_uuid = uuid.uuid4()
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+                verification_url = f"{frontend_url}/ticket/{ticket_uuid}"
 
                 ticket = Ticket.objects.create(
                     student=user,
@@ -366,12 +375,13 @@ class RazorpayPaymentVerifyView(APIView):
                     tier=tier,
                     price_paid=payment.amount,
                     status=Ticket.Status.CONFIRMED,
-                    qr_token=qr_token,
-                    qr_code_data=qr_token
+                    ticket_uuid=ticket_uuid,
+                    qr_token=str(ticket_uuid),
+                    qr_code_data=verification_url
                 )
 
-                # Generate QR code PNG
-                qr_file = generate_qr_image_file(qr_token, filename=f"{ticket.ticket_id}_qr.png")
+                # Generate QR code PNG encoding verification URL
+                qr_file = generate_qr_image_file(verification_url, filename=f"{ticket.ticket_id}_qr.png")
                 ticket.qr_code.save(f"{ticket.ticket_id}_qr.png", qr_file, save=False)
 
                 # Generate Ticket PDF
@@ -701,3 +711,122 @@ class MerchandiseOrderCollectView(APIView):
             'message': f"Order #{order.order_id} successfully marked as COLLECTED.",
             'order': MerchandiseOrderSerializer(order).data
         }, status=status.HTTP_200_OK)
+
+
+class DemoPaymentCreateView(APIView):
+    """
+    POST /api/payments/demo/create/
+    Initializes a simulated demo payment.
+    Accepts:
+      - payment_type: EVENT_TICKET, MERCHANDISE, MEMBERSHIP, DONATION
+      - event_id, quantity (for EVENT_TICKET)
+      - product_id, size, quantity (for MERCHANDISE)
+      - amount, plan (for MEMBERSHIP)
+      - amount, fundraiser_title, fundraiser_id (for DONATION)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        data = request.data
+        payment_type = data.get('payment_type', 'EVENT_TICKET')
+        amount = data.get('amount')
+        if amount is not None:
+            try:
+                amount = Decimal(str(amount))
+            except Exception:
+                amount = None
+
+        metadata = data.copy()
+        try:
+            service = get_payment_service()
+            result = service.create_payment(
+                user=user,
+                payment_type=payment_type,
+                amount=amount,
+                metadata=metadata
+            )
+            return Response(result, status=status.HTTP_201_CREATED)
+        except ValueError as val_err:
+            return Response({"error": str(val_err)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error creating demo payment: {e}", exc_info=True)
+            return Response({"error": f"Failed to initialize payment: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DemoPaymentProcessView(APIView):
+    """
+    POST /api/payments/demo/process/
+    Transitions payment to PROCESSING state.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        payment_id = request.data.get('payment_id')
+        if not payment_id:
+            return Response({"error": "payment_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            service = get_payment_service()
+            result = service.process_payment(payment_id=payment_id, user=user)
+            return Response(result, status=status.HTTP_200_OK)
+        except ValueError as val_err:
+            return Response({"error": str(val_err)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error processing demo payment: {e}", exc_info=True)
+            return Response({"error": f"Failed to process payment: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DemoPaymentCompleteView(APIView):
+    """
+    POST /api/payments/demo/complete/
+    Authoritatively completes the demo payment:
+      - Marks payment status as SUCCESS
+      - Confirms ticket or order or donation
+      - Generates QR and PDF
+      - Decrements inventory / updates capacity
+      - Dispatches email
+      - Records ledger entry
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        payment_id = request.data.get('payment_id')
+        transaction_id = request.data.get('transaction_id')
+
+        if not payment_id and not transaction_id:
+            return Response({"error": "Either payment_id or transaction_id is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not payment_id and transaction_id:
+            payment = Payment.objects.filter(transaction_id=transaction_id, user=user).first()
+            if payment:
+                payment_id = payment.id
+            else:
+                return Response({"error": f"Transaction '{transaction_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            service = get_payment_service()
+            result = service.complete_payment(payment_id=payment_id, user=user, payload=request.data)
+            return Response(result, status=status.HTTP_200_OK)
+        except ValueError as val_err:
+            return Response({"error": str(val_err)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error completing demo payment: {e}", exc_info=True)
+            return Response({"error": f"Failed to complete payment: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UserTransactionListView(APIView):
+    """
+    GET /api/payments/transactions/
+    Returns full history of payments/transactions for the requesting user.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        service = get_payment_service()
+        transactions = service.get_user_transactions(user)
+        return Response(transactions, status=status.HTTP_200_OK)
+

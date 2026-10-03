@@ -66,10 +66,12 @@ export const Navbar = () => {
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'merchandise', label: 'Merchandise', icon: ShoppingBag },
     { id: 'tickets', label: 'My Tickets', icon: Ticket },
+    { id: 'transactions', label: 'My Transactions', icon: CreditCard },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
     { id: 'certificates', label: 'Certificates', icon: Award },
     { id: 'announcements', label: 'Announcements', icon: Megaphone }
   ];
+
 
   // Admin navigation items
   const adminNavTabs = [

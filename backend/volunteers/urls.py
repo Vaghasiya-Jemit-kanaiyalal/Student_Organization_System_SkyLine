@@ -24,6 +24,7 @@ from .views import (
     TicketPdfDownloadView,
     TicketQrVerifyView,
     TicketCheckInView,
+    TicketPublicVerifyView,
 )
 
 urlpatterns = [
@@ -38,6 +39,7 @@ urlpatterns = [
     path('tickets/my-tickets/', StudentTicketsListView.as_view(), name='student-my-tickets'),
     path('tickets/buy/', TicketBuyView.as_view(), name='ticket-buy'),
     path('tickets/verify-qr/', TicketQrVerifyView.as_view(), name='ticket-verify-qr'),
+    path('tickets/verify/<str:ticket_uuid>/', TicketPublicVerifyView.as_view(), name='ticket-public-verify'),
     path('tickets/<str:ticket_id>/', TicketDetailView.as_view(), name='ticket-detail'),
     path('tickets/<str:ticket_id>/pdf/', TicketPdfDownloadView.as_view(), name='ticket-pdf'),
     path('tickets/<str:ticket_id>/check-in/', TicketCheckInView.as_view(), name='ticket-check-in'),

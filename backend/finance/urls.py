@@ -25,6 +25,10 @@ from .payment_views import (
     MerchandiseOrderPdfDownloadView,
     MerchandiseOrderQrVerifyView,
     MerchandiseOrderCollectView,
+    DemoPaymentCreateView,
+    DemoPaymentProcessView,
+    DemoPaymentCompleteView,
+    UserTransactionListView,
 )
 
 urlpatterns = [
@@ -73,6 +77,12 @@ urlpatterns = [
 
 # Clean API routes matching the system requirements: /api/payments/... and /api/merchandise/...
 payment_urlpatterns = [
+    # Demo Payment Lifecycle
+    path('payments/demo/create/', DemoPaymentCreateView.as_view(), name='demo-payment-create'),
+    path('payments/demo/process/', DemoPaymentProcessView.as_view(), name='demo-payment-process'),
+    path('payments/demo/complete/', DemoPaymentCompleteView.as_view(), name='demo-payment-complete'),
+    path('payments/transactions/', UserTransactionListView.as_view(), name='user-transactions-list'),
+
     # Event Payment Creation
     path('events/<int:event_id>/create-payment/', EventCreatePaymentView.as_view(), name='event-create-payment'),
 

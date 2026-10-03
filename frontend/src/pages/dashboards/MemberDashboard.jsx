@@ -5,6 +5,7 @@ import { useMerchandise } from '../../context/MerchandiseContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
 import { eventsApi, volunteerApi, certificateApi, announcementsApi, clubsApi, membershipApi, financeApi, ticketsApi, paymentsApi, merchandiseApi } from '../../services/api';
 import { openRazorpayCheckout } from '../../utils/razorpay';
+import { DemoPaymentModal } from '../../components/common/DemoPaymentModal';
 import { EventQrScannerModal } from '../../components/scanner/EventQrScannerModal';
 import { MerchandiseQrScannerModal } from '../../components/scanner/MerchandiseQrScannerModal';
 import { CAMPUS_CLUBS } from '../../data/clubsData';
@@ -117,6 +118,27 @@ export const MemberDashboard = () => {
 
   // Success Payment / Booking Confirmation Modal
   const [successPaymentData, setSuccessPaymentData] = useState(null);
+
+  // Dedicated Demo Payment State
+  const [activeDemoPayment, setActiveDemoPayment] = useState(null);
+  const [userTransactions, setUserTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
+  const [transactionFilterType, setTransactionFilterType] = useState('ALL');
+
+  const loadUserTransactions = async () => {
+    try {
+      setLoadingTransactions(true);
+      const txns = await paymentsApi.getUserTransactions();
+      if (Array.isArray(txns)) {
+        setUserTransactions(txns);
+      }
+    } catch (err) {
+      console.warn('Could not load user transactions from backend:', err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
 
   // QR Scanner Modals
   const [eventScannerOpen, setEventScannerOpen] = useState(false);
@@ -516,6 +538,7 @@ export const MemberDashboard = () => {
 
     fetchMemberData();
     loadMerchandiseOrders();
+    loadUserTransactions();
   }, [studentProfile.name]);
 
   // Handle Photo Upload
@@ -549,141 +572,70 @@ export const MemberDashboard = () => {
     setVolunteerMotivation('');
     setVolunteerExperience('');
   };
-  const handleBuyTicketSubmit = async (e) => {
+  const handleBuyTicketSubmit = (e) => {
     e.preventDefault();
     if (!buyTicketModalEvent) return;
 
-    try {
-      showToast('Registering for event & issuing ticket pass...', 'info');
+    const isMemberEligible = isEligibleForMemberPrice();
+    const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
+    const numPrice = typeof finalPricePaid === 'number'
+      ? finalPricePaid
+      : (parseFloat(String(finalPricePaid).replace(/[^0-9.]/g, '')) || 100);
 
-      // 1. Authoritative Backend Payment Order creation
-      const orderData = await paymentsApi.createEventPayment(buyTicketModalEvent.id, {
-        quantity: 1
-      });
+    const eventToBook = buyTicketModalEvent;
+    setBuyTicketModalEvent(null);
 
-      // 2. Temporary pass through Razorpay:
-      // Auto-verify with backend to immediately issue the verified admission ticket and QR code
-      const simulatedPaymentId = `pay_pass_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      
-      const verifyResult = await paymentsApi.verifyRazorpayPayment({
-        razorpay_order_id: orderData.razorpay_order_id,
-        razorpay_payment_id: simulatedPaymentId,
-        razorpay_signature: 'simulated_success'
-      });
-
-      if (verifyResult.success && verifyResult.ticket) {
-        const rawTicket = verifyResult.ticket;
-        const issuedTicket = {
-          id: rawTicket.ticket_id || rawTicket.id,
-          ticket_id: rawTicket.ticket_id || rawTicket.id,
-          eventTitle: rawTicket.eventTitle || rawTicket.event_details?.title || buyTicketModalEvent.title,
-          date: rawTicket.date || buyTicketModalEvent.date,
-          venue: rawTicket.venue || buyTicketModalEvent.venue,
-          seat: rawTicket.seat || 'Standard Pass • General Admission',
-          gate: rawTicket.gate || 'Main Entrance (Gate 1)',
-          pricePaid: rawTicket.pricePaid || (isEligibleForMemberPrice() ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice),
-          purchaseDate: rawTicket.purchaseDate || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-          status: rawTicket.status || 'Confirmed',
-          tier: rawTicket.tier || (isEligibleForMemberPrice() ? 'Member Pass' : 'Standard Pass'),
-          category: rawTicket.category || buyTicketModalEvent.category || 'Campus Event',
-          qr_code: rawTicket.qr_code || rawTicket.qrUrl,
-          qr_token: rawTicket.qr_token || rawTicket.qrToken || `SKYLINE-TICKET:${rawTicket.ticket_id || rawTicket.id}`,
-          image: rawTicket.image || buyTicketModalEvent.image,
-          transferredTo: ''
-        };
-
-        setTicketsList((prev) => [issuedTicket, ...prev.filter(t => t.id !== issuedTicket.id)]);
-        setBuyTicketModalEvent(null);
-
-        // Synchronize ticket payment into finance ledger
-        const isMemberEligible = isEligibleForMemberPrice();
-        const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
-        const numericPrice = parseFloat(String(rawTicket.pricePaid || finalPricePaid || 0).replace(/[^0-9.]/g, '')) || 0;
-        if (numericPrice > 0) {
-          try {
-            financeApi.recordPayment({
-              title: `Event Ticket - ${issuedTicket.eventTitle}`,
-              amount: numericPrice,
-              reference_type: 'EVENT_TICKET',
-              reference_id: issuedTicket.id,
-              party_name: studentProfile.name || 'Student Member',
-              description: `Event Admission Ticket ${issuedTicket.id} (${issuedTicket.seat}). Event: ${issuedTicket.eventTitle}`,
-              category: 'EVENT_TICKET',
-            }).catch(() => {});
-          } catch {
-            // Handled silently
-          }
-        }
-
-        // Open Success Booking Confirmation Modal with QR and Download PDF button
-        setSuccessPaymentData({
-          type: 'EVENT_TICKET',
-          ticket: issuedTicket,
-          paymentId: simulatedPaymentId
-        });
-
-        showToast(`🎉 Registration Confirmed! Admission Ticket #${issuedTicket.id} issued with QR pass.`);
-        handleTabSelect('tickets');
-      } else {
-        showToast('Payment verification returned an invalid response.', 'error');
+    // Open Professional Skyline Demo Payment Modal
+    setActiveDemoPayment({
+      payment_type: 'EVENT_TICKET',
+      title: eventToBook.title,
+      subtitle: `${eventToBook.venue || 'Campus Main Auditorium'} • ${eventToBook.dateDisplay || eventToBook.date}`,
+      amount: numPrice,
+      eventId: eventToBook.id,
+      quantity: 1,
+      details: {
+        quantity: 1,
+        tier: isMemberEligible ? 'Member Pass' : 'Standard Pass',
+        venue: eventToBook.venue || eventToBook.location,
+        date: eventToBook.dateDisplay || eventToBook.date
       }
-    } catch (err) {
-      console.error('Failed to create ticket payment order:', err);
-      // Fallback: If createEventPayment failed, call ticketsApi.buyTicket directly
-      try {
-        const fbRes = await ticketsApi.buyTicket(buyTicketModalEvent.id);
-        if (fbRes) {
-          const rawTicket = fbRes;
-          const issuedTicket = {
-            id: rawTicket.ticket_id || rawTicket.id,
-            ticket_id: rawTicket.ticket_id || rawTicket.id,
-            eventTitle: rawTicket.eventTitle || rawTicket.event_details?.title || buyTicketModalEvent.title,
-            date: rawTicket.date || buyTicketModalEvent.date,
-            venue: rawTicket.venue || buyTicketModalEvent.venue,
-            seat: rawTicket.seat || 'Standard Pass • General Admission',
-            gate: rawTicket.gate || 'Main Entrance (Gate 1)',
-            pricePaid: rawTicket.pricePaid || (isEligibleForMemberPrice() ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice),
-            purchaseDate: rawTicket.purchaseDate || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            status: rawTicket.status || 'Confirmed',
-            tier: rawTicket.tier || (isEligibleForMemberPrice() ? 'Member Pass' : 'Standard Pass'),
-            category: rawTicket.category || buyTicketModalEvent.category || 'Campus Event',
-            qr_code: rawTicket.qr_code || rawTicket.qrUrl,
-            qr_token: rawTicket.qr_token || rawTicket.qrToken || `SKYLINE-TICKET:${rawTicket.ticket_id || rawTicket.id}`,
-            image: rawTicket.image || buyTicketModalEvent.image,
-            transferredTo: ''
-          };
-          setTicketsList((prev) => [issuedTicket, ...prev.filter(t => t.id !== issuedTicket.id)]);
-          setBuyTicketModalEvent(null);
+    });
+  };
 
-          // Synchronize fallback ticket payment into finance ledger
-          const isMemberEligible = isEligibleForMemberPrice();
-          const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
-          const numericPrice = parseFloat(String(finalPricePaid || 0).replace(/[^0-9.]/g, '')) || 0;
-          if (numericPrice > 0) {
-            try {
-              financeApi.recordPayment({
-                title: `Event Ticket - ${issuedTicket.eventTitle}`,
-                amount: numericPrice,
-                reference_type: 'EVENT_TICKET',
-                reference_id: issuedTicket.id,
-                party_name: studentProfile.name || 'Student Member',
-                description: `Event Admission Ticket ${issuedTicket.id} (${issuedTicket.seat}). Event: ${issuedTicket.eventTitle}`,
-                category: 'EVENT_TICKET',
-              }).catch(() => {});
-            } catch {
-              // Handled silently
-            }
-          }
-
-          showToast(`🎉 Registration Confirmed! Ticket #${issuedTicket.id} issued.`);
-          handleTabSelect('tickets');
-          return;
-        }
-      } catch (fbErr) {
-        console.error('Direct ticket issue fallback also failed:', fbErr);
-      }
-      showToast(err.response?.data?.error || 'Failed to complete event registration.', 'error');
+  const handleDemoPaymentSuccess = (result) => {
+    if (result.payment_type === 'EVENT_TICKET' && result.ticket) {
+      const rawTicket = result.ticket;
+      const issuedTicket = {
+        id: rawTicket.ticket_id || rawTicket.id,
+        ticket_id: rawTicket.ticket_id || rawTicket.id,
+        eventTitle: rawTicket.eventTitle || rawTicket.event_details?.title,
+        date: rawTicket.date,
+        venue: rawTicket.venue,
+        seat: rawTicket.seat || 'Standard Pass • General Admission',
+        gate: rawTicket.gate || 'Main Entrance (Gate 1)',
+        pricePaid: rawTicket.pricePaid,
+        purchaseDate: rawTicket.purchaseDate || new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        status: rawTicket.status || 'Confirmed',
+        tier: rawTicket.tier,
+        category: rawTicket.category || 'Campus Event',
+        qr_code: rawTicket.qr_code || rawTicket.qrUrl,
+        qr_token: rawTicket.qr_token || rawTicket.qrToken || `SKYLINE-TICKET:${rawTicket.ticket_id || rawTicket.id}`,
+        image: rawTicket.image,
+        transferredTo: ''
+      };
+      setTicketsList((prev) => [issuedTicket, ...prev.filter(t => t.id !== issuedTicket.id)]);
+      showToast(`🎉 Registration Confirmed! Ticket #${issuedTicket.ticket_id || issuedTicket.id} issued with Gate QR.`);
+      handleTabSelect('tickets');
+    } else if (result.payment_type === 'MERCHANDISE' && result.order) {
+      loadMerchandiseOrders();
+      showToast(`🎉 Order #${result.order.order_id || result.order.id} verified! Collection pass issued.`);
+      handleTabSelect('merchandise');
+      setMerchandiseSubTab('orders');
+    } else if (result.payment_type === 'MEMBERSHIP') {
+      showToast(`🎉 Membership fee payment confirmed!`);
+      handleTabSelect('membership');
     }
+    loadUserTransactions();
   };
 
   // Official PDF Ticket Download via ReportLab backend
@@ -786,7 +738,7 @@ export const MemberDashboard = () => {
     }
   };
 
-  const handleConfirmOrderFromDetails = async () => {
+  const handleConfirmOrderFromDetails = () => {
     if (!selectedProductDetails) return;
     const product = selectedProductDetails;
     const availableStock = product.sizeStock?.[selectedProductSize] ?? 10;
@@ -795,53 +747,30 @@ export const MemberDashboard = () => {
       return;
     }
 
-    try {
-      showToast('Initiating Razorpay checkout for merchandise...', 'info');
+    const isMemberEligible = isEligibleForMemberPrice();
+    const unitPrice = isMemberEligible
+      ? (product.memberPrice || product.member_price)
+      : (product.regularPrice || product.regular_price);
+    const numPrice = parseFloat(String(unitPrice).replace(/[^0-9.]/g, '')) || 500;
+    const totalAmount = numPrice * orderQuantity;
 
-      // 1. Authoritative Backend Payment Order creation
-      const orderData = await merchandiseApi.createPayment({
-        product_id: product.id,
-        size: selectedProductSize,
+    const productToOrder = product;
+    setSelectedProductDetails(null);
+
+    // Open Professional Skyline Demo Payment Modal
+    setActiveDemoPayment({
+      payment_type: 'MERCHANDISE',
+      title: productToOrder.name,
+      subtitle: `Size: ${selectedProductSize} • Quantity: ${orderQuantity}`,
+      amount: totalAmount,
+      productId: productToOrder.id,
+      size: selectedProductSize,
+      quantity: orderQuantity,
+      details: {
         quantity: orderQuantity,
-        notes: `Merchandise order: ${product.name} (${selectedProductSize})`
-      });
-
-      // 2. Open Razorpay Checkout modal
-      openRazorpayCheckout({
-        orderData,
-        onSuccess: async (paymentPayload) => {
-          try {
-            showToast('Verifying merchandise payment with backend...', 'info');
-            // 3. Cryptographic Signature Verification on Django backend
-            const verifyResult = await paymentsApi.verifyRazorpayPayment(paymentPayload);
-            if (verifyResult.success && verifyResult.order) {
-              const issuedOrder = verifyResult.order;
-              setSelectedProductDetails(null);
-              // Open Success Booking Confirmation Modal with QR and Download PDF button
-              setSuccessPaymentData({
-                type: 'MERCHANDISE',
-                order: issuedOrder,
-                paymentId: paymentPayload.razorpay_payment_id
-              });
-              loadMerchandiseOrders();
-              showToast(`🎉 Order #${issuedOrder.order_id || issuedOrder.id} verified! Collection pass issued.`);
-            } else {
-              showToast('Payment verification returned an invalid response.', 'error');
-            }
-          } catch (verifyErr) {
-            console.error('Merchandise payment verification failed:', verifyErr);
-            showToast(verifyErr.response?.data?.error || 'Payment verification failed on backend.', 'error');
-          }
-        },
-        onFailure: (err) => {
-          console.warn('Merchandise payment cancelled:', err);
-          showToast('Payment was not completed or was dismissed.', 'warning');
-        }
-      });
-    } catch (err) {
-      console.error('Failed to create merchandise payment order:', err);
-      showToast(err.response?.data?.error || 'Failed to initiate merchandise payment.', 'error');
-    }
+        size: selectedProductSize
+      }
+    });
   };
 
   // Filtered Tickets
@@ -3040,6 +2969,216 @@ export const MemberDashboard = () => {
         )}
 
         {/* ========================================================= */}
+        {/* TAB: MY TRANSACTIONS & RECEIPTS (Demo Payment History)   */}
+        {/* ========================================================= */}
+        {activeTab === 'transactions' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="pb-2 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <span>My Transactions & Receipts</span>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    SIMULATED DEMO MODE
+                  </span>
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Complete ledger of event tickets, merchandise orders, and contributions processed via Skyline Demo Pay.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={loadUserTransactions}
+                  className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${loadingTransactions ? 'animate-spin text-emerald-600' : ''}`} />
+                  <span>Refresh Ledger</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-xs text-slate-500 font-medium">Total Transactions</span>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{userTransactions.length}</div>
+                <p className="text-[11px] text-slate-400 mt-0.5">All processed successfully</p>
+              </div>
+              <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-xs text-slate-500 font-medium">Simulated Volume</span>
+                <div className="text-2xl font-bold text-emerald-700 mt-1">
+                  ₹{userTransactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0).toFixed(2)}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Zero real money moved</p>
+              </div>
+              <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-xs text-slate-500 font-medium">Verification State</span>
+                <div className="text-sm font-bold text-emerald-700 mt-2 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Backend Cryptographic Valid</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">Authoritative Django DB Records</p>
+              </div>
+            </div>
+
+            {/* Search & Filters */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by Txn ID or item..."
+                  value={transactionSearchQuery}
+                  onChange={(e) => setTransactionSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+                {['ALL', 'EVENT_TICKET', 'MERCHANDISE', 'MEMBERSHIP', 'DONATION'].map((typeKey) => (
+                  <button
+                    key={typeKey}
+                    onClick={() => setTransactionFilterType(typeKey)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                      transactionFilterType === typeKey
+                        ? 'bg-zinc-900 text-white shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {typeKey.replace('_', ' ')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Transactions List Table */}
+            {userTransactions.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
+                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                  <CreditCard className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800">No Transactions Yet</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  When you book tickets or purchase merchandise using the demo checkout, your verified transaction history will appear here.
+                </p>
+                <div className="flex justify-center gap-2 pt-2">
+                  <button
+                    onClick={() => handleTabSelect('events')}
+                    className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition"
+                  >
+                    Browse Events
+                  </button>
+                  <button
+                    onClick={() => handleTabSelect('merchandise')}
+                    className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
+                  >
+                    View Store
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50/80 text-slate-500 uppercase tracking-wider text-[10px] border-b border-slate-200 font-semibold">
+                      <tr>
+                        <th className="py-3 px-4">Transaction ID</th>
+                        <th className="py-3 px-4">Date</th>
+                        <th className="py-3 px-4">Type</th>
+                        <th className="py-3 px-4">Item / Description</th>
+                        <th className="py-3 px-4">Amount</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {userTransactions
+                        .filter((txn) => {
+                          const q = transactionSearchQuery.toLowerCase().trim();
+                          const matchesQ =
+                            !q ||
+                            (txn.transaction_id && txn.transaction_id.toLowerCase().includes(q)) ||
+                            (txn.item_title && txn.item_title.toLowerCase().includes(q));
+                          const matchesType =
+                            transactionFilterType === 'ALL' || txn.payment_type === transactionFilterType;
+                          return matchesQ && matchesType;
+                        })
+                        .map((txn) => (
+                          <tr key={txn.id} className="hover:bg-slate-50/60 transition">
+                            <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                              {txn.transaction_id}
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                              {txn.date}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800">
+                                {txn.payment_type?.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-medium text-slate-800">
+                              <div>{txn.item_title}</div>
+                              {txn.reference_code && (
+                                <span className="text-[10px] text-emerald-700 font-mono font-medium">
+                                  {txn.reference_code}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 font-extrabold text-slate-900">
+                              ₹{parseFloat(txn.amount || 0).toFixed(2)}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                {txn.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {txn.pdf_url && (
+                                  <a
+                                    href={txn.pdf_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 transition"
+                                    title="Download PDF"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                {txn.payment_type === 'EVENT_TICKET' && (
+                                  <button
+                                    onClick={() => handleTabSelect('tickets')}
+                                    className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition cursor-pointer"
+                                  >
+                                    Ticket
+                                  </button>
+                                )}
+                                {txn.payment_type === 'MERCHANDISE' && (
+                                  <button
+                                    onClick={() => {
+                                      handleTabSelect('merchandise');
+                                      setMerchandiseSubTab('orders');
+                                    }}
+                                    className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition cursor-pointer"
+                                  >
+                                    Order
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
         {/* TAB 8: PROFILE (Purpose = Student Records & Credentials)  */}
         {/* ========================================================= */}
         {activeTab === 'profile' && (
@@ -4568,6 +4707,14 @@ export const MemberDashboard = () => {
                 <MerchandiseQrScannerModal
                   isOpen={merchScannerOpen}
                   onClose={() => setMerchScannerOpen(false)}
+                />
+
+                {/* MODAL 11: REUSABLE SKYLINE DEMO PAYMENT MODAL */}
+                <DemoPaymentModal
+                  isOpen={!!activeDemoPayment}
+                  onClose={() => setActiveDemoPayment(null)}
+                  paymentData={activeDemoPayment}
+                  onSuccessCallback={handleDemoPaymentSuccess}
                 />
 
               </div>

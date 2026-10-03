@@ -151,7 +151,25 @@ export const paymentsApi = {
     const res = await apiClient.post('/payments/razorpay/verify/', data);
     return res.data;
   },
+  // Dedicated Demo Payment Endpoints
+  createDemoPayment: async (payload) => {
+    const res = await apiClient.post('/payments/demo/create/', payload);
+    return res.data;
+  },
+  processDemoPayment: async (payload) => {
+    const res = await apiClient.post('/payments/demo/process/', payload);
+    return res.data;
+  },
+  completeDemoPayment: async (payload) => {
+    const res = await apiClient.post('/payments/demo/complete/', payload);
+    return res.data;
+  },
+  getUserTransactions: async () => {
+    const res = await apiClient.get('/payments/transactions/');
+    return res.data;
+  },
 };
+
 
 export const ticketsApi = {
   getMyTickets: async (params = {}) => {
@@ -168,6 +186,10 @@ export const ticketsApi = {
   },
   downloadPdf: async (ticketId) => {
     const res = await apiClient.get(`/tickets/${ticketId}/pdf/`, { responseType: 'blob' });
+    return res.data;
+  },
+  verifyPublicTicket: async (ticketUuid) => {
+    const res = await apiClient.get(`/tickets/verify/${ticketUuid}/`);
     return res.data;
   },
   verifyQr: async (qrToken, eventId = null) => {

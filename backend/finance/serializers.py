@@ -221,19 +221,26 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = [
             'id',
+            'transaction_id',
             'user',
             'user_name',
             'user_email',
             'amount',
             'currency',
+            'payment_mode',
             'razorpay_order_id',
             'razorpay_payment_id',
             'status',
             'payment_type',
+            'event',
+            'ticket',
+            'merchandise_order',
+            'completed_at',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'transaction_id', 'user', 'created_at', 'updated_at', 'completed_at']
+
 
 
 class MerchandiseProductSerializer(serializers.ModelSerializer):

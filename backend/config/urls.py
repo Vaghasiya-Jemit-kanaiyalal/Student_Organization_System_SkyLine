@@ -94,6 +94,9 @@ urlpatterns = [
     # Finance, Payment & Merchandise APIs
     path('api/finance/', include('finance.urls')),
     path('api/', include(payment_urlpatterns)),
+
+    # Direct Ticket Verification (both /tickets/verify/ and /api/tickets/verify/)
+    path('tickets/verify/<str:ticket_uuid>/', __import__('volunteers.views', fromlist=['TicketPublicVerifyView']).TicketPublicVerifyView.as_view(), name='direct-ticket-verify'),
 ]
 
 if settings.DEBUG:

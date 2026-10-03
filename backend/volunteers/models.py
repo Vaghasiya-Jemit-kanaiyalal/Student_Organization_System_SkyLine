@@ -383,6 +383,13 @@ class Ticket(models.Model):
         unique=True,
         editable=False
     )
+    ticket_uuid = models.UUIDField(
+        _('ticket UUID'),
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        db_index=True
+    )
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -414,7 +421,7 @@ class Ticket(models.Model):
     )
     qr_token = models.CharField(
         _('secure QR ticket token'),
-        max_length=120,
+        max_length=255,
         unique=True,
         null=True,
         blank=True,
@@ -439,7 +446,13 @@ class Ticket(models.Model):
         verbose_name = _('Event Ticket')
         verbose_name_plural = _('Event Tickets')
 
+    def get_verification_url(self):
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+        return f"{frontend_url}/ticket/{self.ticket_uuid}"
+
     def save(self, *args, **kwargs):
+        if not self.ticket_uuid:
+            self.ticket_uuid = uuid.uuid4()
         if not self.ticket_id:
             import random
             year = timezone.now().year
@@ -455,15 +468,16 @@ class Ticket(models.Model):
                 self.seat = f"Member Pass • Row B, Seat #{seat_num}"
             else:
                 self.seat = f"Standard Pass • Row D, Seat #{seat_num}"
+
+        verification_url = self.get_verification_url()
         if not self.qr_token:
-            import uuid
-            self.qr_token = f"SKYLINE-TICKET:{uuid.uuid4()}"
-        if not self.qr_code_data and self.event_id and self.student_id:
-            self.qr_code_data = self.qr_token or f"SKYLINE-{self.event_id}-{self.student_id}"
-        if not self.qr_code and self.qr_token:
+            self.qr_token = str(self.ticket_uuid)
+        self.qr_code_data = verification_url
+
+        if not self.qr_code:
             try:
                 from finance.qr_utils import generate_qr_image_file
-                qr_file = generate_qr_image_file(self.qr_token, filename=f"{self.ticket_id}_qr.png")
+                qr_file = generate_qr_image_file(verification_url, filename=f"{self.ticket_id}_qr.png")
                 self.qr_code.save(f"{self.ticket_id}_qr.png", qr_file, save=False)
             except Exception:
                 pass

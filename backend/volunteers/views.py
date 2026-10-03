@@ -1,3 +1,4 @@
+import uuid
 from django.utils import timezone
 from django.db.models import Q
 from rest_framework import generics, status, permissions
@@ -754,12 +755,29 @@ class TicketQrVerifyView(APIView):
         if not qr_token:
             return Response({"error": "QR code token or Ticket ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Lookup by qr_token or ticket_id
-        ticket = Ticket.objects.filter(qr_token=qr_token).select_related('event', 'student', 'payment').first()
+        # Lookup by qr_token, URL, UUID, or ticket_id
+        extracted_token = qr_token
+        if '/ticket/' in extracted_token:
+            extracted_token = extracted_token.split('/ticket/')[-1].strip('/')
+        elif '/verify/' in extracted_token:
+            extracted_token = extracted_token.split('/verify/')[-1].strip('/')
+        clean_token = extracted_token.replace('SKYLINE-TICKET:', '').strip()
+
+        ticket = None
+        try:
+            val_uuid = uuid.UUID(clean_token)
+            ticket = Ticket.objects.filter(ticket_uuid=val_uuid).select_related('event', 'student', 'payment').first()
+        except (ValueError, TypeError, AttributeError):
+            pass
+
         if not ticket:
-            clean_token = qr_token.replace('SKYLINE-TICKET:', '').strip()
             ticket = Ticket.objects.filter(
-                Q(ticket_id__iexact=clean_token) | Q(qr_token__icontains=clean_token)
+                Q(qr_token=qr_token) |
+                Q(qr_code_data=qr_token) |
+                Q(ticket_id__iexact=qr_token) |
+                Q(ticket_id__iexact=clean_token) |
+                Q(qr_token__icontains=clean_token) |
+                Q(qr_code_data__icontains=clean_token)
             ).select_related('event', 'student', 'payment').first()
 
         if not ticket:
@@ -881,6 +899,118 @@ class TicketCheckInView(APIView):
             'message': f"Participant {ticket.student.full_name} successfully CHECKED IN for {ticket.event.title}.",
             'ticket': TicketSerializer(ticket).data
         }, status=status.HTTP_200_OK)
+
+
+class TicketPublicVerifyView(APIView):
+    """
+    GET /api/tickets/verify/<ticket_uuid>/
+    Public verification endpoint for dynamic QR tickets.
+    Finds ticket by UUID (with fallback to legacy tokens or ticket IDs).
+    Returns verified ticket details or an invalid ticket response.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, ticket_uuid):
+        raw_uuid = (ticket_uuid or '').strip()
+        if not raw_uuid:
+            return Response({
+                "valid": False,
+                "message": "Invalid Ticket"
+            }, status=status.HTTP_200_OK)
+
+        # Clean URL prefixes if a full URL was passed as parameter
+        clean_uuid = raw_uuid
+        if '/ticket/' in clean_uuid:
+            clean_uuid = clean_uuid.split('/ticket/')[-1].strip('/')
+        elif '/verify/' in clean_uuid:
+            clean_uuid = clean_uuid.split('/verify/')[-1].strip('/')
+        clean_uuid = clean_uuid.replace('SKYLINE-TICKET:', '').strip()
+
+        ticket = None
+        # 1. Try resolving by UUID directly
+        try:
+            parsed_uuid = uuid.UUID(clean_uuid)
+            ticket = Ticket.objects.select_related('event', 'student', 'payment').filter(ticket_uuid=parsed_uuid).first()
+        except (ValueError, TypeError, AttributeError):
+            pass
+
+        # 2. Fallback to qr_token, qr_code_data, or ticket_id
+        if not ticket:
+            ticket = Ticket.objects.select_related('event', 'student', 'payment').filter(
+                Q(ticket_id__iexact=clean_uuid) |
+                Q(qr_token__icontains=clean_uuid) |
+                Q(qr_code_data__icontains=clean_uuid) |
+                Q(qr_token=raw_uuid) |
+                Q(ticket_id__iexact=raw_uuid)
+            ).first()
+
+        if not ticket:
+            return Response({
+                "valid": False,
+                "message": "Invalid Ticket"
+            }, status=status.HTTP_200_OK)
+
+        event = ticket.event
+        student = ticket.student
+
+        # Format Event Date & Time
+        if hasattr(event.date, 'strftime'):
+            formatted_date = event.date.strftime('%B %d, %Y')
+        else:
+            formatted_date = str(event.date)
+
+        if event.start_time and event.end_time:
+            try:
+                formatted_time = f"{event.start_time.strftime('%I:%M %p')} - {event.end_time.strftime('%I:%M %p')}"
+            except Exception:
+                formatted_time = f"{event.start_time} - {event.end_time}"
+        elif event.start_time:
+            try:
+                formatted_time = event.start_time.strftime('%I:%M %p')
+            except Exception:
+                formatted_time = str(event.start_time)
+        else:
+            formatted_time = "TBA"
+
+        venue_str = event.venue or event.location or "Student Union Auditorium"
+        event_category = getattr(event, 'category', '') or getattr(event, 'event_type', '') or "Campus Event"
+
+        student_name = student.full_name or student.get_full_name() or student.email.split('@')[0]
+        student_id = getattr(student, 'student_id', '') or f"STD-{student.id:04d}"
+
+        purchase_date_str = ticket.created_at.strftime('%B %d, %Y, %I:%M %p') if ticket.created_at else ""
+
+        is_valid = (ticket.status == Ticket.Status.CONFIRMED or ticket.status == 'Confirmed')
+
+        # Security: Unique Verification ID and Timestamp
+        verification_id = f"SKY-VERIFY-{uuid.uuid4().hex[:12].upper()}"
+        verification_timestamp = timezone.now().isoformat()
+
+        response_data = {
+            "valid": is_valid,
+            "message": "Valid Ticket" if is_valid else f"Ticket status is {ticket.status}",
+            "ticket_id": ticket.ticket_id,
+            "ticket_uuid": str(ticket.ticket_uuid),
+            "event_name": event.title,
+            "event_category": event_category,
+            "event_date": formatted_date,
+            "event_time": formatted_time,
+            "venue": venue_str,
+            "student_name": student_name,
+            "student_id": student_id,
+            "university_email": student.email,
+            "ticket_type": ticket.tier or "Standard Pass",
+            "seat": ticket.seat or "General Admission",
+            "seat_number": ticket.seat or "General Admission",
+            "purchase_date": purchase_date_str,
+            "ticket_status": ticket.status,
+            "status": ticket.status,
+            "checked_in": ticket.checked_in,
+            "checked_in_at": ticket.checked_in_at.isoformat() if ticket.checked_in_at else None,
+            "verification_id": verification_id,
+            "verification_timestamp": verification_timestamp,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 

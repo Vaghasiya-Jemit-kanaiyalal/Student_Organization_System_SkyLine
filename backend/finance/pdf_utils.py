@@ -103,15 +103,23 @@ def generate_ticket_pdf(ticket) -> ContentFile:
     story.append(Paragraph(event_title, event_style))
     story.append(Spacer(1, 12))
 
-    # Generate QR Code image for the PDF
-    qr_token = ticket.qr_token or f"SKYLINE-TICKET:{ticket.ticket_id}"
+    # Generate QR Code image for the PDF (encode verification URL)
+    qr_data = getattr(ticket, 'qr_code_data', None)
+    if not qr_data and hasattr(ticket, 'get_verification_url'):
+        try:
+            qr_data = ticket.get_verification_url()
+        except Exception:
+            qr_data = None
+    if not qr_data:
+        qr_data = ticket.qr_token or f"SKYLINE-TICKET:{ticket.ticket_id}"
+
     qr_buf = io.BytesIO()
     qr_obj = qrcode.QRCode(
         box_size=6,
         border=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M
     )
-    qr_obj.add_data(qr_token)
+    qr_obj.add_data(qr_data)
     qr_obj.make(fit=True)
     qr_img = qr_obj.make_image(fill_color="#0F172A", back_color="#FFFFFF")
     qr_img.save(qr_buf, format='PNG')
