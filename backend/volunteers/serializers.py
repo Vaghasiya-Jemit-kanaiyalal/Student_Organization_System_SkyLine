@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from accounts.serializers import UserSerializer
-from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement
+from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement, Ticket
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -304,4 +304,123 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         ret['summary'] = content[:180] + '...' if len(content) > 180 else content
 
         return ret
+
+
+class TicketSerializer(serializers.ModelSerializer):
+    event_details = EventSerializer(source='event', read_only=True)
+    student_name = serializers.CharField(source='student.full_name', read_only=True)
+    student_id = serializers.CharField(source='student.student_id', read_only=True)
+    id = serializers.CharField(source='ticket_id', read_only=True)
+    eventTitle = serializers.CharField(source='event.title', read_only=True)
+    venue = serializers.CharField(source='event.venue', read_only=True)
+    category = serializers.CharField(source='event.event_type', read_only=True)
+    image = serializers.CharField(source='event.image', read_only=True)
+    date = serializers.SerializerMethodField()
+    pricePaid = serializers.SerializerMethodField()
+    purchaseDate = serializers.SerializerMethodField()
+    qrCodeData = serializers.CharField(source='qr_code_data', read_only=True)
+    transferredTo = serializers.CharField(source='transferred_to', read_only=True)
+    qrToken = serializers.CharField(source='qr_token', read_only=True)
+    checkedIn = serializers.BooleanField(source='checked_in', read_only=True)
+    checkedInAt = serializers.DateTimeField(source='checked_in_at', read_only=True)
+    ticketUuid = serializers.CharField(source='ticket_uuid', read_only=True)
+    verificationUrl = serializers.SerializerMethodField()
+    pdfUrl = serializers.SerializerMethodField()
+    qrUrl = serializers.SerializerMethodField()
+    paymentId = serializers.SerializerMethodField()
+    paymentStatus = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Ticket
+        fields = [
+            'id',
+            'pk',
+            'ticket_id',
+            'ticket_uuid',
+            'ticketUuid',
+            'verificationUrl',
+            'event',
+            'event_details',
+            'student',
+            'student_name',
+            'student_id',
+            'status',
+            'tier',
+            'price_paid',
+            'seat',
+            'gate',
+            'qr_token',
+            'qr_code',
+            'pdf_file',
+            'checked_in',
+            'checked_in_at',
+            'qr_code_data',
+            'transferred_to',
+            'created_at',
+            'updated_at',
+            'eventTitle',
+            'venue',
+            'category',
+            'image',
+            'date',
+            'pricePaid',
+            'purchaseDate',
+            'qrCodeData',
+            'transferredTo',
+            'qrToken',
+            'checkedIn',
+            'checkedInAt',
+            'pdfUrl',
+            'qrUrl',
+            'paymentId',
+            'paymentStatus',
+        ]
+        read_only_fields = ['id', 'pk', 'ticket_id', 'ticket_uuid', 'student', 'created_at', 'updated_at']
+
+    def get_verificationUrl(self, obj):
+        if hasattr(obj, 'get_verification_url'):
+            return obj.get_verification_url()
+        return None
+
+    def get_pdfUrl(self, obj):
+        if obj.pdf_file:
+            return obj.pdf_file.url
+        return f"/api/tickets/{obj.ticket_id}/pdf/"
+
+    def get_qrUrl(self, obj):
+        if obj.qr_code:
+            return obj.qr_code.url
+        return None
+
+    def get_paymentId(self, obj):
+        if obj.payment and obj.payment.razorpay_payment_id:
+            return obj.payment.razorpay_payment_id
+        return 'VERIFIED'
+
+    def get_paymentStatus(self, obj):
+        if obj.payment:
+            return obj.payment.status
+        return 'SUCCESS' if obj.status == Ticket.Status.CONFIRMED else 'PENDING'
+
+    def get_date(self, obj):
+        if obj.event and obj.event.date:
+            date_str = obj.event.date.strftime('%b %d, %Y')
+            if obj.event.start_time:
+                time_str = f"{obj.event.start_time.strftime('%I:%M %p')} – {obj.event.end_time.strftime('%I:%M %p') if obj.event.end_time else ''}"
+                return f"{date_str} • {time_str}"
+            return date_str
+        return 'TBD'
+
+    def get_pricePaid(self, obj):
+        if float(obj.price_paid) == 0:
+            return '₹0.00 (Member Pass)'
+        return f"₹{float(obj.price_paid):.2f}"
+
+    def get_purchaseDate(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%b %d, %Y')
+        from django.utils import timezone
+        return timezone.now().strftime('%b %d, %Y')
+
+
 

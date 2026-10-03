@@ -16,6 +16,15 @@ from .views import (
     CertificateDetailView,
     AnnouncementListCreateView,
     AnnouncementDetailView,
+    TicketBuyView,
+    StudentTicketsListView,
+    TicketTransferView,
+    TicketCancelView,
+    TicketDetailView,
+    TicketPdfDownloadView,
+    TicketQrVerifyView,
+    TicketCheckInView,
+    TicketPublicVerifyView,
 )
 
 urlpatterns = [
@@ -23,6 +32,19 @@ urlpatterns = [
     path('events/', EventListCreateView.as_view(), name='event-list-create'),
     path('events/create/', EventListCreateView.as_view(), name='event-create'),
     path('events/<int:pk>/', EventDetailView.as_view(), name='event-detail'),
+    path('events/<int:event_id>/buy-ticket/', TicketBuyView.as_view(), name='event-buy-ticket'),
+
+    # Event Tickets Endpoints
+    path('tickets/', StudentTicketsListView.as_view(), name='student-tickets'),
+    path('tickets/my-tickets/', StudentTicketsListView.as_view(), name='student-my-tickets'),
+    path('tickets/buy/', TicketBuyView.as_view(), name='ticket-buy'),
+    path('tickets/verify-qr/', TicketQrVerifyView.as_view(), name='ticket-verify-qr'),
+    path('tickets/verify/<str:ticket_uuid>/', TicketPublicVerifyView.as_view(), name='ticket-public-verify'),
+    path('tickets/<str:ticket_id>/', TicketDetailView.as_view(), name='ticket-detail'),
+    path('tickets/<str:ticket_id>/pdf/', TicketPdfDownloadView.as_view(), name='ticket-pdf'),
+    path('tickets/<str:ticket_id>/check-in/', TicketCheckInView.as_view(), name='ticket-check-in'),
+    path('tickets/<str:ticket_id>/transfer/', TicketTransferView.as_view(), name='ticket-transfer'),
+    path('tickets/<str:ticket_id>/cancel/', TicketCancelView.as_view(), name='ticket-cancel'),
 
     # Announcement Endpoints
     path('announcements/', AnnouncementListCreateView.as_view(), name='announcement-list-create'),

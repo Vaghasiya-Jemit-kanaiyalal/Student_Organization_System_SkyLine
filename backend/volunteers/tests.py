@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Event, VolunteerApplication
+from .models import Event, VolunteerApplication, Ticket
 
 User = get_user_model()
 
@@ -151,3 +151,76 @@ class VolunteerFlowTests(APITestCase):
         self.assertIn('certificates', cert_res.data)
         self.assertEqual(len(cert_res.data['certificates']), 1)
         self.assertEqual(cert_res.data['certificates'][0]['student_name'], self.member.full_name)
+
+
+class TicketFlowTests(APITestCase):
+    def setUp(self):
+        self.active_member = User.objects.create_user(
+            email='activemember@studentorg.edu',
+            password='Password123!',
+            full_name='Active Member Student',
+            student_id='STU-MEM-01',
+            role=User.Role.MEMBER,
+            membership_status=User.MembershipStatus.ACTIVE,
+            membership_type=User.MembershipType.ANNUAL
+        )
+        self.regular_student = User.objects.create_user(
+            email='regularstudent@studentorg.edu',
+            password='Password123!',
+            full_name='Regular Student',
+            student_id='STU-REG-01',
+            role=User.Role.MEMBER,
+            membership_status=User.MembershipStatus.NONE
+        )
+        self.event = Event.objects.create(
+            title='Annual Gala 2026',
+            description='Gala dinner and showcase.',
+            date=timezone.now() + timedelta(days=10),
+            venue='Student Union Grand Ballroom',
+            ticket_price=200.00,
+            non_member_ticket_price=200.00,
+            member_ticket_price=100.00,
+            status=Event.Status.PUBLISHED
+        )
+
+    def test_active_member_buys_ticket_at_member_price(self):
+        refresh = RefreshToken.for_user(self.active_member)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        url = reverse('event-buy-ticket', kwargs={'event_id': self.event.id})
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['tier'], 'Member Pass')
+        self.assertEqual(float(response.data['price_paid']), 100.00)
+        self.assertEqual(response.data['status'], 'Confirmed')
+
+    def test_regular_student_buys_ticket_at_non_member_price(self):
+        refresh = RefreshToken.for_user(self.regular_student)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        url = reverse('event-buy-ticket', kwargs={'event_id': self.event.id})
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['tier'], 'Standard Pass')
+        self.assertEqual(float(response.data['price_paid']), 200.00)
+        self.assertEqual(response.data['status'], 'Confirmed')
+
+    def test_student_can_fetch_my_tickets(self):
+        Ticket.objects.create(
+            student=self.active_member,
+            event=self.event,
+            tier='Member Pass',
+            price_paid=100.00,
+            status=Ticket.Status.CONFIRMED
+        )
+
+        refresh = RefreshToken.for_user(self.active_member)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        url = reverse('student-my-tickets')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        tickets = response.data.get('results', response.data)
+        self.assertEqual(len(tickets), 1)
+        self.assertEqual(tickets[0]['eventTitle'], 'Annual Gala 2026')
+

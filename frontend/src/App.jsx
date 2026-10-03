@@ -23,6 +23,7 @@ import { MemberDashboard } from './pages/dashboards/MemberDashboard';
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
 import { TreasurerDashboard } from './pages/dashboards/TreasurerDashboard';
 import MemberManagementPage from './pages/admin/MemberManagementPage';
+import { TicketVerificationPage } from './pages/tickets/TicketVerificationPage';
 
 // Index root router redirector
 const RootRedirector = () => {
@@ -83,7 +84,8 @@ const AppContent = () => {
     '/session-expired',
     '/unauthorized'
   ];
-  const isAuthRoute = authRoutes.includes(location.pathname);
+  const isTicketRoute = location.pathname.startsWith('/ticket/');
+  const isAuthRoute = authRoutes.includes(location.pathname) || isTicketRoute;
 
   return (
     <div className={`min-h-screen flex flex-col text-text-primary antialiased selection:bg-emerald-100 selection:text-emerald-900 ${isAuthRoute ? 'bg-slate-50' : 'bg-slate-50'}`}>
@@ -101,6 +103,9 @@ const AppContent = () => {
           <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route path="/session-expired" element={<SessionExpiredPage />} />
+
+          {/* Public Dynamic QR Ticket Verification Route */}
+          <Route path="/ticket/:ticket_uuid" element={<TicketVerificationPage />} />
 
           {/* Protected Role-Based Routes */}
           <Route

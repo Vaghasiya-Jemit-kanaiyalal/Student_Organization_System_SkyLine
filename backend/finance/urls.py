@@ -14,6 +14,22 @@ from .views import (
     TransactionDetailView,
     TransactionListCreateView,
 )
+from .payment_views import (
+    EventCreatePaymentView,
+    MerchandiseOrderCreatePaymentView,
+    RazorpayPaymentVerifyView,
+    RazorpayWebhookView,
+    MerchandiseProductListView,
+    MerchandiseOrderListView,
+    MerchandiseOrderDetailView,
+    MerchandiseOrderPdfDownloadView,
+    MerchandiseOrderQrVerifyView,
+    MerchandiseOrderCollectView,
+    DemoPaymentCreateView,
+    DemoPaymentProcessView,
+    DemoPaymentCompleteView,
+    UserTransactionListView,
+)
 
 urlpatterns = [
     # Dashboard / summary
@@ -58,3 +74,30 @@ urlpatterns = [
         name='finance-reimbursement-receipt',
     ),
 ]
+
+# Clean API routes matching the system requirements: /api/payments/... and /api/merchandise/...
+payment_urlpatterns = [
+    # Demo Payment Lifecycle
+    path('payments/demo/create/', DemoPaymentCreateView.as_view(), name='demo-payment-create'),
+    path('payments/demo/process/', DemoPaymentProcessView.as_view(), name='demo-payment-process'),
+    path('payments/demo/complete/', DemoPaymentCompleteView.as_view(), name='demo-payment-complete'),
+    path('payments/transactions/', UserTransactionListView.as_view(), name='user-transactions-list'),
+
+    # Event Payment Creation
+    path('events/<int:event_id>/create-payment/', EventCreatePaymentView.as_view(), name='event-create-payment'),
+
+    # Razorpay Verification & Webhook
+    path('payments/razorpay/verify/', RazorpayPaymentVerifyView.as_view(), name='razorpay-verify'),
+    path('payments/razorpay/webhook/', RazorpayWebhookView.as_view(), name='razorpay-webhook'),
+
+    # Merchandise Catalog & Orders
+    path('merchandise/products/', MerchandiseProductListView.as_view(), name='merchandise-products-list'),
+    path('merchandise/orders/', MerchandiseOrderListView.as_view(), name='merchandise-orders-list'),
+    path('merchandise/orders/create-payment/', MerchandiseOrderCreatePaymentView.as_view(), name='merchandise-create-payment'),
+    path('merchandise/orders/<str:order_id>/create-payment/', MerchandiseOrderCreatePaymentView.as_view(), name='merchandise-order-create-payment'),
+    path('merchandise/orders/verify-qr/', MerchandiseOrderQrVerifyView.as_view(), name='merchandise-verify-qr'),
+    path('merchandise/orders/<str:order_id>/', MerchandiseOrderDetailView.as_view(), name='merchandise-order-detail'),
+    path('merchandise/orders/<str:order_id>/pdf/', MerchandiseOrderPdfDownloadView.as_view(), name='merchandise-order-pdf'),
+    path('merchandise/orders/<str:order_id>/collect/', MerchandiseOrderCollectView.as_view(), name='merchandise-order-collect'),
+]
+

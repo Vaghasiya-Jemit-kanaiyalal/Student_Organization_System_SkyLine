@@ -10,6 +10,8 @@ import { FundraisersManagementModule } from '../../components/fundraisers/Fundra
 import { useTreasurer } from '../../context/TreasurerContext';
 import { TreasurerModal } from '../../components/admin/TreasurerModal';
 import { AdminVolunteerControl } from '../../components/volunteers/AdminVolunteerControl';
+import { EventQrScannerModal } from '../../components/scanner/EventQrScannerModal';
+import { MerchandiseQrScannerModal } from '../../components/scanner/MerchandiseQrScannerModal';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -40,7 +42,8 @@ import {
   ShieldCheck,
   Award,
   Check,
-  ChevronRight
+  ChevronRight,
+  QrCode
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
@@ -50,6 +53,8 @@ export const AdminDashboard = () => {
   const navigate = useNavigate();
 
   const [isTreasurerModalOpen, setIsTreasurerModalOpen] = useState(false);
+  const [eventScannerOpen, setEventScannerOpen] = useState(false);
+  const [merchScannerOpen, setMerchScannerOpen] = useState(false);
 
   const normalizeTab = (t) => {
     if (t === 'roster') return 'members';
@@ -672,11 +677,23 @@ export const AdminDashboard = () => {
         {/* TAB 3: EVENTS MANAGEMENT */}
         {/* ========================================================= */}
         {activeTab === 'events' && (
-          <EventsManagementModule
-            events={events}
-            setEvents={setEvents}
-            initialSubTab={eventsSubTab}
-          />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setEventScannerOpen(true)}
+                className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-bold shadow-xs transition flex items-center gap-2 cursor-pointer"
+              >
+                <QrCode className="w-4 h-4 text-emerald-400" />
+                <span>Launch Gate Entrance QR Scanner</span>
+              </button>
+            </div>
+            <EventsManagementModule
+              events={events}
+              setEvents={setEvents}
+              initialSubTab={eventsSubTab}
+            />
+          </div>
         )}
 
         {/* ========================================================= */}
@@ -694,7 +711,19 @@ export const AdminDashboard = () => {
         {/* TAB 5: MERCHANDISE STOCK & ONLINE ORDERS */}
         {/* ========================================================= */}
         {(activeTab === 'merchandise' || activeTab === 'store') && (
-          <AdminMerchManager />
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMerchScannerOpen(true)}
+                className="px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition flex items-center gap-2 cursor-pointer"
+              >
+                <QrCode className="w-4 h-4 text-emerald-200" />
+                <span>Launch Merchandise Collection Scanner</span>
+              </button>
+            </div>
+            <AdminMerchManager />
+          </div>
         )}
 
         {/* ========================================================= */}
@@ -1005,6 +1034,18 @@ export const AdminDashboard = () => {
         <TreasurerModal
           isOpen={isTreasurerModalOpen}
           onClose={() => setIsTreasurerModalOpen(false)}
+        />
+
+        {/* Event Gate Entrance Scanner */}
+        <EventQrScannerModal
+          isOpen={eventScannerOpen}
+          onClose={() => setEventScannerOpen(false)}
+        />
+
+        {/* Merchandise Collection Scanner */}
+        <MerchandiseQrScannerModal
+          isOpen={merchScannerOpen}
+          onClose={() => setMerchScannerOpen(false)}
         />
 
       </div>

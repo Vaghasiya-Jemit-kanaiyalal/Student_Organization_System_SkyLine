@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate
+from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Ticket
 
 
 @admin.register(Event)
@@ -28,3 +28,10 @@ class CertificateAdmin(admin.ModelAdmin):
     list_display = ('id', 'certificate_id', 'student', 'event', 'volunteer_role', 'duration', 'issue_date')
     list_filter = ('issue_date', 'event')
     search_fields = ('certificate_id', 'student__full_name', 'student__student_id', 'event__title')
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ('ticket_id', 'student', 'event', 'tier', 'price_paid', 'status', 'seat', 'created_at')
+    list_filter = ('status', 'tier', 'created_at')
+    search_fields = ('ticket_id', 'student__full_name', 'student__email', 'student__student_id', 'event__title')
