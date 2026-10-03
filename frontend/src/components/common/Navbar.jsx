@@ -59,11 +59,12 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  // Student navigation items specified in prompt (no arbitrary badges)
+  // Student navigation items
   const studentNavTabs = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'membership', label: 'Clubs & Memberships', icon: Users },
     { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'merchandise', label: 'Merchandise', icon: ShoppingBag },
     { id: 'tickets', label: 'My Tickets', icon: Ticket },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
     { id: 'certificates', label: 'Certificates', icon: Award },
