@@ -123,7 +123,7 @@ export const LoginPage = () => {
             <div className="flex items-center space-x-3 mb-8">
               <UniversityCrest className="w-12 h-12" variant="gold" />
               <div>
-                <h1 className="font-serif-academic text-2xl font-bold tracking-tight text-white leading-tight">
+                <h1 className="text-2xl font-bold tracking-tight text-white leading-tight">
                   ConnectU
                 </h1>
                 <p className="text-xs uppercase tracking-widest text-accent font-semibold">
@@ -139,7 +139,7 @@ export const LoginPage = () => {
                 Campus Governance & Society Hub
               </span>
 
-              <h2 className="font-serif-academic text-2xl sm:text-3xl text-white font-normal leading-snug">
+              <h2 className="text-2xl sm:text-3xl text-white font-normal leading-snug">
                 Where student leadership meets academic tradition.
               </h2>
 
@@ -224,7 +224,7 @@ export const LoginPage = () => {
           </div>
 
           <div className="mb-6">
-            <h2 className="font-serif-academic text-2xl sm:text-3xl font-normal text-text-primary">
+            <h2 className="text-2xl sm:text-3xl font-normal text-text-primary">
               Portal Sign In
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary mt-1">

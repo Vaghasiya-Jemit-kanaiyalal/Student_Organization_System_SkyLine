@@ -121,7 +121,7 @@ export const RegisterPage = () => {
           <div className="flex justify-center mb-3">
             <UniversityCrest className="w-12 h-12" variant="gold" />
           </div>
-          <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             Student Member Registration
           </h1>
           <p className="text-xs sm:text-sm text-primary-100 mt-1 max-w-md mx-auto">

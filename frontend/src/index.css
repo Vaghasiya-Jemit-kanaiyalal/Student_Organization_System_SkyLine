@@ -24,8 +24,9 @@
   body {
     background-color: #F4F5F7 !important;
     color: #4A5568;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-size: 15px;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
     margin: 0;
     padding: 0;
     min-height: 100vh;
@@ -39,19 +40,22 @@
   }
 
   .font-serif-academic {
-    font-family: 'Playfair Display', serif;
-    font-weight: 700;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3 {
-    font-family: 'Playfair Display', serif;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #142033;
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
   }
 
   label, .form-label {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 500;
     color: #142033;
   }
 }

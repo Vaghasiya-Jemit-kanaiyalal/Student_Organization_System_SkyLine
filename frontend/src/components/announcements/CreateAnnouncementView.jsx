@@ -201,7 +201,7 @@ export const CreateAnnouncementView = ({
       {/* Top Header Card */}
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h2 className="text-2xl font-bold text-text-primary">
             {initialData ? 'Edit Announcement' : 'Create Announcement'}
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
@@ -244,7 +244,7 @@ export const CreateAnnouncementView = ({
       <form className="space-y-6">
         {/* SECTION A — Announcement Details */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">A</span>
             Announcement Details
           </h3>
@@ -359,7 +359,7 @@ export const CreateAnnouncementView = ({
 
         {/* SECTION B — Send To */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">B</span>
               <span>Send To Target Group</span>
@@ -460,7 +460,7 @@ export const CreateAnnouncementView = ({
 
         {/* SECTION C — Delivery Channels */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">C</span>
             Delivery Channels
           </h3>
@@ -502,7 +502,7 @@ export const CreateAnnouncementView = ({
 
         {/* SECTION D — Schedule / Sending */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">D</span>
             Scheduling & Dispatch
           </h3>
@@ -583,7 +583,7 @@ export const CreateAnnouncementView = ({
 
         {/* SECTION E — Optional Settings */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">E</span>
             Optional Parameters & Attachments
           </h3>
@@ -667,7 +667,7 @@ export const CreateAnnouncementView = ({
 
         {/* SECTION F — Live Recipient Preview */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-3">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">F</span>
               <span>Recipient Live Preview</span>
@@ -681,7 +681,7 @@ export const CreateAnnouncementView = ({
                 <span className="text-[10px] uppercase font-bold tracking-wider text-accent">
                   Official Society Notice • {category}
                 </span>
-                <h4 className="font-serif-academic text-base font-bold text-text-primary mt-0.5">
+                <h4 className="text-base font-bold text-text-primary mt-0.5">
                   {title || 'Announcement Title Preview'}
                 </h4>
               </div>

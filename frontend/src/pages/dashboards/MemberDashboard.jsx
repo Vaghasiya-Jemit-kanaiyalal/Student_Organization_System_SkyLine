@@ -114,7 +114,7 @@ export const MemberDashboard = () => {
                 <div className="flex items-center justify-between pb-3 border-b border-border">
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-primary" />
-                    <h2 className="font-serif-academic text-lg font-bold text-text-primary">
+                    <h2 className="text-lg font-bold text-text-primary">
                       Upcoming Featured Event
                     </h2>
                   </div>
@@ -124,7 +124,7 @@ export const MemberDashboard = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="font-serif-academic text-xl text-primary font-bold">
+                  <h3 className="text-xl text-primary font-bold">
                     Annual Autonomous Robotics Showcase 2026
                   </h3>
                   <p className="text-xs text-text-secondary leading-relaxed">
@@ -161,7 +161,7 @@ export const MemberDashboard = () => {
               <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                 <div className="flex items-center space-x-2 pb-3 border-b border-border">
                   <UniversityCrest className="w-5 h-5" variant="burgundy" />
-                  <h2 className="font-serif-academic text-lg font-bold text-text-primary">
+                  <h2 className="text-lg font-bold text-text-primary">
                     Membership Standing
                   </h2>
                 </div>
@@ -205,7 +205,7 @@ export const MemberDashboard = () => {
             {/* Official University Announcements Board */}
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-border">
-                <h2 className="font-serif-academic text-lg font-bold text-text-primary">
+                <h2 className="text-base sm:text-lg font-semibold text-text-primary tracking-tight">
                   Official Campus Announcements
                 </h2>
                 <span className="text-xs text-text-muted">Office of Student Affairs & Club Councils</span>
@@ -215,7 +215,7 @@ export const MemberDashboard = () => {
                 {ANNOUNCEMENTS.map((anc) => (
                   <div key={anc.id} className="py-3.5 first:pt-0 last:pb-0 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-serif-academic text-sm sm:text-base font-bold text-primary">
+                      <span className="text-[15px] sm:text-base font-semibold text-text-primary leading-snug">
                         {anc.title}
                       </span>
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-ivory-200 text-text-secondary border border-border font-mono">
@@ -241,7 +241,7 @@ export const MemberDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Enrolled Organizations & Societies
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -261,7 +261,7 @@ export const MemberDashboard = () => {
                 <div className="p-4 rounded-lg bg-ivory-100 border border-border space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-serif-academic text-base font-bold text-primary">
+                      <h3 className="text-base font-bold text-primary">
                         Robotics & AI Society
                       </h3>
                       <p className="text-[11px] text-text-muted">Chapter ID: SOC-2026-ENG</p>
@@ -286,7 +286,7 @@ export const MemberDashboard = () => {
                 <div className="p-4 rounded-lg bg-ivory-100 border border-border space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-serif-academic text-base font-bold text-primary">
+                      <h3 className="text-base font-bold text-primary">
                         University Debate Union
                       </h3>
                       <p className="text-[11px] text-text-muted">Chapter ID: SOC-2026-HUM</p>
@@ -311,7 +311,7 @@ export const MemberDashboard = () => {
                 <div className="p-4 rounded-lg bg-ivory-100 border border-border space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-serif-academic text-base font-bold text-primary">
+                      <h3 className="text-base font-bold text-primary">
                         Campus Environmental Alliance
                       </h3>
                       <p className="text-[11px] text-text-muted">Chapter ID: SOC-2026-SCI</p>
@@ -343,7 +343,7 @@ export const MemberDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Campus Organization Events Calendar
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -369,7 +369,7 @@ export const MemberDashboard = () => {
                         <span className="text-xs font-semibold text-accent">{evt.price}</span>
                       </div>
 
-                      <h3 className="font-serif-academic text-lg font-bold text-text-primary mt-2">
+                      <h3 className="text-lg font-bold text-text-primary mt-2">
                         {evt.title}
                       </h3>
 
@@ -430,7 +430,7 @@ export const MemberDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Digital Student Passes & Ticket Wallet
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -455,7 +455,7 @@ export const MemberDashboard = () => {
                       <div className="bg-primary text-white p-4 flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <UniversityCrest className="w-6 h-6" variant="gold" />
-                          <span className="font-serif-academic font-bold text-sm tracking-wide">CONNECTU PASS</span>
+                          <span className="font-bold text-sm tracking-wide">CONNECTU PASS</span>
                         </div>
                         <span className="text-[10px] font-mono bg-primary-hover text-accent px-2 py-0.5 rounded border border-accent/30">
                           {ticket.status}
@@ -464,7 +464,7 @@ export const MemberDashboard = () => {
 
                       {/* Ticket Body */}
                       <div className="p-4 space-y-3">
-                        <h4 className="font-serif-academic text-base font-bold text-text-primary leading-tight">
+                        <h4 className="text-base font-bold text-text-primary leading-tight">
                           {ticket.eventTitle}
                         </h4>
                         <div className="text-xs text-text-secondary space-y-1">
@@ -519,7 +519,7 @@ export const MemberDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Civic Service & Volunteer Ledger
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -528,7 +528,7 @@ export const MemberDashboard = () => {
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] uppercase text-text-muted font-semibold">Total Approved Hours</span>
-                  <p className="font-serif-academic text-2xl font-bold text-accent">28 Hours</p>
+                  <p className="text-2xl font-bold text-accent">28 Hours</p>
                 </div>
               </div>
 
@@ -544,7 +544,7 @@ export const MemberDashboard = () => {
                   >
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="font-serif-academic text-base font-bold text-primary">
+                        <span className="text-base font-bold text-primary">
                           {opp.title}
                         </span>
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface border border-border text-text-secondary">
@@ -576,7 +576,7 @@ export const MemberDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Official University Society Credentials & Certificates
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -594,7 +594,7 @@ export const MemberDashboard = () => {
                   <p className="text-xs uppercase tracking-widest text-accent font-semibold font-mono">
                     Official Certificate of Organization Standing
                   </p>
-                  <h3 className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                  <h3 className="text-2xl font-bold text-primary mt-1">
                     ConnectU Student Leadership Honor
                   </h3>
                 </div>
@@ -605,7 +605,7 @@ export const MemberDashboard = () => {
 
                 <div className="pt-6 border-t border-border flex justify-between items-center text-xs text-text-muted">
                   <div className="text-left">
-                    <p className="font-serif-academic font-bold text-text-primary">Dr. Alexander Vance</p>
+                    <p className="font-bold text-text-primary">Dr. Alexander Vance</p>
                     <p className="text-[10px]">Faculty Advisor & Lead</p>
                   </div>
                   <div className="text-center font-mono text-[10px] text-accent font-semibold">
@@ -613,7 +613,7 @@ export const MemberDashboard = () => {
                     VERIFIED HASH: #ACAD-2026-8842-RATIFIED
                   </div>
                   <div className="text-right">
-                    <p className="font-serif-academic font-bold text-text-primary">Marcus Sterling</p>
+                    <p className="font-bold text-text-primary">Marcus Sterling</p>
                     <p className="text-[10px]">Society Comptroller</p>
                   </div>
                 </div>
@@ -627,7 +627,7 @@ export const MemberDashboard = () => {
           <div className="space-y-6">
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border">
-                <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                <h2 className="text-xl font-bold text-text-primary">
                   Student Member Directory Profile
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">

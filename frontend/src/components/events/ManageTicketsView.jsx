@@ -184,7 +184,7 @@ export const ManageTicketsView = ({
             />
           )}
           <div>
-            <h2 className="font-serif-academic text-2xl font-bold text-text-primary leading-tight">
+            <h2 className="text-2xl font-bold text-text-primary leading-tight">
               Manage Tickets
             </h2>
             <p className="text-xs text-text-secondary mt-0.5">
@@ -217,14 +217,14 @@ export const ManageTicketsView = ({
         {/* Total Capacity */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-subtle">
           <span className="text-[11px] font-medium text-text-secondary block">Total Capacity</span>
-          <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">{totalCapacity}</p>
+          <p className="text-2xl font-bold text-text-primary mt-1">{totalCapacity}</p>
           <span className="text-[10px] text-text-muted">Venue Maximum</span>
         </div>
 
         {/* Sold / Registered */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-subtle">
           <span className="text-[11px] font-medium text-text-secondary block">Sold / Registered</span>
-          <p className="font-serif-academic text-2xl font-bold text-primary mt-1">{soldCount}</p>
+          <p className="text-2xl font-bold text-primary mt-1">{soldCount}</p>
           <span className="text-[10px] text-primary font-medium">
             {Math.round((soldCount / (totalCapacity || 1)) * 100)}% Booked
           </span>
@@ -233,14 +233,14 @@ export const ManageTicketsView = ({
         {/* Tickets Available */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-subtle">
           <span className="text-[11px] font-medium text-text-secondary block">Tickets Available</span>
-          <p className="font-serif-academic text-2xl font-bold text-accent mt-1">{availableCount}</p>
+          <p className="text-2xl font-bold text-accent mt-1">{availableCount}</p>
           <span className="text-[10px] text-text-muted">Open Capacity</span>
         </div>
 
         {/* Total Revenue */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-subtle">
           <span className="text-[11px] font-medium text-text-secondary block">Total Revenue</span>
-          <p className="font-serif-academic text-2xl font-bold text-status-success mt-1">
+          <p className="text-2xl font-bold text-status-success mt-1">
             ${totalRevenue.toFixed(2)}
           </p>
           <span className="text-[10px] text-status-success font-medium">Verified Receipts</span>
@@ -249,7 +249,7 @@ export const ManageTicketsView = ({
         {/* Checked In */}
         <div className="p-4 rounded-xl bg-surface border border-border shadow-subtle">
           <span className="text-[11px] font-medium text-text-secondary block">Checked In</span>
-          <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">{checkedInCount}</p>
+          <p className="text-2xl font-bold text-text-primary mt-1">{checkedInCount}</p>
           <span className="text-[10px] text-status-success font-medium">
             {soldCount > 0 ? Math.round((checkedInCount / soldCount) * 100) : 0}% Turnout
           </span>
@@ -262,7 +262,7 @@ export const ManageTicketsView = ({
           <div className="flex items-center space-x-2">
             <QrCode className="w-5 h-5 text-primary" />
             <div>
-              <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+              <h3 className="text-lg font-bold text-text-primary">
                 Organizer QR Check-in Terminal
               </h3>
               <p className="text-xs text-text-secondary">
@@ -324,7 +324,7 @@ export const ManageTicketsView = ({
 
       {/* TICKET TYPE BREAKDOWN TABLE */}
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-        <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2">
+        <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2">
           Ticket Type Breakdown
         </h3>
 
@@ -365,7 +365,7 @@ export const ManageTicketsView = ({
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-border pb-3">
           <div>
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+            <h3 className="text-lg font-bold text-text-primary">
               Individual Ticket & Attendee Registry
             </h3>
             <p className="text-xs text-text-secondary mt-0.5">
@@ -540,7 +540,7 @@ export const ManageTicketsView = ({
             <div className="flex justify-between items-start border-b border-border pb-3">
               <div className="flex items-center space-x-2">
                 <UniversityCrest className="w-6 h-6" variant="gold" />
-                <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                <h3 className="text-lg font-bold text-text-primary">
                   Digital Event Pass
                 </h3>
               </div>
@@ -557,7 +557,7 @@ export const ManageTicketsView = ({
               <div className="text-[10px] uppercase tracking-widest text-accent font-semibold">
                 Official ConnectU Event Ticket
               </div>
-              <h4 className="font-serif-academic text-base font-bold text-white">
+              <h4 className="text-base font-bold text-white">
                 {activeEvent.title}
               </h4>
               <p className="text-xs text-primary-100">

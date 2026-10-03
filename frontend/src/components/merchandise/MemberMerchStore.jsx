@@ -138,7 +138,7 @@ export const MemberMerchStore = () => {
                 <Smartphone className="w-3 h-3 text-[#58A6FF]" /> Mobile Online Ordering
               </span>
             </div>
-            <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2">
               Official Club Apparel & Merchandise
             </h1>
             <p className="text-xs sm:text-sm text-[#D9E2EC] max-w-2xl mt-1 leading-relaxed">
@@ -279,7 +279,7 @@ export const MemberMerchStore = () => {
                     {/* Product Details */}
                     <div className="p-4 space-y-3">
                       <div>
-                        <h3 className="font-serif-academic text-base font-bold text-text-primary leading-snug">
+                        <h3 className="text-base font-bold text-text-primary leading-snug">
                           {item.name}
                         </h3>
                         <p className="text-xs text-text-secondary mt-1 line-clamp-2 leading-relaxed">
@@ -316,7 +316,7 @@ export const MemberMerchStore = () => {
                   <div className="p-4 pt-2 border-t border-border flex items-center justify-between">
                     <div>
                       <span className="text-[10px] text-text-muted uppercase block">Club Price</span>
-                      <span className="font-serif-academic text-lg font-bold text-primary">
+                      <span className="text-lg font-bold text-primary">
                         ${item.price.toFixed(2)}
                       </span>
                     </div>
@@ -346,7 +346,7 @@ export const MemberMerchStore = () => {
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-3 border-b border-border gap-2">
             <div>
-              <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+              <h2 className="text-xl font-bold text-text-primary">
                 My Merchandise Orders & Digital Passes
               </h2>
               <p className="text-xs text-text-secondary mt-0.5">
@@ -390,7 +390,7 @@ export const MemberMerchStore = () => {
                         <span className="font-mono text-xs font-bold text-primary">{ord.id}</span>
                         <span className="text-[11px] text-text-muted">• {ord.orderDate}</span>
                       </div>
-                      <h4 className="font-serif-academic text-sm font-bold text-text-primary">
+                      <h4 className="text-sm font-bold text-text-primary">
                         {ord.productName}
                       </h4>
                       <p className="text-xs text-text-secondary flex items-center gap-2">
@@ -462,7 +462,7 @@ export const MemberMerchStore = () => {
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary text-white">
                   {selectedProduct.type} Order
                 </span>
-                <h3 className="font-serif-academic text-xl font-bold text-text-primary mt-1">
+                <h3 className="text-xl font-bold text-text-primary mt-1">
                   {selectedProduct.name}
                 </h3>
               </div>
@@ -493,7 +493,7 @@ export const MemberMerchStore = () => {
                   <p className="text-xs font-semibold text-text-primary">
                     Skyline Student Association Official Merchandise
                   </p>
-                  <p className="font-serif-academic text-lg font-bold text-primary mt-0.5">
+                  <p className="text-lg font-bold text-primary mt-0.5">
                     ${selectedProduct.price.toFixed(2)} each
                   </p>
                   <span className="text-[11px] text-status-success font-medium">
@@ -716,7 +716,7 @@ export const MemberMerchStore = () => {
               <div className="pt-3 border-t border-border flex items-center justify-between">
                 <div>
                   <span className="text-[11px] text-text-muted uppercase block">Total Due</span>
-                  <span className="font-serif-academic text-xl font-bold text-primary">
+                  <span className="text-xl font-bold text-primary">
                     ${(selectedProduct.price * quantity).toFixed(2)}
                   </span>
                 </div>
@@ -771,7 +771,7 @@ export const MemberMerchStore = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-accent">
                 Skyline Student Association
               </span>
-              <h3 className="font-serif-academic text-xl font-bold text-text-primary">
+              <h3 className="text-xl font-bold text-text-primary">
                 Order Confirmed!
               </h3>
               <p className="text-xs text-text-secondary">
@@ -795,7 +795,7 @@ export const MemberMerchStore = () => {
                   className="w-12 h-12 rounded-lg object-cover border border-border"
                 />
                 <div>
-                  <h4 className="font-serif-academic text-sm font-bold text-text-primary">
+                  <h4 className="text-sm font-bold text-text-primary">
                     {confirmedOrder.productName}
                   </h4>
                   <p className="text-xs text-text-secondary">

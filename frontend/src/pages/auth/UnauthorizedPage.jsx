@@ -42,7 +42,7 @@ export const UnauthorizedPage = () => {
             HTTP 403 • ACCESS RESTRICTED
           </span>
 
-          <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
             Restricted University Clearance
           </h1>
 
