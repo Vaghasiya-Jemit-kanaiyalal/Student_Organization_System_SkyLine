@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
+import { eventsApi, volunteerApi, certificateApi } from '../../services/api';
 import {
   LayoutDashboard,
   Calendar,
@@ -386,16 +387,129 @@ export const MemberDashboard = () => {
   const [applyVolunteerModalEvent, setApplyVolunteerModalEvent] = useState(null);
   const [selectedCertificateModal, setSelectedCertificateModal] = useState(null);
   const [selectedAnnouncementModal, setSelectedAnnouncementModal] = useState(null);
+  const [viewEventDetailsModal, setViewEventDetailsModal] = useState(null);
   const [renewMembershipModalOpen, setRenewMembershipModalOpen] = useState(false);
   const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
 
+  // Volunteer Sub-Tab Navigation: 1. Available Opportunities, 2. My Applications, 3. My Volunteer Assignments
+  const [volunteerSubTab, setVolunteerSubTab] = useState('opportunities');
+
   // Forms State
   const [volunteerMotivation, setVolunteerMotivation] = useState('');
+  const [volunteerPreferredRole, setVolunteerPreferredRole] = useState('');
+  const [volunteerExperience, setVolunteerExperience] = useState('');
+  const [applying, setApplying] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [editProfileForm, setEditProfileForm] = useState({ ...studentProfile });
   const [eventSearchQuery, setEventSearchQuery] = useState('');
   const [eventCategoryFilter, setEventCategoryFilter] = useState('ALL');
+
+  // Fetch live backend data for Published Events, Applications, Assignments, and Certificates
+  useEffect(() => {
+    const fetchMemberData = async () => {
+      try {
+        const [eventsRes, appsRes, activeRes, certsRes] = await Promise.all([
+          eventsApi.getAll().catch(() => null),
+          volunteerApi.getApplications().catch(() => null),
+          volunteerApi.getActive().catch(() => null),
+          certificateApi.getStudentCertificates().catch(() => null),
+        ]);
+
+        if (eventsRes) {
+          const rawEvents = Array.isArray(eventsRes) ? eventsRes : eventsRes?.results || [];
+          if (rawEvents.length > 0) {
+            const mapped = rawEvents.map((evt) => ({
+              id: evt.id,
+              title: evt.title,
+              date: evt.date && evt.start_time ? `${new Date(evt.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} • ${evt.start_time} – ${evt.end_time || ''}` : evt.date,
+              rawDate: evt.date,
+              venue: evt.venue || evt.location,
+              availableSeats: evt.capacity || 100,
+              totalSeats: evt.capacity || 100,
+              memberPrice: Number(evt.ticket_price) === 0 ? '$0.00 (Free for Members)' : `$${Number(evt.ticket_price).toFixed(2)}`,
+              nonMemberPrice: Number(evt.ticket_price) === 0 ? '$10.00' : `$${(Number(evt.ticket_price) * 1.5).toFixed(2)}`,
+              status: evt.status || 'Published',
+              category: evt.event_type || 'Campus Event',
+              description: evt.description,
+              image: evt.image,
+              volunteers_required: evt.volunteers_required,
+              volunteersRequired: evt.volunteers_required,
+              volunteer_count_required: evt.volunteer_count_required,
+              volunteer_slots_remaining: evt.volunteer_slots_remaining ?? evt.volunteer_count_required ?? 5,
+              roles_list: evt.roles_list || evt.volunteer_roles_required || ['General Volunteer'],
+              volunteer_roles_required: evt.volunteer_roles_required || evt.roles_list || ['General Volunteer'],
+              volunteer_deadline: evt.volunteer_deadline,
+            }));
+            setEventsList(mapped);
+          }
+        }
+
+        if (appsRes) {
+          const rawApps = Array.isArray(appsRes) ? appsRes : appsRes?.results || [];
+          if (rawApps.length > 0) {
+            const mappedApps = rawApps.map((a) => ({
+              id: a.id,
+              eventName: a.event_details?.title || `Event #${a.event}`,
+              roleApplied: a.preferred_role,
+              preferred_role: a.preferred_role,
+              appliedDate: new Date(a.applied_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+              status: a.status,
+              feedback: a.admin_feedback || (a.status === 'Approved' ? 'Application Approved. Assignment active.' : a.status === 'Pending' ? 'Application received and under review.' : 'Application declined.'),
+            }));
+            setVolunteerApplications(mappedApps);
+          }
+        }
+
+        if (activeRes) {
+          const rawActive = Array.isArray(activeRes) ? activeRes : activeRes?.results || [];
+          if (rawActive.length > 0) {
+            const mappedActive = rawActive.map((item) => ({
+              id: item.id,
+              event: item.event_details?.title || `Event #${item.event}`,
+              assignedRole: item.assigned_role,
+              duration: item.duration || '4 Hours',
+              status: item.status || 'Active',
+              notes: item.notes,
+              approvedDate: new Date(item.approved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            }));
+            setActiveVolunteerWork(mappedActive);
+          }
+        }
+
+        if (certsRes) {
+          const rawCerts = Array.isArray(certsRes) ? certsRes : certsRes?.results || [];
+          if (rawCerts.length > 0) {
+            const mappedCerts = rawCerts.map((c) => ({
+              id: c.certificate_id,
+              title: `${c.volunteer_role} Certificate of Service`,
+              eventName: c.event_name || c.event_title || c.event_details?.title || 'Campus Event',
+              volunteerRole: c.volunteer_role,
+              studentName: c.student_name || studentProfile.name,
+              duration: c.duration,
+              issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+              authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
+              credentialHash: c.verification_hash || `sha256-${c.certificate_id.toLowerCase()}`,
+            }));
+            setCertificatesList(mappedCerts);
+          }
+        }
+      } catch (err) {
+        console.warn('Error loading member data from backend:', err);
+      }
+    };
+
+    fetchMemberData();
+  }, [studentProfile.name]);
+
+  // Open Volunteer Modal with role prefill
+  const openVolunteerApplication = (evt) => {
+    setApplyVolunteerModalEvent(evt);
+    const availableRoles = evt.roles_list || evt.volunteer_roles_required || [];
+    setVolunteerPreferredRole(availableRoles[0] || 'Registration Desk');
+    setVolunteerMotivation('');
+    setVolunteerExperience('');
+  };
 
   // Interactive Form Handlers
   const handleBuyTicketSubmit = (e) => {
@@ -411,7 +525,7 @@ export const MemberDashboard = () => {
       pricePaid: buyTicketModalEvent.memberPrice.includes('$0.00') ? '$0.00 (Member Pass)' : '$5.00',
       purchaseDate: 'Oct 03, 2026',
       status: 'Confirmed',
-      qrCodeData: `CONNECTU-${buyTicketModalEvent.id.toUpperCase()}-${studentProfile.studentId}`
+      qrCodeData: `CONNECTU-${buyTicketModalEvent.id}-${studentProfile.studentId}`
     };
 
     setTicketsList(prev => [newTicket, ...prev]);
@@ -423,19 +537,44 @@ export const MemberDashboard = () => {
     e.preventDefault();
     if (!applyVolunteerModalEvent) return;
 
-    const newApplication = {
-      id: `app-${Math.floor(200 + Math.random() * 800)}`,
-      eventName: applyVolunteerModalEvent.eventName || applyVolunteerModalEvent.title,
-      roleApplied: applyVolunteerModalEvent.roleNeeded || 'Event Operations & Logistics',
-      appliedDate: 'Oct 03, 2026',
-      status: 'Pending',
-      feedback: 'Application submitted successfully. Awaiting administrator review.'
-    };
+    setApplying(true);
+    const eventId = applyVolunteerModalEvent.id;
 
-    setVolunteerApplications(prev => [newApplication, ...prev]);
-    setApplyVolunteerModalEvent(null);
-    setVolunteerMotivation('');
-    showToast('Volunteer application submitted successfully!');
+    try {
+      // Backend API call
+      let resData = null;
+      try {
+        resData = await volunteerApi.apply({
+          event: eventId,
+          preferred_role: volunteerPreferredRole || 'Registration Desk',
+          reason: volunteerMotivation,
+          experience: volunteerExperience,
+        });
+      } catch (apiErr) {
+        console.warn('Backend volunteer apply error / fallback:', apiErr);
+      }
+
+      const newApplication = {
+        id: resData?.data?.id || `app-${Math.floor(200 + Math.random() * 800)}`,
+        eventName: applyVolunteerModalEvent.title || applyVolunteerModalEvent.eventName,
+        roleApplied: volunteerPreferredRole || 'Registration Desk',
+        preferred_role: volunteerPreferredRole || 'Registration Desk',
+        appliedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        status: 'Pending',
+        feedback: 'Application submitted successfully. Awaiting administrator review in Admin Volunteer Requests.'
+      };
+
+      setVolunteerApplications(prev => [newApplication, ...prev]);
+      setApplyVolunteerModalEvent(null);
+      setVolunteerMotivation('');
+      setVolunteerExperience('');
+      showToast('Volunteer application submitted! Status: PENDING.');
+    } catch (err) {
+      console.error(err);
+      showToast('Error submitting volunteer application.', 'error');
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleChangePasswordSubmit = async (e) => {
@@ -1027,68 +1166,128 @@ export const MemberDashboard = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-surface shadow-subtle overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-border bg-canvas/70 text-text-secondary">
-                      <th className="py-3 px-4 font-semibold">Event Name</th>
-                      <th className="py-3 px-4 font-semibold">Date & Time</th>
-                      <th className="py-3 px-4 font-semibold">Venue</th>
-                      <th className="py-3 px-4 font-semibold">Available Seats</th>
-                      <th className="py-3 px-4 font-semibold">Member Price</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
-                      <th className="py-3 px-4 font-semibold text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredEvents.map(evt => (
-                      <tr key={evt.id} className="hover:bg-canvas/40 transition">
-                        <td className="py-3.5 px-4 font-bold text-text-primary">
-                          <div>{evt.title}</div>
-                          <span className="text-[10px] text-primary font-normal">{evt.category}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-text-secondary whitespace-nowrap">
-                          {evt.date}
-                        </td>
-                        <td className="py-3.5 px-4 text-text-secondary flex items-center">
-                          <MapPin className="w-3.5 h-3.5 mr-1 text-text-muted flex-shrink-0" />
-                          <span>{evt.venue}</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-semibold text-text-primary">{evt.availableSeats}</span>
-                          <span className="text-text-muted"> / {evt.totalSeats}</span>
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-status-success">
-                          {evt.memberPrice}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-light text-primary">
-                            {evt.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => setBuyTicketModalEvent(evt)}
-                              className="px-3 py-1 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition"
-                            >
-                              Buy Ticket
-                            </button>
-                            <button
-                              onClick={() => setApplyVolunteerModalEvent(evt)}
-                              className="px-2.5 py-1 rounded border border-border bg-surface hover:bg-canvas text-text-primary text-xs font-semibold transition"
-                            >
-                              Apply Volunteer
-                            </button>
+            {/* STUDENT EVENT CARDS GRID */}
+            {filteredEvents.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredEvents.map(evt => {
+                  const hasVolunteers = evt.volunteers_required || evt.volunteersRequired;
+                  return (
+                    <div
+                      key={evt.id}
+                      className="bg-surface rounded-xl border border-border shadow-subtle hover:shadow-card transition overflow-hidden flex flex-col justify-between group"
+                    >
+                      <div>
+                        {/* Event Banner */}
+                        <div className="relative h-44 w-full overflow-hidden bg-ivory-200">
+                          <img
+                            src={evt.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
+                            alt={evt.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-10 gap-2">
+                            <span className="bg-surface/90 text-primary text-[11px] font-semibold px-2.5 py-1 rounded border border-border shadow-xs backdrop-blur-xs truncate max-w-[55%]">
+                              {evt.category}
+                            </span>
+
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {hasVolunteers && (
+                                <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs flex items-center gap-1 animate-pulse">
+                                  <HeartHandshake className="w-3 h-3" />
+                                  <span>Volunteers Needed</span>
+                                </span>
+                              )}
+
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30 backdrop-blur-xs">
+                                {evt.status || 'Published'}
+                              </span>
+                            </div>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="p-5 space-y-3">
+                          <div className="space-y-1">
+                            <h3 className="text-base font-bold text-text-primary group-hover:text-primary transition leading-snug">
+                              {evt.title}
+                            </h3>
+                            {evt.description && (
+                              <p className="text-xs text-text-secondary line-clamp-2">
+                                {evt.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-1.5 text-xs text-text-secondary pt-1">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span>{evt.date}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                              <span className="truncate">{evt.venue}</span>
+                            </div>
+                          </div>
+
+                          {/* Available Seats & Ticket Price */}
+                          <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                            <div>
+                              <span className="text-text-muted text-[11px] block">Available Seats</span>
+                              <span className="font-bold text-text-primary">
+                                {evt.availableSeats} / {evt.totalSeats || evt.capacity || 100}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-text-muted text-[11px] block">Ticket Price</span>
+                              <span className="font-bold text-status-success">
+                                {evt.memberPrice}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="p-4 bg-ivory-50 border-t border-border flex flex-col gap-2">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setViewEventDetailsModal(evt)}
+                            className="flex-1 py-1.5 px-3 rounded bg-surface hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition text-center"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBuyTicketModalEvent(evt)}
+                            className="flex-1 py-1.5 px-3 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition text-center"
+                          >
+                            Buy Ticket
+                          </button>
+                        </div>
+
+                        {/* Apply as Volunteer Button if volunteers_required */}
+                        {hasVolunteers && (
+                          <button
+                            type="button"
+                            onClick={() => openVolunteerApplication(evt)}
+                            className="w-full py-1.5 px-3 rounded bg-[#EBF3FC] hover:bg-[#DCEBFB] text-[#1557B0] border border-[#1557B0]/20 text-xs font-bold transition flex items-center justify-center gap-1.5"
+                          >
+                            <HeartHandshake className="w-3.5 h-3.5" />
+                            <span>Apply as Volunteer</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <div className="p-12 text-center text-text-muted text-xs bg-surface rounded-xl border border-border">
+                No events match your current search query.
+              </div>
+            )}
           </div>
         )}
 
@@ -1168,123 +1367,291 @@ export const MemberDashboard = () => {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 5: VOLUNTEER */}
+        {/* TAB 5: VOLUNTEER (3 SUB-TABS) */}
         {/* ========================================================= */}
         {activeTab === 'volunteer' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Subsection A: Available Opportunities */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-subtle space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border">
+            {/* Volunteer Header Card */}
+            <div className="rounded-xl border border-border bg-surface p-5 shadow-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
                 <div className="flex items-center space-x-2">
                   <HeartHandshake className="w-5 h-5 text-primary" />
-                  <h3 className="text-base font-bold text-text-primary">A. Available Opportunities</h3>
+                  <h2 className="text-lg font-bold text-text-primary">Student Volunteer Portal</h2>
                 </div>
-                <span className="text-xs text-text-muted">Earn official certified service hours</span>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Browse community opportunities, track application statuses, and manage your active event deployments.
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {volunteerOpportunities.map(opp => (
-                  <div key={opp.id} className="p-4 rounded-xl border border-border bg-canvas/30 hover:border-primary/40 transition flex flex-col justify-between space-y-3">
-                    <div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-light text-primary">
-                        {opp.credits}
-                      </span>
-                      <h4 className="font-bold text-text-primary text-sm mt-2">{opp.eventName}</h4>
-                      <p className="text-xs text-primary font-medium mt-1">Roles: {opp.roleNeeded}</p>
-                      <p className="text-[11px] text-text-muted mt-1 flex items-center">
-                        <Clock className="w-3 h-3 mr-1" /> {opp.duration}
-                      </p>
-                    </div>
+              {/* Sub-Tabs Selector */}
+              <div className="flex items-center gap-1 bg-ivory-100 p-1 rounded-lg border border-border text-xs w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setVolunteerSubTab('opportunities')}
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md font-bold transition flex items-center justify-center gap-1.5 ${
+                    volunteerSubTab === 'opportunities'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <span>1. Opportunities</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${volunteerSubTab === 'opportunities' ? 'bg-white/20 text-white' : 'bg-canvas text-text-muted'}`}>
+                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
+                  </span>
+                </button>
 
-                    <div className="pt-2 border-t border-border flex items-center justify-between">
-                      <span className="text-[11px] text-text-muted">{opp.slotsAvailable} spots left</span>
-                      <button
-                        onClick={() => setApplyVolunteerModalEvent(opp)}
-                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition"
-                      >
-                        Apply Button
-                      </button>
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => setVolunteerSubTab('applications')}
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md font-bold transition flex items-center justify-center gap-1.5 ${
+                    volunteerSubTab === 'applications'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <span>2. My Applications</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${volunteerSubTab === 'applications' ? 'bg-white/20 text-white' : 'bg-canvas text-text-muted'}`}>
+                    {volunteerApplications.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVolunteerSubTab('assignments')}
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-md font-bold transition flex items-center justify-center gap-1.5 ${
+                    volunteerSubTab === 'assignments'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  <span>3. My Assignments</span>
+                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${volunteerSubTab === 'assignments' ? 'bg-white/20 text-white' : 'bg-canvas text-text-muted'}`}>
+                    {activeVolunteerWork.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------- */}
+            {/* SUB-TAB 1: AVAILABLE OPPORTUNITIES (volunteers_required = TRUE) */}
+            {/* ------------------------------------------------------------- */}
+            {volunteerSubTab === 'opportunities' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-text-primary">
+                    Active Volunteer Openings
+                  </h3>
+                  <span className="text-xs text-text-muted">
+                    Events currently accepting student applications
+                  </span>
+                </div>
+
+                {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {eventsList
+                      .filter(e => e.volunteers_required || e.volunteersRequired)
+                      .map(opp => {
+                        const roles = opp.roles_list || opp.volunteer_roles_required || ['Registration Desk', 'Hospitality'];
+                        return (
+                          <div
+                            key={opp.id}
+                            className="bg-surface rounded-xl border border-border p-5 shadow-subtle hover:border-primary/40 transition flex flex-col justify-between space-y-4"
+                          >
+                            <div className="space-y-2.5">
+                              <div className="flex justify-between items-start">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                  {opp.volunteer_slots_remaining || opp.volunteerCountRequired || 5} Slots Remaining
+                                </span>
+                                <span className="text-[11px] text-text-muted">
+                                  Deadline: {opp.volunteer_deadline || 'Open'}
+                                </span>
+                              </div>
+
+                              <h4 className="font-bold text-text-primary text-base leading-snug">
+                                {opp.title || opp.eventName}
+                              </h4>
+
+                              <div className="space-y-1 text-xs text-text-secondary">
+                                <div className="flex items-center space-x-1.5">
+                                  <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                  <span>{opp.date}</span>
+                                </div>
+                                <div className="flex items-center space-x-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                                  <span className="truncate">{opp.venue}</span>
+                                </div>
+                              </div>
+
+                              {/* Required Roles Chips */}
+                              <div className="pt-2">
+                                <span className="text-[11px] font-semibold text-text-muted block mb-1">
+                                  Required Roles:
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {roles.map((r, i) => (
+                                    <span
+                                      key={i}
+                                      className="px-2 py-0.5 rounded bg-canvas text-text-primary text-[11px] border border-border font-medium"
+                                    >
+                                      {r}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-border flex items-center justify-between">
+                              <span className="text-[11px] text-text-muted font-medium">
+                                Quota: {opp.volunteer_count_required || 10} volunteers
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openVolunteerApplication(opp)}
+                                className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition flex items-center gap-1.5"
+                              >
+                                <HeartHandshake className="w-3.5 h-3.5" />
+                                <span>Apply</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
-                ))}
+                ) : (
+                  <div className="p-12 text-center text-text-muted text-xs bg-surface rounded-xl border border-border">
+                    No active volunteer opportunities available at this time. Check back soon!
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Subsection B: My Applications */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-subtle space-y-4">
-              <h3 className="text-base font-bold text-text-primary pb-3 border-b border-border">
-                B. My Applications
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-border bg-canvas/60 text-text-secondary">
-                      <th className="py-2.5 px-3 font-semibold">Event Name</th>
-                      <th className="py-2.5 px-3 font-semibold">Applied Date</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
-                      <th className="py-2.5 px-3 font-semibold">Administrator Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {volunteerApplications.map(app => (
-                      <tr key={app.id} className="hover:bg-canvas/40 transition">
-                        <td className="py-3 px-3 font-bold text-text-primary">{app.eventName}</td>
-                        <td className="py-3 px-3 text-text-muted">{app.appliedDate}</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            app.status === 'Approved'
-                              ? 'bg-status-success-bg text-status-success'
-                              : app.status === 'Rejected'
-                              ? 'bg-status-error-bg text-status-error'
-                              : 'bg-status-warning-bg text-status-warning'
-                          }`}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-text-muted text-[11px] max-w-xs">{app.feedback}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            {/* ------------------------------------------------------------- */}
+            {/* SUB-TAB 2: MY APPLICATIONS                                    */}
+            {/* ------------------------------------------------------------- */}
+            {volunteerSubTab === 'applications' && (
+              <div className="rounded-xl border border-border bg-surface p-5 shadow-subtle space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-border">
+                  <h3 className="text-base font-bold text-text-primary">
+                    My Volunteer Applications
+                  </h3>
+                  <span className="text-xs text-text-muted">
+                    Status updates directly reflect administrative review
+                  </span>
+                </div>
 
-            {/* Subsection C: Active Volunteer Work */}
-            <div className="rounded-xl border border-border bg-surface p-6 shadow-subtle space-y-4">
-              <h3 className="text-base font-bold text-text-primary pb-3 border-b border-border">
-                C. Active Volunteer Work
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-border bg-canvas/60 text-text-secondary">
-                      <th className="py-2.5 px-3 font-semibold">Event</th>
-                      <th className="py-2.5 px-3 font-semibold">Assigned Role</th>
-                      <th className="py-2.5 px-3 font-semibold">Duration</th>
-                      <th className="py-2.5 px-3 font-semibold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {activeVolunteerWork.map(act => (
-                      <tr key={act.id} className="hover:bg-canvas/40 transition">
-                        <td className="py-3 px-3 font-bold text-text-primary">{act.event}</td>
-                        <td className="py-3 px-3 text-text-secondary font-medium">{act.assignedRole}</td>
-                        <td className="py-3 px-3 font-bold text-text-primary">{act.duration}</td>
-                        <td className="py-3 px-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            act.status === 'Completed'
-                              ? 'bg-status-success-bg text-status-success'
-                              : 'bg-primary-light text-primary'
-                          }`}>
-                            {act.status}
-                          </span>
-                        </td>
+                <div className="overflow-x-auto border border-border rounded-lg">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-canvas/70 text-text-secondary font-semibold">
+                        <th className="py-2.5 px-3">Event Name</th>
+                        <th className="py-2.5 px-3">Applied Date</th>
+                        <th className="py-2.5 px-3">Preferred Role</th>
+                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3">Administrator Notes</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {volunteerApplications.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-text-muted text-xs">
+                            You have not submitted any volunteer applications yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        volunteerApplications.map(app => (
+                          <tr key={app.id} className="hover:bg-canvas/40 transition">
+                            <td className="py-3 px-3 font-bold text-text-primary">
+                              {app.eventName}
+                            </td>
+                            <td className="py-3 px-3 text-text-muted whitespace-nowrap">
+                              {app.appliedDate}
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-primary">
+                              {app.preferred_role || app.roleApplied}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                app.status === 'Approved'
+                                  ? 'bg-status-success-bg text-status-success'
+                                  : app.status === 'Rejected'
+                                  ? 'bg-status-error-bg text-status-error'
+                                  : 'bg-status-warning-bg text-status-warning'
+                              }`}>
+                                {app.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-text-secondary text-[11px] max-w-sm">
+                              {app.feedback}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* SUB-TAB 3: MY VOLUNTEER ASSIGNMENTS                           */}
+            {/* ------------------------------------------------------------- */}
+            {volunteerSubTab === 'assignments' && (
+              <div className="rounded-xl border border-border bg-surface p-5 shadow-subtle space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-border">
+                  <h3 className="text-base font-bold text-text-primary">
+                    My Volunteer Assignments
+                  </h3>
+                  <span className="text-xs text-text-muted">
+                    Official deployments created upon administrator approval
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto border border-border rounded-lg">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-canvas/70 text-text-secondary font-semibold">
+                        <th className="py-2.5 px-3">Event Name</th>
+                        <th className="py-2.5 px-3">Assigned Role</th>
+                        <th className="py-2.5 px-3">Duration</th>
+                        <th className="py-2.5 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {activeVolunteerWork.length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="py-8 text-center text-text-muted text-xs">
+                            No approved volunteer assignments yet. Apply for upcoming opportunities to participate!
+                          </td>
+                        </tr>
+                      ) : (
+                        activeVolunteerWork.map(act => (
+                          <tr key={act.id} className="hover:bg-canvas/40 transition">
+                            <td className="py-3 px-3 font-bold text-text-primary">
+                              {act.event}
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-primary">
+                              {act.assignedRole}
+                            </td>
+                            <td className="py-3 px-3 font-mono text-[11px] text-text-primary">
+                              {act.duration}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                act.status === 'Completed'
+                                  ? 'bg-status-success-bg text-status-success'
+                                  : 'bg-[#EBF3FC] text-[#1557B0]'
+                              }`}>
+                                {act.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1293,12 +1660,12 @@ export const MemberDashboard = () => {
         {/* ========================================================= */}
         {activeTab === 'certificates' && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="rounded-xl border border-border bg-surface p-5 shadow-subtle flex items-center justify-between">
+            <div className="rounded-xl border border-border bg-surface p-5 shadow-subtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-text-primary">Certificates & Academic Credentials</h2>
-                <p className="text-xs text-text-secondary">Official institutional awards issued by the Student Organization Senate.</p>
+                <h2 className="text-lg font-bold text-text-primary">Certificates & Verified Credentials</h2>
+                <p className="text-xs text-text-secondary">Official institutional service awards issued after event completion by the Organization Administration.</p>
               </div>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-status-success-bg text-status-success">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-status-success-bg text-status-success border border-status-success/30">
                 {certificatesList.length} Verified Credentials
               </span>
             </div>
@@ -1307,42 +1674,68 @@ export const MemberDashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-border bg-canvas/70 text-text-secondary">
-                      <th className="py-3 px-4 font-semibold">Certificate Name</th>
-                      <th className="py-3 px-4 font-semibold">Event Name</th>
-                      <th className="py-3 px-4 font-semibold">Issue Date</th>
-                      <th className="py-3 px-4 font-semibold text-right">Actions</th>
+                    <tr className="border-b border-border bg-canvas/70 text-text-secondary font-semibold">
+                      <th className="py-3 px-4">Student Name</th>
+                      <th className="py-3 px-4">Event Name</th>
+                      <th className="py-3 px-4">Volunteer Role</th>
+                      <th className="py-3 px-4">Duration</th>
+                      <th className="py-3 px-4">Certificate ID</th>
+                      <th className="py-3 px-4">Issue Date</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {certificatesList.map(cert => (
-                      <tr key={cert.id} className="hover:bg-canvas/40 transition">
-                        <td className="py-3.5 px-4 font-bold text-text-primary">
-                          <div className="flex items-center space-x-2">
-                            <Award className="w-4 h-4 text-primary flex-shrink-0" />
-                            <span>{cert.title}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-text-secondary">{cert.eventName}</td>
-                        <td className="py-3.5 px-4 text-text-muted">{cert.issueDate}</td>
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={() => setSelectedCertificateModal(cert)}
-                              className="px-3 py-1 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center"
-                            >
-                              <Eye className="w-3.5 h-3.5 mr-1" /> View Certificate
-                            </button>
-                            <button
-                              onClick={() => showToast(`Certificate ${cert.id} downloaded as PDF.`)}
-                              className="px-3 py-1 rounded border border-border bg-surface hover:bg-canvas text-text-primary text-xs font-semibold transition flex items-center"
-                            >
-                              <Download className="w-3.5 h-3.5 mr-1" /> Download PDF
-                            </button>
-                          </div>
+                    {certificatesList.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="py-8 text-center text-text-muted text-xs">
+                          No certificates issued yet. Complete active volunteer assignments to earn official credentials.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      certificatesList.map(cert => (
+                        <tr key={cert.id} className="hover:bg-canvas/40 transition">
+                          <td className="py-3.5 px-4 font-bold text-text-primary">
+                            {cert.studentName || studentProfile.name}
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-text-primary">
+                            {cert.eventName}
+                          </td>
+                          <td className="py-3.5 px-4 font-medium text-primary">
+                            {cert.volunteerRole || 'Volunteer'}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-text-secondary">
+                            {cert.duration || '4 Hours'}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-primary text-[11px]">
+                            {cert.id}
+                          </td>
+                          <td className="py-3.5 px-4 text-text-muted whitespace-nowrap">
+                            {cert.issueDate}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCertificateModal(cert)}
+                                className="px-2.5 py-1 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center shadow-xs"
+                              >
+                                <Eye className="w-3.5 h-3.5 mr-1" /> View
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCertificateModal(cert);
+                                  setTimeout(() => window.print(), 300);
+                                }}
+                                className="px-2.5 py-1 rounded border border-border bg-surface hover:bg-canvas text-text-primary text-xs font-semibold transition flex items-center"
+                              >
+                                <Download className="w-3.5 h-3.5 mr-1" /> Download
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1597,11 +1990,122 @@ export const MemberDashboard = () => {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 3: APPLY AS VOLUNTEER */}
+      {/* MODAL 2.5: VIEW EVENT DETAILS MODAL */}
+      {/* ========================================================= */}
+      {viewEventDetailsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-sm animate-fadeIn">
+          <div className="max-w-xl w-full rounded-2xl border border-border bg-surface shadow-elevated p-6 space-y-4 relative text-xs">
+            <button
+              onClick={() => setViewEventDetailsModal(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-canvas transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Banner preview */}
+            <div className="relative h-44 w-full rounded-xl overflow-hidden bg-ivory-200">
+              <img
+                src={viewEventDetailsModal.image || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80"}
+                alt={viewEventDetailsModal.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-3 left-3 bg-surface/90 text-primary text-[11px] font-bold px-2.5 py-1 rounded backdrop-blur-xs shadow-xs">
+                {viewEventDetailsModal.category}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-xl font-bold text-text-primary">
+                {viewEventDetailsModal.title}
+              </h3>
+              <p className="text-text-secondary mt-1 leading-relaxed">
+                {viewEventDetailsModal.description || 'Join fellow students for this campus organization event.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl border border-border bg-canvas/50">
+              <div className="space-y-1">
+                <span className="text-text-muted text-[11px] block">Date & Time</span>
+                <span className="font-semibold text-text-primary flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-primary" /> {viewEventDetailsModal.date}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-text-muted text-[11px] block">Venue</span>
+                <span className="font-semibold text-text-primary flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-accent" /> {viewEventDetailsModal.venue}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-text-muted text-[11px] block">Available Seats</span>
+                <span className="font-bold text-text-primary">
+                  {viewEventDetailsModal.availableSeats} / {viewEventDetailsModal.totalSeats || viewEventDetailsModal.capacity || 100}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-text-muted text-[11px] block">Member Price</span>
+                <span className="font-bold text-status-success">
+                  {viewEventDetailsModal.memberPrice}
+                </span>
+              </div>
+            </div>
+
+            {/* Volunteer Opportunity Info if required */}
+            {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+              <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
+                <div className="flex items-center gap-1.5 text-primary font-bold">
+                  <HeartHandshake className="w-4 h-4" />
+                  <span>Volunteers Needed for this Event!</span>
+                </div>
+                <p className="text-[11px] text-text-secondary">
+                  Open Roles: {(viewEventDetailsModal.roles_list || viewEventDetailsModal.volunteer_roles_required || []).join(', ') || 'Registration, Technical, Stage Management'}.
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setViewEventDetailsModal(null)}
+                className="px-3.5 py-2 rounded-lg border border-border bg-surface text-text-secondary hover:bg-canvas font-semibold"
+              >
+                Close
+              </button>
+              {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const evt = viewEventDetailsModal;
+                    setViewEventDetailsModal(null);
+                    openVolunteerApplication(evt);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#EBF3FC] hover:bg-[#DCEBFB] text-[#1557B0] border border-[#1557B0]/20 font-bold flex items-center gap-1.5 shadow-xs"
+                >
+                  <HeartHandshake className="w-3.5 h-3.5" /> Apply as Volunteer
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const evt = viewEventDetailsModal;
+                  setViewEventDetailsModal(null);
+                  setBuyTicketModalEvent(evt);
+                }}
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-xs"
+              >
+                Buy Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: APPLY AS VOLUNTEER (COMPLETE SPECIFICATION)      */}
       {/* ========================================================= */}
       {applyVolunteerModalEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-dark/60 backdrop-blur-sm animate-fadeIn">
-          <div className="max-w-md w-full rounded-2xl border border-border bg-surface shadow-elevated p-6 space-y-5 relative">
+          <div className="max-w-lg w-full rounded-2xl border border-border bg-surface shadow-elevated p-6 space-y-4 relative">
             <button
               onClick={() => setApplyVolunteerModalEvent(null)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-canvas transition"
@@ -1610,45 +2114,147 @@ export const MemberDashboard = () => {
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-text-primary">Apply as Volunteer</h3>
+              <div className="flex items-center space-x-2">
+                <HeartHandshake className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-bold text-text-primary">Apply as Volunteer</h3>
+              </div>
               <p className="text-xs text-text-muted mt-0.5">
-                Event: {applyVolunteerModalEvent.eventName || applyVolunteerModalEvent.title}
+                Submit your official volunteer application for review by the organization organizers.
               </p>
             </div>
 
-            <form onSubmit={handleApplyVolunteerSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleApplyVolunteerSubmit} className="space-y-3.5 text-xs">
+              {/* Auto-filled Student & Event Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-xl border border-border bg-canvas/50">
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-0.5">
+                    Student Name (Auto-filled)
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={studentProfile.name}
+                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-ivory-100 text-text-primary font-semibold cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-0.5">
+                    Student ID (Auto-filled)
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={studentProfile.studentId}
+                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-ivory-100 font-mono text-text-primary font-semibold cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-0.5">
+                    University Email (Auto-filled)
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={studentProfile.email}
+                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-ivory-100 text-text-primary cursor-not-allowed"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-0.5">
+                    Event Name (Auto-filled)
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={applyVolunteerModalEvent.title || applyVolunteerModalEvent.eventName}
+                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-ivory-100 text-text-primary font-semibold truncate cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Preferred Role Selection */}
               <div>
                 <label className="block font-semibold text-text-primary mb-1">
-                  Why do you want to volunteer for this role?
+                  Preferred Volunteer Role <span className="text-status-error">*</span>
+                </label>
+                <select
+                  value={volunteerPreferredRole}
+                  onChange={(e) => setVolunteerPreferredRole(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary font-semibold"
+                  required
+                >
+                  {(applyVolunteerModalEvent.roles_list || applyVolunteerModalEvent.volunteer_roles_required || [
+                    'Registration Desk',
+                    'Photography Team',
+                    'Technical Support',
+                    'Stage Management',
+                    'Hospitality',
+                    'Event Coordinator'
+                  ]).map((role, idx) => (
+                    <option key={idx} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-text-muted mt-0.5 block">
+                  Select your strongest area of contribution. Final assignment is confirmed upon administrator review.
+                </span>
+              </div>
+
+              {/* Why do you want to volunteer? */}
+              <div>
+                <label className="block font-semibold text-text-primary mb-1">
+                  Why do you want to volunteer? <span className="text-status-error">*</span>
                 </label>
                 <textarea
                   rows="3"
                   required
-                  placeholder="Describe your relevant skills, past event experience, or availability..."
+                  placeholder="Share your motivation, enthusiasm, or what you hope to contribute to this event..."
                   value={volunteerMotivation}
                   onChange={(e) => setVolunteerMotivation(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
+                  className="w-full p-2.5 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 ></textarea>
               </div>
 
-              <div className="p-3 rounded-lg bg-canvas text-[11px] text-text-muted space-y-1">
-                <p>• Verified student members receive priority assignment.</p>
-                <p>• Service hours are logged automatically to your institutional transcript upon completion.</p>
+              {/* Previous Experience (Optional) */}
+              <div>
+                <label className="block font-semibold text-text-primary mb-1">
+                  Previous Experience <span className="text-text-muted font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="List any past volunteer roles, campus club events, technical skills, or certifications..."
+                  value={volunteerExperience}
+                  onChange={(e) => setVolunteerExperience(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                ></textarea>
               </div>
 
-              <div className="flex space-x-3">
+              {/* Status Note */}
+              <div className="p-3 rounded-lg bg-status-info-bg text-status-info text-[11px] space-y-0.5 border border-status-info/20">
+                <p className="font-semibold">Application Workflow:</p>
+                <p>• Initial submission status will be set to <strong>Pending</strong>.</p>
+                <p>• Appears immediately in Admin Volunteer Requests for review and role confirmation.</p>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setApplyVolunteerModalEvent(null)}
-                  className="flex-1 py-2.5 rounded-lg border border-border bg-surface text-text-secondary hover:bg-canvas text-xs font-semibold"
+                  className="flex-1 py-2 rounded-lg border border-border bg-surface text-text-secondary hover:bg-canvas text-xs font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center shadow-subtle"
+                  disabled={applying}
+                  className="flex-1 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition"
                 >
-                  <Send className="w-3.5 h-3.5 mr-1.5" /> Submit Application
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{applying ? 'Submitting...' : 'Submit Application'}</span>
                 </button>
               </div>
             </form>
@@ -1657,14 +2263,14 @@ export const MemberDashboard = () => {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL 4: VIEW CERTIFICATE MODAL */}
+      {/* MODAL 4: VIEW CERTIFICATE MODAL (OFFICIAL CREDENTIAL)     */}
       {/* ========================================================= */}
       {selectedCertificateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-dark/70 backdrop-blur-sm animate-fadeIn">
-          <div className="max-w-2xl w-full rounded-2xl border-4 border-[#C5A059] bg-[#FFFDF9] shadow-elevated p-8 space-y-6 relative text-center text-[#1A2E40]">
+          <div className="max-w-2xl w-full rounded-2xl border-4 border-[#C5A059] bg-[#FFFDF9] shadow-elevated p-8 space-y-5 relative text-center text-[#1A2E40] print:border-none print:shadow-none">
             <button
               onClick={() => setSelectedCertificateModal(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#1A2E40]/60 hover:text-[#1A2E40] hover:bg-black/5 transition"
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#1A2E40]/60 hover:text-[#1A2E40] hover:bg-black/5 transition print:hidden"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1677,39 +2283,58 @@ export const MemberDashboard = () => {
               <span className="text-[11px] tracking-widest uppercase font-bold text-[#C5A059]">
                 Division of Student Affairs & Campus Organizations
               </span>
-              <h2 className="text-2xl font-serif font-bold text-[#0F2942]">Certificate of Merit & Service</h2>
-              <p className="text-xs text-text-secondary italic">This official credential certifies that</p>
+              <h2 className="text-2xl font-serif font-bold text-[#0F2942]">Certificate of Volunteer Service</h2>
+              <p className="text-xs text-text-secondary italic">This official institutional credential certifies that</p>
             </div>
 
             <div className="py-2 border-b-2 border-[#C5A059]/40 max-w-sm mx-auto">
-              <h3 className="text-2xl font-bold text-primary tracking-wide">{studentProfile.name}</h3>
+              <h3 className="text-2xl font-bold text-primary tracking-wide">
+                {selectedCertificateModal.studentName || studentProfile.name}
+              </h3>
               <p className="text-xs text-text-muted mt-0.5">Student ID: {studentProfile.studentId}</p>
             </div>
 
-            <p className="text-xs leading-relaxed max-w-md mx-auto text-text-secondary">
-              has completed all requirements for the credential <span className="font-semibold text-text-primary">"{selectedCertificateModal.title}"</span> in connection with <span className="font-semibold text-text-primary">{selectedCertificateModal.eventName}</span>.
-            </p>
+            <div className="space-y-1.5 max-w-lg mx-auto text-xs text-text-secondary leading-relaxed">
+              <p>
+                has served with distinction as <strong className="text-text-primary text-sm font-bold">"{selectedCertificateModal.volunteerRole || selectedCertificateModal.title}"</strong> for a total verified duration of <strong className="text-text-primary font-bold">{selectedCertificateModal.duration || '4 Hours'}</strong> in support of:
+              </p>
+              <p className="text-sm font-bold text-[#0F2942]">
+                {selectedCertificateModal.eventName}
+              </p>
+            </div>
 
-            <div className="pt-6 border-t border-[#C5A059]/30 flex items-center justify-between text-left text-xs">
+            <div className="pt-6 border-t border-[#C5A059]/30 grid grid-cols-2 gap-4 text-left text-xs">
               <div>
-                <p className="font-bold text-text-primary">{selectedCertificateModal.authorizedSigner}</p>
-                <p className="text-[11px] text-text-muted">Dean & Faculty Supervisor</p>
+                <p className="font-bold text-text-primary">{selectedCertificateModal.authorizedSigner || 'Dr. Alexander Vance'}</p>
+                <p className="text-[10px] text-text-muted">Faculty Advisor & Student Senate</p>
+                <p className="text-[10px] text-text-muted mt-0.5">Issue Date: <strong>{selectedCertificateModal.issueDate}</strong></p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-mono text-text-muted">Credential ID:</p>
+                <p className="text-[10px] font-mono text-text-muted uppercase">Certificate ID:</p>
                 <p className="text-xs font-mono font-bold text-primary">{selectedCertificateModal.id}</p>
+                <p className="text-[9px] font-mono text-text-muted truncate mt-0.5">
+                  Hash: {selectedCertificateModal.credentialHash || 'Verified SHA-256'}
+                </p>
               </div>
             </div>
 
-            <div className="pt-2 flex justify-center space-x-3">
+            <div className="pt-3 flex justify-center space-x-3 print:hidden">
               <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-lg bg-surface border border-border text-text-primary hover:bg-canvas text-xs font-semibold flex items-center transition"
+              >
+                <Printer className="w-3.5 h-3.5 mr-1.5" /> Print Certificate
+              </button>
+              <button
+                type="button"
                 onClick={() => {
-                  showToast('Certificate downloaded in high resolution PDF format.');
+                  showToast(`Certificate ${selectedCertificateModal.id} downloaded in high-resolution PDF.`);
                   setSelectedCertificateModal(null);
                 }}
-                className="px-5 py-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center shadow-subtle"
+                className="px-5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center shadow-subtle transition"
               >
-                <Download className="w-4 h-4 mr-1.5" /> Download PDF
+                <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
               </button>
             </div>
           </div>

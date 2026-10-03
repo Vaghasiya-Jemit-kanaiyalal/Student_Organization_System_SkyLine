@@ -9,6 +9,7 @@ import { AdminMerchManager } from '../../components/merchandise/AdminMerchManage
 import { FundraisersManagementModule } from '../../components/fundraisers/FundraisersManagementModule';
 import { useTreasurer } from '../../context/TreasurerContext';
 import { TreasurerModal } from '../../components/admin/TreasurerModal';
+import { AdminVolunteerControl } from '../../components/volunteers/AdminVolunteerControl';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -705,105 +706,7 @@ export const AdminDashboard = () => {
         {/* ========================================================= */}
         {activeTab === 'volunteers' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Top Volunteer Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Total Certified Hours
-                </span>
-                <p className="text-2xl font-bold text-primary mt-1">
-                  420 Hours
-                </p>
-                <span className="text-[11px] text-status-success font-medium">Ratified under Dean Honor Program</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Pending Verification
-                </span>
-                <p className="text-2xl font-bold text-accent mt-1">
-                  {volunteerHours.filter(v => v.status === 'PENDING').reduce((acc, curr) => acc + curr.hours, 0)} Hours
-                </p>
-                <span className="text-[11px] text-text-muted">Awaiting Advisor Signature</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Registrar Credits
-                </span>
-                <p className="text-2xl font-bold text-text-primary mt-1">
-                  28 Students Awarded
-                </p>
-                <span className="text-[11px] text-text-muted">Official academic transcript notation</span>
-              </div>
-            </div>
-
-            {/* Volunteer Control Table */}
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-border">
-                <div>
-                  <h2 className="text-xl font-bold text-text-primary">
-                    Volunteer Verification & Hour Allocation
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Review student community service submissions and certify official transcript credits
-                  </p>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
-                    <tr>
-                      <th className="py-3 px-4">Student Volunteer</th>
-                      <th className="py-3 px-4">Initiative / Event</th>
-                      <th className="py-3 px-4">Hours Logged</th>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {volunteerHours.map((vol) => (
-                      <tr key={vol.id} className="hover:bg-ivory-50 transition">
-                        <td className="py-3 px-4">
-                          <p className="font-semibold text-text-primary">{vol.studentName}</p>
-                          <p className="text-[10px] font-mono text-text-muted">{vol.studentId}</p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="font-medium text-text-primary">{vol.event}</p>
-                          <p className="text-[10px] text-text-secondary">{vol.role}</p>
-                        </td>
-                        <td className="py-3 px-4 font-mono font-bold text-primary">
-                          {vol.hours} hrs
-                        </td>
-                        <td className="py-3 px-4 text-text-muted">{vol.date}</td>
-                        <td className="py-3 px-4">
-                          {vol.status === 'VERIFIED' ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
-                              Dean Verified
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                              Pending Review
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => handleToggleVolunteerApproval(vol.id)}
-                            className={`px-3 py-1 rounded text-xs font-semibold transition ${vol.status === 'VERIFIED'
-                              ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
-                              : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
-                              }`}
-                          >
-                            {vol.status === 'VERIFIED' ? 'Revoke Credit' : 'Certify Credit'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <AdminVolunteerControl onNavigateToEvents={() => navigateToEvents('all')} />
           </div>
         )}
 
