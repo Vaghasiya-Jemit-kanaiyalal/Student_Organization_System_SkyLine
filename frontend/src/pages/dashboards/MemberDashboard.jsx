@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
-import { eventsApi, volunteerApi, certificateApi, announcementsApi } from '../../services/api';
+import { eventsApi, volunteerApi, certificateApi, announcementsApi, financeApi } from '../../services/api';
 import { CAMPUS_CLUBS } from '../../data/clubsData';
 import {
   LayoutDashboard,
@@ -614,6 +614,24 @@ export const MemberDashboard = () => {
     setTicketsList((prev) => [newTicket, ...prev]);
     setBuyTicketModalEvent(null);
     showToast(`Ticket for "${newTicket.eventTitle}" reserved successfully at ${finalPricePaid}!`);
+
+    // Synchronize ticket payment into finance ledger
+    const numericPrice = parseFloat(String(finalPricePaid).replace(/[^0-9.]/g, '')) || 0;
+    if (numericPrice > 0) {
+      try {
+        financeApi.recordPayment({
+          title: `Event Ticket - ${newTicket.eventTitle}`,
+          amount: numericPrice,
+          reference_type: 'EVENT_TICKET',
+          reference_id: newTicket.id,
+          party_name: studentProfile.name || 'Student Member',
+          description: `Event Admission Ticket ${newTicket.id} (${newTicket.seat}). Event: ${newTicket.eventTitle}`,
+          category: 'EVENT_TICKET',
+        }).catch(() => {});
+      } catch {
+        // Handled silently
+      }
+    }
   };
 
   const handleConfirmBuyMembership = () => {
@@ -640,6 +658,23 @@ export const MemberDashboard = () => {
         status: 'Paid & Active'
       };
       setMembershipHistory((prev) => [newHistoryItem, ...prev]);
+
+      // Synchronize membership fee into finance ledger
+      if (duesAmount > 0) {
+        try {
+          financeApi.recordPayment({
+            title: `Membership - ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+            amount: duesAmount,
+            reference_type: 'MEMBERSHIP',
+            reference_id: result.membership.receiptId,
+            party_name: studentProfile.name || 'Student Member',
+            description: `Club membership fee for ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+            category: 'MEMBERSHIP_FEE',
+          }).catch(() => {});
+        } catch {
+          // Handled silently
+        }
+      }
 
       setStudentProfile((prev) => ({
         ...prev,

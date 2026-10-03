@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { financeApi } from '../services/api';
 
 const MerchandiseContext = createContext(null);
 
@@ -332,6 +333,23 @@ export const MerchandiseProvider = ({ children }) => {
 
     setOrders((prev) => [newOrder, ...prev]);
 
+    // Automatically synchronize income into treasurer finance ledger
+    if (paymentStatus === 'PAID') {
+      try {
+        financeApi.recordPayment({
+          title: `Merchandise - ${product.name} (${size}) x${quantity}`,
+          amount: totalPrice,
+          reference_type: 'MERCHANDISE',
+          reference_id: newOrderId,
+          party_name: member.name || 'Student Member',
+          description: `Order ${newOrderId}: ${product.name}, Size ${size}, Qty ${quantity}. Customer: ${member.name} (${member.studentId || ''})`,
+          category: 'MERCHANDISE',
+        }).catch(() => {});
+      } catch {
+        // Handled silently
+      }
+    }
+
     return {
       success: true,
       order: newOrder
@@ -343,6 +361,19 @@ export const MerchandiseProvider = ({ children }) => {
     setOrders((prev) =>
       prev.map((order) => {
         if (order.id === orderId) {
+          if (status === 'PAID' && order.paymentStatus !== 'PAID') {
+            try {
+              financeApi.recordPayment({
+                title: `Merchandise - ${order.productName} (${order.size}) x${order.quantity}`,
+                amount: order.totalPrice,
+                reference_type: 'MERCHANDISE',
+                reference_id: order.id,
+                party_name: order.memberName || 'Student Member',
+                description: `Payment settled for ${order.id}`,
+                category: 'MERCHANDISE',
+              }).catch(() => {});
+            } catch {}
+          }
           return {
             ...order,
             paymentStatus: status,

@@ -136,5 +136,71 @@ export const announcementsApi = {
   },
 };
 
+export const financeApi = {
+  getDashboard: async (params = {}) => {
+    const res = await apiClient.get('/finance/dashboard/', { params });
+    return res.data;
+  },
+  getTransactions: async (params = {}) => {
+    const res = await apiClient.get('/finance/transactions/', { params });
+    return res.data;
+  },
+  createTransaction: async (data) => {
+    const res = await apiClient.post('/finance/transactions/', data);
+    return res.data;
+  },
+  getIncome: async (params = {}) => {
+    const res = await apiClient.get('/finance/income/', { params });
+    return res.data;
+  },
+  createIncome: async (data) => {
+    const res = await apiClient.post('/finance/income/', data);
+    return res.data;
+  },
+  getExpenses: async (params = {}) => {
+    const res = await apiClient.get('/finance/expenses/', { params });
+    return res.data;
+  },
+  createExpense: async (data) => {
+    const res = await apiClient.post('/finance/expenses/', data);
+    return res.data;
+  },
+  recordPayment: async (data) => {
+    const res = await apiClient.post('/finance/payments/record/', data);
+    return res.data;
+  },
+  getReports: async (params = {}) => {
+    const res = await apiClient.get('/finance/reports/', { params });
+    return res.data;
+  },
+  getReimbursements: async (params = {}) => {
+    const res = await apiClient.get('/finance/reimbursements/', { params });
+    return res.data;
+  },
+  createReimbursement: async (data, isFormData = false) => {
+    const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const res = await apiClient.post('/finance/reimbursements/', data, config);
+    return res.data;
+  },
+  approveReimbursement: async (id) => {
+    const res = await apiClient.post(`/finance/reimbursements/${id}/approve/`);
+    return res.data;
+  },
+  rejectReimbursement: async (id, treasurerNotes = '') => {
+    const res = await apiClient.post(`/finance/reimbursements/${id}/reject/`, {
+      treasurer_notes: treasurerNotes,
+    });
+    return res.data;
+  },
+  markPaidReimbursement: async (id) => {
+    const res = await apiClient.post(`/finance/reimbursements/${id}/mark-paid/`);
+    return res.data;
+  },
+  refundTransaction: async (id, reason = '') => {
+    const res = await apiClient.post(`/finance/transactions/${id}/refund/`, { reason });
+    return res.data;
+  },
+};
+
 export default apiClient;
 
