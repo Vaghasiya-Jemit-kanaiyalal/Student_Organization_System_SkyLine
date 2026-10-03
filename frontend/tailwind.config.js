@@ -8,81 +8,82 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#6B2737', // Deep Academic Burgundy
-          hover: '#57202D',
-          light: '#F8F2F4',
-          50: '#FAF4F6',
-          100: '#F2E4E8',
-          200: '#E5C9D1',
-          300: '#D3A4B2',
-          400: '#A44A63',
-          500: '#873347',
-          600: '#6B2737',
-          700: '#57202D',
-          800: '#431823',
-          900: '#2E1018',
+          DEFAULT: '#1769E8', // Bright University Blue
+          hover: '#0D5BD7',
+          light: '#EAF3FF',
+          navy: '#0F2942',
+          50: '#F5F9FD',
+          100: '#EAF3FF',
+          200: '#D9E2EC',
+          300: '#58A6FF',
+          400: '#1769E8',
+          500: '#1769E8',
+          600: '#0D5BD7',
+          700: '#0F2942',
+          800: '#0D2237',
+          900: '#0A1B2C',
         },
         ivory: {
-          DEFAULT: '#F7F5F0', // Warm Ivory Background
-          50: '#FCFBF9',
-          100: '#F7F5F0',
-          200: '#F1EEE7', // Secondary Surface
-          300: '#DDD8CE', // Border
-          400: '#C9C2B5',
+          DEFAULT: '#F5F9FD', // Very light blue-gray background
+          50: '#FFFFFF',
+          100: '#F5F9FD',
+          200: '#EAF3FF', // Secondary Surface
+          300: '#D9E2EC', // Border
+          400: '#98A2B3',
         },
         accent: {
-          DEFAULT: '#B08A4A', // Muted University Gold
-          hover: '#98753A',
-          light: '#FAF6EE',
-          50: '#FAF6EE',
-          100: '#F3EAD7',
-          200: '#E4D1AC',
-          300: '#D2B680',
-          400: '#C19F5E',
-          500: '#B08A4A',
-          600: '#98753A',
-          700: '#7D5F2D',
+          DEFAULT: '#58A6FF', // Highlight text/icons
+          hover: '#1769E8',
+          light: '#EAF3FF',
+          50: '#F5F9FD',
+          100: '#EAF3FF',
+          200: '#D9E2EC',
+          300: '#98A2B3',
+          400: '#58A6FF',
+          500: '#58A6FF',
+          600: '#1769E8',
+          700: '#0D5BD7',
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          secondary: '#F1EEE7',
+          secondary: '#EAF3FF',
         },
         border: {
-          DEFAULT: '#DDD8CE',
-          light: '#ECE8E0',
-          dark: '#BDB7AA',
+          DEFAULT: '#D9E2EC',
+          light: '#EAF3FF',
+          dark: '#98A2B3',
         },
         text: {
-          primary: '#20211F',
-          secondary: '#68675F',
-          muted: '#8B8980',
+          primary: '#142033', // Dark navy
+          secondary: '#667085', // Slate gray
+          muted: '#98A2B3', // Light slate
         },
         status: {
-          success: '#3F6B4F',
-          'success-bg': '#EEF5F1',
+          success: '#159947',
+          'success-bg': '#ECFDF3',
           warning: '#A47735',
           'warning-bg': '#FAF5EB',
-          error: '#9B3D3D',
-          'error-bg': '#FBF1F1',
-          info: '#375A7E',
-          'info-bg': '#EDF3F8',
+          error: '#D92D20',
+          'error-bg': '#FEF3F2',
+          info: '#1769E8',
+          'info-bg': '#EAF3FF',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'Manrope', 'system-ui', '-apple-system', 'sans-serif'],
-        serif: ['"DM Serif Display"', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       borderRadius: {
         sm: '4px',
         DEFAULT: '6px',
         md: '8px',
-        lg: '10px',
+        lg: '9px',
         xl: '12px',
       },
       boxShadow: {
-        'subtle': '0 1px 3px rgba(32, 33, 31, 0.04), 0 1px 2px rgba(32, 33, 31, 0.02)',
-        'card': '0 2px 8px -2px rgba(32, 33, 31, 0.06), 0 1px 4px -1px rgba(32, 33, 31, 0.03)',
-        'elevated': '0 8px 24px -4px rgba(107, 39, 55, 0.08), 0 4px 12px -2px rgba(32, 33, 31, 0.04)',
+        'subtle': '0 2px 8px rgba(15, 41, 66, 0.05)',
+        'card': '0 2px 8px rgba(15, 41, 66, 0.05)',
+        'elevated': '0 6px 16px rgba(23, 105, 232, 0.22)',
       }
     },
   },

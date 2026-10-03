@@ -4,25 +4,27 @@
 
 @layer base {
   :root {
-    --color-primary: #6B2737;
-    --color-primary-hover: #57202D;
-    --color-ivory: #F7F5F0;
+    --color-primary: #1769E8;
+    --color-primary-hover: #0D5BD7;
+    --color-primary-navy: #0F2942;
+    --color-ivory: #F5F9FD;
     --color-surface: #FFFFFF;
-    --color-surface-secondary: #F1EEE7;
-    --color-border: #DDD8CE;
-    --color-text-primary: #20211F;
-    --color-text-secondary: #68675F;
-    --color-text-muted: #8B8980;
-    --color-accent: #B08A4A;
-    --color-success: #3F6B4F;
+    --color-surface-secondary: #EAF3FF;
+    --color-border: #D9E2EC;
+    --color-text-primary: #142033;
+    --color-text-secondary: #667085;
+    --color-text-muted: #98A2B3;
+    --color-accent: #58A6FF;
+    --color-success: #159947;
     --color-warning: #A47735;
-    --color-error: #9B3D3D;
+    --color-error: #D92D20;
   }
 
   body {
-    background-color: #F7F5F0;
-    color: #20211F;
-    font-family: 'Inter', 'Manrope', system-ui, -apple-system, sans-serif;
+    background-color: #F5F9FD;
+    color: #667085;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
     margin: 0;
     padding: 0;
     min-height: 100vh;
@@ -35,11 +37,54 @@
     width: 100%;
   }
 
-  /* Academic Serif Headings */
+  /* Playfair Display Academic Headings */
   .font-serif-academic {
-    font-family: 'DM Serif Display', Georgia, serif;
-    letter-spacing: -0.01em;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
   }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Playfair Display', serif;
+    color: #142033;
+    font-weight: 700;
+  }
+
+  label,
+  .form-label {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: #142033;
+  }
+}
+
+/* Custom left hero background gradient */
+.bg-gradient-to-b.from-primary.to-primary-hover,
+.hero-gradient-bg {
+  background: linear-gradient(135deg,
+      #0F2942 0%,
+      #123B60 55%,
+      #1769E8 100%) !important;
+}
+
+/* Primary Button Colors & Shadow */
+.btn-primary,
+button[type="submit"].bg-primary,
+.bg-primary {
+  background-color: #1769E8;
+  color: #FFFFFF;
+  border-radius: 9px;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(23, 105, 232, 0.22);
+}
+
+.btn-primary:hover,
+button[type="submit"].bg-primary:hover,
+.bg-primary:hover {
+  background-color: #0D5BD7;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(23, 105, 232, 0.28);
 }
 
 /* Custom subtle scrollbar */
@@ -49,28 +94,26 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #F1EEE7;
+  background: #EAF3FF;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #DDD8CE;
+  background: #D9E2EC;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B08A4A;
+  background: #58A6FF;
 }
 
-/* Academic Pattern background overlay */
+/* Campus Pattern background overlay */
 .bg-campus-pattern {
-  background-color: #F7F5F0;
-  background-image: radial-gradient(#6B2737 0.65px, transparent 0.65px), radial-gradient(#B08A4A 0.65px, #F7F5F0 0.65px);
+  background-color: #F5F9FD;
+  background-image: radial-gradient(#0F2942 0.65px, transparent 0.65px), radial-gradient(#58A6FF 0.65px, #F5F9FD 0.65px);
   background-size: 32px 32px;
   background-position: 0 0, 16px 16px;
-  background-opacity: 0.04;
 }
 
-/* Smooth transitions */
 .transition-campus {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
