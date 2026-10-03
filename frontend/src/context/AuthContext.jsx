@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       const savedToken = localStorage.getItem('connectu_jwt_token');
-      if (!savedToken) return;
+      if (!savedToken || savedToken.startsWith('mock-jwt-token-')) return;
 
       try {
         const response = await fetch(`${API_BASE}/auth/me/`, {
@@ -84,9 +84,56 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Universal Login Handler
-   * Connects to Django SimpleJWT backend: POST /api/auth/login/
+   * Supports immediate mock student credentials & connects to backend
    */
   const login = async (email, password, rememberMe = true) => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Direct Instant Student Login (No DB check required)
+    if (cleanEmail === 'yug@gmail.com' && password === 'Yug@123') {
+      const studentUser = normalizeUser({
+        id: 'stu-yug-01',
+        name: 'Yug',
+        fullName: 'Yug',
+        full_name: 'Yug',
+        studentId: 'STU-2026-9901',
+        student_id: 'STU-2026-9901',
+        email: 'yug@gmail.com',
+        role: 'MEMBER',
+        department: 'Computer Science & Software Engineering',
+        semester: 'Semester 4 • 2026',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        status: 'ACTIVE',
+        is_active: true,
+        memberships: [
+          {
+            id: 'mem-skyline-01',
+            clubName: 'SkyLine Robotics & Software Society',
+            tier: 'Standard Member',
+            status: 'ACTIVE',
+            expiryDate: 'Dec 31, 2026'
+          }
+        ],
+        volunteerHours: 18,
+        ticketsCount: 2
+      });
+
+      const mockToken = 'mock-jwt-token-yug-student-2026';
+      setUser(studentUser);
+      setToken(mockToken);
+      setSessionExpiredNotice(false);
+
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('connectu_active_user', JSON.stringify(studentUser));
+      storage.setItem('connectu_jwt_token', mockToken);
+
+      return {
+        success: true,
+        user: studentUser,
+        role: 'MEMBER'
+      };
+    }
+
     try {
       const response = await fetch(`${API_BASE}/auth/login/`, {
         method: 'POST',
@@ -94,7 +141,7 @@ export const AuthProvider = ({ children }) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
+          email: cleanEmail,
           password: password
         })
       });
