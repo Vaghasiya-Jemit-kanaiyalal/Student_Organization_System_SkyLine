@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
-import { PasswordStrengthMeter, calculateStrength } from '../../components/common/PasswordStrengthMeter';
 import {
   User,
   Hash,
@@ -12,9 +11,7 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
-  CheckCircle2,
-  Shield,
-  BookOpen,
+  Check,
   Info
 } from 'lucide-react';
 
@@ -57,11 +54,10 @@ export const RegisterPage = () => {
       errors.email = 'Please provide a valid university email address.';
     }
 
-    const strength = calculateStrength(password);
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (strength.score < 2) {
-      errors.password = 'Password is too weak. Please meet at least 2 security requirements.';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters.';
     }
 
     if (!confirmPassword) {
@@ -94,7 +90,6 @@ export const RegisterPage = () => {
       });
 
       if (result.success) {
-        // Navigate to email verification / activation celebration screen
         navigate('/verify-success', {
           state: {
             studentName: fullName,
@@ -113,211 +108,217 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 bg-ivory">
-      <div className="max-w-2xl mx-auto w-full bg-surface border border-border rounded-xl shadow-card overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center py-10 px-4 sm:px-6 relative bg-[#f0f4f9] overflow-x-hidden font-sans">
+      {/* Soft atmospheric ambient glow background */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-br from-blue-100/50 via-indigo-50/30 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute -bottom-20 -left-20 w-[420px] h-[420px] bg-blue-50/60 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute -top-10 -right-10 w-[380px] h-[380px] bg-sky-50/50 rounded-full blur-3xl pointer-events-none -z-10" />
 
-        {/* Academic Header Banner */}
-        <div className="bg-gradient-to-r from-primary via-primary-hover to-primary p-6 text-white text-center border-b border-primary-700 relative">
-          <div className="flex justify-center mb-3">
-            <UniversityCrest className="w-12 h-12" variant="gold" />
+      {/* Main Registration Card */}
+      <div className="w-full max-w-[520px] bg-white rounded-[24px] sm:rounded-[28px] border border-[#e4ebf5] shadow-[0_20px_50px_-15px_rgba(20,50,90,0.07),0_1px_3px_rgba(0,0,0,0.02)] p-7 sm:p-9 md:p-10 relative z-10">
+
+        {/* Brand Crest & Header */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="relative mb-2.5">
+            <UniversityCrest
+              className="w-16 h-16 sm:w-[72px] sm:h-[72px] text-[#1d64e0]"
+              variant="skyline"
+              color="#1d64e0"
+            />
           </div>
-          <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Student Member Registration
+          <h1 className="text-2xl sm:text-[28px] font-bold text-[#0f172a] tracking-tight leading-tight">
+            SkyLine
           </h1>
-          <p className="text-xs sm:text-sm text-primary-100 mt-1 max-w-md mx-auto">
-            Join official university student organizations, access event passes, and register for campus activities.
+          <p className="text-sm sm:text-[15px] font-medium text-[#64748b] mt-0.5">
+            Create Member Account
           </p>
         </div>
 
-        {/* Form Body */}
-        <div className="p-6 sm:p-8">
+        {/* Info Callout */}
+        <div className="mb-5 p-3 rounded-xl bg-[#f2f6fc] border border-[#e1eaf5] text-xs text-[#334155] flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-[#1d64e0] flex-shrink-0 mt-0.5" />
+          <p className="text-[11.5px] leading-relaxed">
+            Member accounts are for university students joining campus organizations. Club Admins & Treasurers are designated by faculty.
+          </p>
+        </div>
 
-          {/* Role Restriction Notice Alert */}
-          <div className="mb-6 p-3.5 bg-ivory-100 border border-accent-300/60 rounded text-xs text-text-secondary flex items-start space-x-2.5">
-            <Info className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-text-primary">Member Self-Registration Notice</p>
-              <p className="text-[11px] text-text-secondary mt-0.5">
-                This portal is exclusively for enrolled students. <strong>Club Admin</strong> accounts are pre-provisioned by Faculty Councils, and <strong>Club Treasurers</strong> are appointed directly by Club Administrators.
-              </p>
-            </div>
+        {/* Error Alert Banner */}
+        {errorMessage && (
+          <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200/80 text-red-700 text-xs flex items-start gap-2.5 animate-fadeIn">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+            <div className="flex-1 leading-relaxed">{errorMessage}</div>
           </div>
+        )}
 
-          {errorMessage && (
-            <div className="mb-5 p-3.5 rounded bg-status-error-bg border border-status-error/30 text-status-error text-xs flex items-start space-x-2.5">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">{errorMessage}</div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {/* Grid for Name and Student ID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="fullName" className="block text-xs font-semibold text-text-primary mb-1">
-                  Full Legal Name <span className="text-status-error">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => {
-                      setFullName(e.target.value);
-                      if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' });
-                    }}
-                    placeholder="e.g. Sophia Montgomery"
-                    className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      fieldErrors.fullName ? 'border-status-error' : 'border-border focus:border-primary'
-                    }`}
-                    disabled={isLoading}
-                  />
-                </div>
-                {fieldErrors.fullName && (
-                  <p className="text-status-error text-[11px] mt-1">{fieldErrors.fullName}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="studentId" className="block text-xs font-semibold text-text-primary mb-1">
-                  Student ID Number <span className="text-status-error">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                    <Hash className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="studentId"
-                    type="text"
-                    value={studentId}
-                    onChange={(e) => {
-                      setStudentId(e.target.value);
-                      if (fieldErrors.studentId) setFieldErrors({ ...fieldErrors, studentId: '' });
-                    }}
-                    placeholder="e.g. STU-2026-8842"
-                    className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      fieldErrors.studentId ? 'border-status-error' : 'border-border focus:border-primary'
-                    }`}
-                    disabled={isLoading}
-                  />
-                </div>
-                {fieldErrors.studentId && (
-                  <p className="text-status-error text-[11px] mt-1">{fieldErrors.studentId}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Email Field */}
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {/* Two-column layout: Full Name & Student ID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold text-text-primary mb-1">
-                University Email Address <span className="text-status-error">*</span>
+              <label htmlFor="fullName" className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5">
+                Full Legal Name <span className="text-[#ef4444]">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                  <Mail className="w-4 h-4" />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                  <User className="w-[18px] h-[18px]" strokeWidth={1.8} />
                 </div>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
+                  id="fullName"
+                  type="text"
+                  value={fullName}
                   onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+                    setFullName(e.target.value);
+                    if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' });
                   }}
-                  placeholder="e.g. s.montgomery@university.edu"
-                  className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                    fieldErrors.email ? 'border-status-error' : 'border-border focus:border-primary'
+                  placeholder="e.g. Sophia Montgomery"
+                  className={`w-full h-11 pl-10 pr-3.5 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                    fieldErrors.fullName ? 'border-red-400 focus:border-red-500' : 'border-[#dbe2ea] focus:border-[#1d64e0]'
                   }`}
                   disabled={isLoading}
                 />
               </div>
-              {fieldErrors.email && (
-                <p className="text-status-error text-[11px] mt-1">{fieldErrors.email}</p>
+              {fieldErrors.fullName && (
+                <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.fullName}</p>
               )}
             </div>
 
-            {/* Password and Confirm Password */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="password" className="block text-xs font-semibold text-text-primary mb-1">
-                  Create Password <span className="text-status-error">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
-                    }}
-                    placeholder="Min. 8 characters"
-                    className={`w-full pl-9 pr-10 py-2 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      fieldErrors.password ? 'border-status-error' : 'border-border focus:border-primary'
-                    }`}
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            <div>
+              <label htmlFor="studentId" className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5">
+                Student ID Number <span className="text-[#ef4444]">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                  <Hash className="w-[18px] h-[18px]" strokeWidth={1.8} />
                 </div>
-                {fieldErrors.password && (
-                  <p className="text-status-error text-[11px] mt-1">{fieldErrors.password}</p>
-                )}
+                <input
+                  id="studentId"
+                  type="text"
+                  value={studentId}
+                  onChange={(e) => {
+                    setStudentId(e.target.value);
+                    if (fieldErrors.studentId) setFieldErrors({ ...fieldErrors, studentId: '' });
+                  }}
+                  placeholder="e.g. STU-2026-8842"
+                  className={`w-full h-11 pl-10 pr-3.5 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] font-mono transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                    fieldErrors.studentId ? 'border-red-400 focus:border-red-500' : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                  }`}
+                  disabled={isLoading}
+                />
               </div>
+              {fieldErrors.studentId && (
+                <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.studentId}</p>
+              )}
+            </div>
+          </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-xs font-semibold text-text-primary mb-1">
-                  Confirm Password <span className="text-status-error">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: '' });
-                    }}
-                    placeholder="Repeat password"
-                    className={`w-full pl-9 pr-10 py-2 text-xs sm:text-sm rounded border bg-surface text-text-primary transition-campus placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                      fieldErrors.confirmPassword ? 'border-status-error' : 'border-border focus:border-primary'
-                    }`}
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {fieldErrors.confirmPassword && (
-                  <p className="text-status-error text-[11px] mt-1">{fieldErrors.confirmPassword}</p>
-                )}
+          {/* Email Address */}
+          <div>
+            <label htmlFor="email" className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5">
+              University Email Address <span className="text-[#ef4444]">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                <Mail className="w-[18px] h-[18px]" strokeWidth={1.8} />
               </div>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+                }}
+                placeholder="e.g. s.montgomery@university.edu"
+                className={`w-full h-11 pl-10 pr-3.5 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                  fieldErrors.email ? 'border-red-400 focus:border-red-500' : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                }`}
+                disabled={isLoading}
+              />
+            </div>
+            {fieldErrors.email && (
+              <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.email}</p>
+            )}
+          </div>
+
+          {/* Password & Confirm Password */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label htmlFor="password" className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5">
+                Password <span className="text-[#ef4444]">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                  <Lock className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                </div>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
+                  }}
+                  placeholder="Min. 8 chars"
+                  className={`w-full h-11 pl-10 pr-10 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                    fieldErrors.password ? 'border-red-400 focus:border-red-500' : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                  }`}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94a3b8] hover:text-[#475569] transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.password}</p>
+              )}
             </div>
 
-            {/* Password Strength Meter */}
-            <PasswordStrengthMeter password={password} />
+            <div>
+              <label htmlFor="confirmPassword" className="block text-xs sm:text-[13px] font-semibold text-[#0f172a] mb-1.5">
+                Confirm Password <span className="text-[#ef4444]">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#94a3b8]">
+                  <Lock className="w-[18px] h-[18px]" strokeWidth={1.8} />
+                </div>
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: '' });
+                  }}
+                  placeholder="Repeat password"
+                  className={`w-full h-11 pl-10 pr-10 text-sm rounded-[10px] border bg-white text-[#0f172a] placeholder:text-[#94a3b8] transition-all focus:outline-none focus:ring-4 focus:ring-[#1d64e0]/10 ${
+                    fieldErrors.confirmPassword ? 'border-red-400 focus:border-red-500' : 'border-[#dbe2ea] focus:border-[#1d64e0]'
+                  }`}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#94a3b8] hover:text-[#475569] transition-colors cursor-pointer"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                </button>
+              </div>
+              {fieldErrors.confirmPassword && (
+                <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.confirmPassword}</p>
+              )}
+            </div>
+          </div>
 
-            {/* University Honor Code Checkbox */}
-            <div className="pt-2">
-              <label className="flex items-start space-x-2.5 cursor-pointer">
+          {/* Honor Code Agreement Checkbox */}
+          <div className="pt-1">
+            <label className="inline-flex items-start gap-2.5 cursor-pointer select-none group">
+              <div className="relative flex items-center justify-center mt-0.5">
                 <input
                   type="checkbox"
                   checked={agreeTerms}
@@ -325,47 +326,61 @@ export const RegisterPage = () => {
                     setAgreeTerms(e.target.checked);
                     if (fieldErrors.agreeTerms) setFieldErrors({ ...fieldErrors, agreeTerms: '' });
                   }}
-                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 mt-0.5"
+                  className="sr-only"
                 />
-                <span className="text-xs text-text-secondary leading-relaxed">
-                  I agree to abide by the <strong className="text-text-primary">University Student Code of Conduct</strong>, Society Constitution, and authorize verification of my Student ID against the registrar database.
-                </span>
-              </label>
-              {fieldErrors.agreeTerms && (
-                <p className="text-status-error text-[11px] mt-1">{fieldErrors.agreeTerms}</p>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-4 py-2.5 px-4 rounded bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-semibold shadow-sm transition-campus flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Provisioning Student Profile...</span>
-                </>
-              ) : (
-                <>
-                  <span>Create Student Member Account</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer Back Link */}
-          <div className="mt-6 pt-5 border-t border-border text-center text-xs text-text-secondary">
-            Already possess an active account?{' '}
-            <Link to="/login" className="font-semibold text-primary hover:text-primary-hover underline underline-offset-4">
-              Return to Sign In
-            </Link>
+                <div
+                  className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center transition-all duration-150 ${
+                    agreeTerms
+                      ? 'bg-[#1d64e0] border border-[#1d64e0] text-white shadow-xs'
+                      : 'border border-[#cbd5e1] bg-white group-hover:border-[#94a3b8]'
+                  }`}
+                >
+                  {agreeTerms && (
+                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                  )}
+                </div>
+              </div>
+              <span className="text-xs text-[#334155] leading-relaxed">
+                I agree to the <strong className="text-[#0f172a]">University Student Code of Conduct</strong> and authorize verification of my Student ID against university records.
+              </span>
+            </label>
+            {fieldErrors.agreeTerms && (
+              <p className="text-red-600 text-[11px] mt-1 font-medium">{fieldErrors.agreeTerms}</p>
+            )}
           </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-11 sm:h-12 rounded-[10px] bg-[#1d64e0] hover:bg-[#1855c3] active:bg-[#1447a3] text-white text-sm sm:text-[15px] font-semibold flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(29,100,224,0.28)] hover:shadow-[0_6px_18px_rgba(29,100,224,0.38)] transition-all duration-150 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-2"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Provisioning Account...</span>
+              </div>
+            ) : (
+              <>
+                <span>Create Student Account</span>
+                <ArrowRight className="w-4 h-4 ml-0.5" strokeWidth={2.2} />
+              </>
+            )}
+          </button>
+        </form>
+
+        {/* Footer Back Link */}
+        <div className="mt-6 pt-5 border-t border-[#e5e9f0] text-center text-xs text-[#64748b]">
+          Already have an account?{' '}
+          <Link
+            to="/login"
+            className="font-semibold text-[#1d64e0] hover:text-[#1855c3] hover:underline transition"
+          >
+            Sign In here
+          </Link>
         </div>
 
       </div>

@@ -16,7 +16,9 @@ import {
   HeartHandshake,
   FileText,
   CreditCard,
-  Building2
+  Building2,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -90,11 +92,12 @@ export const Navbar = () => {
   ];
 
   const treasurerNavTabs = [
-    { id: 'overview', label: 'Fiscal Ledger', icon: LayoutDashboard },
+    { id: 'overview', label: 'Finance Dashboard', icon: LayoutDashboard },
+    { id: 'income', label: 'Income Management', icon: TrendingUp },
+    { id: 'expenses', label: 'Expense Management', icon: TrendingDown },
     { id: 'reimbursements', label: 'Reimbursements', badge: 3, icon: CreditCard },
     { id: 'merch', label: 'Merch Revenue', icon: ShoppingBag },
-    { id: 'reports', label: 'Audit Reports', icon: FileText },
-    { id: 'bank', label: 'Bank Verification', icon: Building2 },
+    { id: 'reports', label: 'Reports & Analytics', icon: FileText },
   ];
 
   const memberNavTabs = [
