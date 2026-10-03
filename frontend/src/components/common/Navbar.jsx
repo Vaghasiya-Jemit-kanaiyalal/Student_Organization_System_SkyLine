@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTreasurer } from '../../context/TreasurerContext';
 import { UniversityCrest } from './UniversityCrest';
+import { TreasurerModal } from '../admin/TreasurerModal';
 import {
   ChevronDown,
   LogOut,
   User,
   ShieldAlert,
+  ShieldCheck,
   LayoutDashboard,
   Users,
   Calendar,
@@ -23,11 +26,13 @@ import {
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout, triggerSessionExpired } = useAuth();
+  const { currentTreasurer } = useTreasurer();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [treasurerModalOpen, setTreasurerModalOpen] = useState(false);
   const menuRef = useRef(null);
 
   const rawTab = searchParams.get('tab') || 'overview';
@@ -131,7 +136,7 @@ export const Navbar = () => {
           <UniversityCrest className="w-8 h-8 sm:w-9 sm:h-9 transition-transform group-hover:scale-105" variant="navy" />
           <div className="flex flex-col text-left">
             <span className="text-lg sm:text-xl font-bold tracking-tight text-white leading-none group-hover:text-[#58A6FF]">
-              ConnectU
+              SkyLine
             </span>
             <span className="text-[9px] sm:text-[10px] uppercase font-semibold tracking-wider text-[#98A2B3] mt-0.5">
               Campus Organizations
@@ -174,6 +179,20 @@ export const Navbar = () => {
 
         {/* VERY RIGHT: User Profile Header Panel */}
         <div className="flex items-center space-x-2 flex-shrink-0">
+          {/* Appointed Treasurer Header Button for Club Admin */}
+          {isAuthenticated && user?.role === 'ADMIN' && (
+            <button
+              type="button"
+              onClick={() => setTreasurerModalOpen(true)}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md bg-[#123552] hover:bg-[#15466A] text-white border border-[#15466A] transition text-xs font-semibold"
+              title="Treasurer Management: View Current & Assign New Treasurer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#58A6FF]" />
+              <span className="hidden xl:inline text-[11px] text-[#98A2B3]">Treasurer:</span>
+              <span className="max-w-[100px] truncate text-white">{currentTreasurer?.name || 'Marcus Sterling'}</span>
+            </button>
+          )}
+
           {isAuthenticated && user ? (
             <div className="relative">
               <button
@@ -275,6 +294,14 @@ export const Navbar = () => {
             })}
           </nav>
         </div>
+      )}
+
+      {/* Appointed Treasurer Management Modal */}
+      {user?.role === 'ADMIN' && (
+        <TreasurerModal
+          isOpen={treasurerModalOpen}
+          onClose={() => setTreasurerModalOpen(false)}
+        />
       )}
     </header>
   );
