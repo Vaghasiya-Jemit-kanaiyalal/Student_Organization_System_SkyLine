@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from accounts.serializers import UserSerializer
-from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate
+from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -184,3 +184,88 @@ class CertificateGenerateSerializer(serializers.Serializer):
         required=False,
         help_text="Optional list of student IDs to issue certificates for. If omitted, all completed/active volunteers get certificates."
     )
+
+
+class AnnouncementSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.ReadOnlyField(source='created_by.full_name')
+
+    class Meta:
+        model = Announcement
+        fields = [
+            'id',
+            'title',
+            'content',
+            'category',
+            'priority',
+            'sent_to',
+            'recipients_count',
+            'channels',
+            'status',
+            'scheduled_date',
+            'scheduled_time',
+            'timezone',
+            'sent_date',
+            'sent_at',
+            'pinned',
+            'allow_replies',
+            'author',
+            'attachments',
+            'delivery_stats',
+            'created_by',
+            'created_by_name',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        mutable_data = data.copy() if hasattr(data, 'copy') else dict(data)
+        # Map camelCase to snake_case if incoming
+        mapping = {
+            'sentTo': 'sent_to',
+            'recipientsCount': 'recipients_count',
+            'scheduledDate': 'scheduled_date',
+            'scheduledTime': 'scheduled_time',
+            'sentDate': 'sent_date',
+            'allowReplies': 'allow_replies',
+            'deliveryStats': 'delivery_stats',
+        }
+        for camel, snake in mapping.items():
+            if camel in mutable_data and snake not in mutable_data:
+                mutable_data[snake] = mutable_data[camel]
+
+        # Handle createdDate or author defaults
+        if 'author' not in mutable_data or not mutable_data['author']:
+            mutable_data['author'] = 'Dr. Alexander Vance (Faculty Advisor)'
+        return super().to_internal_value(mutable_data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # Add camelCase aliases for frontend React components
+        ret['sentTo'] = ret.get('sent_to') or 'All Members'
+        ret['recipientsCount'] = ret.get('recipients_count') or 0
+        ret['scheduledDate'] = ret.get('scheduled_date')
+        ret['scheduledTime'] = ret.get('scheduled_time')
+        ret['sentDate'] = ret.get('sent_date')
+        ret['allowReplies'] = ret.get('allow_replies', True)
+        ret['deliveryStats'] = ret.get('delivery_stats') or {}
+
+        # Formatted created date
+        if instance.created_at:
+            ret['createdDate'] = instance.created_at.strftime('%b %d, %Y')
+            ret['publishedDate'] = (
+                ret['sentDate']
+                if ret.get('sentDate')
+                else instance.created_at.strftime('%b %d, %Y • %I:%M %p')
+            )
+        else:
+            ret['createdDate'] = 'Oct 01, 2026'
+            ret['publishedDate'] = 'Oct 01, 2026 • 11:30 AM'
+
+        # Content helpers for student feed
+        content = ret.get('content') or ''
+        ret['fullContent'] = content
+        ret['summary'] = content[:180] + '...' if len(content) > 180 else content
+
+        return ret
+

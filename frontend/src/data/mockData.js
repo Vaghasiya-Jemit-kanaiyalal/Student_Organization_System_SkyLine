@@ -282,7 +282,13 @@ export const ANNOUNCEMENTS = [
     title: 'University Council Approval: Annual Budget Grant Allocated',
     author: 'Alexander Vance (Faculty Advisor)',
     date: 'Oct 01, 2026',
-    priority: 'OFFICIAL',
+    createdDate: 'Oct 01, 2026',
+    sentDate: 'Oct 01, 2026 • 11:30 AM',
+    sentTo: 'All Members',
+    recipientsCount: 248,
+    category: 'Finance & Grants',
+    status: 'Sent',
+    priority: 'Official',
     content: 'The Office of Student Affairs has officially ratified our $4,500 semester grant for robotics components and regional travel.'
   },
   {
@@ -290,7 +296,13 @@ export const ANNOUNCEMENTS = [
     title: 'Call for Volunteer Marshals: Autonomous Robotics Showcase',
     author: 'Executive Committee',
     date: 'Sep 28, 2026',
-    priority: 'URGENT',
+    createdDate: 'Sep 28, 2026',
+    sentDate: 'Sep 28, 2026 • 02:15 PM',
+    sentTo: 'All Members',
+    recipientsCount: 248,
+    category: 'Volunteer',
+    status: 'Sent',
+    priority: 'Urgent',
     content: 'We need 8 additional student volunteers to coordinate guest speakers and registration tables. Earn 4 verified service hours.'
   },
   {
@@ -298,7 +310,13 @@ export const ANNOUNCEMENTS = [
     title: 'Fall Semester Dues & New Burgundy Lapel Pins Available',
     author: 'Marcus Sterling (Treasurer)',
     date: 'Sep 20, 2026',
-    priority: 'GENERAL',
+    createdDate: 'Sep 20, 2026',
+    sentDate: 'Sep 20, 2026 • 10:00 AM',
+    sentTo: 'Active Members',
+    recipientsCount: 184,
+    category: 'General',
+    status: 'Sent',
+    priority: 'Normal',
     content: 'All paid active members can collect their 2026 membership cards and laser-cut lapel pins from the club office.'
   }
 ];

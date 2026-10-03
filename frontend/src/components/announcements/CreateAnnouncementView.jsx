@@ -17,6 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import { CLUB_MEMBERS_ADMIN } from '../../data/mockData';
+import { announcementsApi } from '../../services/api';
 
 /**
  * CreateAnnouncementView Component
@@ -33,6 +34,7 @@ export const CreateAnnouncementView = ({
   const [content, setContent] = useState(initialData?.content || '');
   const [category, setCategory] = useState(initialData?.category || 'General');
   const [priority, setPriority] = useState(initialData?.priority || 'Normal');
+  const [submitting, setSubmitting] = useState(false);
 
   // Section B: Send To
   const [sentTo, setSentTo] = useState(initialData?.sentTo || 'All Members');
@@ -144,32 +146,39 @@ export const CreateAnnouncementView = ({
   };
 
   // Submit Handler
-  const handleAction = (statusTarget) => {
+  const handleAction = async (statusTarget) => {
     setSuccessBanner('');
     const isDraft = statusTarget === 'Draft';
     if (!validateForm(isDraft)) return;
 
+    setSubmitting(true);
     const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     const todayDateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 
-    const newAnnouncement = {
+    const localAnnouncement = {
       id: initialData?.id || `anc-${Date.now()}`,
       title: title.trim(),
       content: content.trim(),
       category: category,
       priority: priority,
       sentTo: sentTo,
+      sent_to: sentTo,
       recipientsCount: calculatedRecipientCount,
+      recipients_count: calculatedRecipientCount,
       channels: channels,
       author: initialData?.author || 'Dr. Alexander Vance (Faculty Advisor)',
       createdDate: initialData?.createdDate || todayDateStr,
       sentDate: statusTarget === 'Sent' ? `Today • ${timestamp}` : null,
+      sent_date: statusTarget === 'Sent' ? `Today • ${timestamp}` : null,
       scheduledDate: statusTarget === 'Scheduled' ? scheduledDate : null,
+      scheduled_date: statusTarget === 'Scheduled' ? scheduledDate : null,
       scheduledTime: statusTarget === 'Scheduled' ? scheduledTime : null,
+      scheduled_time: statusTarget === 'Scheduled' ? scheduledTime : null,
       timezone: timezone,
       status: statusTarget,
       pinned: pinned,
       allowReplies: allowReplies,
+      allow_replies: allowReplies,
       attachments: attachments,
       deliveryStats:
         statusTarget === 'Sent'
@@ -183,6 +192,24 @@ export const CreateAnnouncementView = ({
           : null
     };
 
+    let savedResult = localAnnouncement;
+
+    try {
+      if (initialData?.id && !String(initialData.id).startsWith('anc-')) {
+        // Backend update
+        const updated = await announcementsApi.patch(initialData.id, localAnnouncement);
+        savedResult = { ...localAnnouncement, ...updated };
+      } else {
+        // Backend create
+        const created = await announcementsApi.create(localAnnouncement);
+        savedResult = { ...localAnnouncement, ...created };
+      }
+    } catch (err) {
+      console.warn('Backend announcement save warning (falling back to local state):', err);
+    } finally {
+      setSubmitting(false);
+    }
+
     setSuccessBanner(
       statusTarget === 'Sent'
         ? `Announcement "${title}" was dispatched immediately!`
@@ -192,8 +219,8 @@ export const CreateAnnouncementView = ({
     );
 
     setTimeout(() => {
-      onSaveAnnouncement(newAnnouncement);
-    }, 1100);
+      onSaveAnnouncement(savedResult);
+    }, 900);
   };
 
   return (
@@ -726,29 +753,32 @@ export const CreateAnnouncementView = ({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
+              disabled={submitting}
               onClick={() => handleAction('Draft')}
-              className="px-4 py-2.5 rounded bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary transition-campus"
+              className="px-4 py-2.5 rounded bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary transition-campus disabled:opacity-60"
             >
-              Save as Draft
+              {submitting ? 'Saving...' : 'Save as Draft'}
             </button>
 
             {sendTiming === 'SCHEDULE_LATER' ? (
               <button
                 type="button"
+                disabled={submitting}
                 onClick={() => handleAction('Scheduled')}
-                className="px-5 py-2.5 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5"
+                className="px-5 py-2.5 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5 disabled:opacity-60"
               >
                 <Clock className="w-4 h-4" />
-                <span>Schedule Announcement</span>
+                <span>{submitting ? 'Scheduling...' : 'Schedule Announcement'}</span>
               </button>
             ) : (
               <button
                 type="button"
+                disabled={submitting}
                 onClick={() => handleAction('Sent')}
-                className="px-5 py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5"
+                className="px-5 py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5 disabled:opacity-60"
               >
                 <Send className="w-4 h-4 text-accent" />
-                <span>Send Now</span>
+                <span>{submitting ? 'Dispatching...' : 'Send Now'}</span>
               </button>
             )}
           </div>

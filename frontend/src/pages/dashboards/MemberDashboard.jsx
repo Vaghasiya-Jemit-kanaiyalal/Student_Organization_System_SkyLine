@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
-import { eventsApi, volunteerApi, certificateApi } from '../../services/api';
+import { eventsApi, volunteerApi, certificateApi, announcementsApi } from '../../services/api';
 import { CAMPUS_CLUBS } from '../../data/clubsData';
 import {
   LayoutDashboard,
@@ -357,7 +357,7 @@ export const MemberDashboard = () => {
   ]);
 
   // Announcements State
-  const [announcementsList] = useState([
+  const [announcementsList, setAnnouncementsList] = useState([
     {
       id: 'anc-1',
       title: 'Annual Budget Grant Ratified: $4,500 Allocated for Robotics Components',
@@ -445,11 +445,12 @@ export const MemberDashboard = () => {
   useEffect(() => {
     const fetchMemberData = async () => {
       try {
-        const [eventsRes, appsRes, activeRes, certsRes] = await Promise.all([
+        const [eventsRes, appsRes, activeRes, certsRes, announcementsRes] = await Promise.all([
           eventsApi.getAll().catch(() => null),
           volunteerApi.getApplications().catch(() => null),
           volunteerApi.getActive().catch(() => null),
           certificateApi.getStudentCertificates().catch(() => null),
+          announcementsApi.getAll({ status: 'Sent' }).catch(() => null),
         ]);
 
         if (eventsRes) {
@@ -528,6 +529,23 @@ export const MemberDashboard = () => {
               credentialHash: c.verification_hash || `sha256-${c.certificate_id.toLowerCase()}`,
             }));
             setCertificatesList(mappedCerts);
+          }
+        }
+
+        if (announcementsRes) {
+          const rawAnc = Array.isArray(announcementsRes) ? announcementsRes : announcementsRes?.results || [];
+          if (rawAnc.length > 0) {
+            const mappedAnc = rawAnc.map((anc) => ({
+              id: anc.id,
+              title: anc.title,
+              category: anc.category || 'General',
+              publishedDate: anc.publishedDate || anc.sentDate || (anc.created_at ? new Date(anc.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+              author: anc.author || 'Office of Student Affairs',
+              summary: anc.summary || (anc.content ? (anc.content.length > 180 ? anc.content.slice(0, 180) + '...' : anc.content) : ''),
+              fullContent: anc.fullContent || anc.content || '',
+              priority: anc.priority || 'Normal',
+            }));
+            setAnnouncementsList(mappedAnc);
           }
         }
       } catch (err) {

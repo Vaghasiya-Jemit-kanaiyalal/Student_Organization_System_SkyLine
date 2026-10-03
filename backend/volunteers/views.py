@@ -1,9 +1,10 @@
 from django.utils import timezone
+from django.db.models import Q
 from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from accounts.permissions import IsAdmin, IsMember, IsAdminOrReadOnly
-from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate
+from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement
 from .serializers import (
     EventSerializer,
     VolunteerApplicationSerializer,
@@ -13,6 +14,7 @@ from .serializers import (
     VolunteerAssignmentSerializer,
     CertificateSerializer,
     CertificateGenerateSerializer,
+    AnnouncementSerializer,
 )
 
 
@@ -440,3 +442,84 @@ class CertificateDetailView(generics.RetrieveAPIView):
     serializer_class = CertificateSerializer
     lookup_field = 'certificate_id'
     queryset = Certificate.objects.select_related('event', 'student').all()
+
+
+# ============================================================================
+# ANNOUNCEMENTS APIS
+# ============================================================================
+
+class AnnouncementListCreateView(generics.ListCreateAPIView):
+    """
+    GET /api/announcements/
+        - Admin: Views all announcements (Sent, Scheduled, Draft, Cancelled)
+        - Student / Member: Views official published announcements (Sent)
+        - Supports filters: ?status=Sent, ?category=General, ?search=keyword
+    POST /api/announcements/
+        - Creates a new announcement
+    """
+    serializer_class = AnnouncementSerializer
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Announcement.objects.all()
+
+        is_admin = bool(user and user.is_authenticated and (getattr(user, 'role', '') == 'ADMIN' or user.is_superuser))
+
+        status_param = self.request.query_params.get('status')
+        if not is_admin:
+            # Students and non-admin users only see Sent announcements
+            if status_param and status_param != 'Sent':
+                return Announcement.objects.none()
+            queryset = queryset.filter(status=Announcement.Status.SENT)
+        else:
+            if status_param and status_param != 'ALL':
+                queryset = queryset.filter(status=status_param)
+
+        category_param = self.request.query_params.get('category')
+        if category_param and category_param != 'ALL':
+            queryset = queryset.filter(category__iexact=category_param)
+
+        search_param = self.request.query_params.get('search')
+        if search_param:
+            queryset = queryset.filter(
+                Q(title__icontains=search_param) |
+                Q(content__icontains=search_param) |
+                Q(author__icontains=search_param)
+            )
+
+        return queryset
+
+    def perform_create(self, serializer):
+        user = self.request.user if self.request.user.is_authenticated else None
+        data = self.request.data
+        status_val = data.get('status', 'Sent')
+
+        sent_at_val = None
+        if status_val == 'Sent':
+            sent_at_val = timezone.now()
+
+        serializer.save(
+            created_by=user,
+            sent_at=sent_at_val
+        )
+
+
+class AnnouncementDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET /api/announcements/<int:pk>/ -> Retrieve announcement details
+    PUT / PATCH /api/announcements/<int:pk>/ -> Update announcement
+    DELETE /api/announcements/<int:pk>/ -> Delete announcement
+    """
+    queryset = Announcement.objects.all()
+    serializer_class = AnnouncementSerializer
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+

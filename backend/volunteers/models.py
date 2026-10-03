@@ -274,3 +274,73 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"{self.certificate_id} - {self.student.full_name} - {self.event.title}"
+
+
+class Announcement(models.Model):
+    """
+    Campus announcements and broadcasts created by Administrators for Members and Students.
+    """
+    class Priority(models.TextChoices):
+        NORMAL = 'Normal', _('Normal')
+        IMPORTANT = 'Important', _('Important')
+        URGENT = 'Urgent', _('Urgent')
+        OFFICIAL = 'Official', _('Official')
+        CRITICAL = 'Critical', _('Critical')
+
+    class Status(models.TextChoices):
+        DRAFT = 'Draft', _('Draft')
+        SCHEDULED = 'Scheduled', _('Scheduled')
+        SENT = 'Sent', _('Sent')
+        CANCELLED = 'Cancelled', _('Cancelled')
+
+    title = models.CharField(_('announcement title'), max_length=255)
+    content = models.TextField(_('message body'))
+    category = models.CharField(_('category'), max_length=100, default='General', blank=True)
+    priority = models.CharField(_('priority'), max_length=50, default='Normal', blank=True)
+    sent_to = models.CharField(_('target audience'), max_length=100, default='All Members', blank=True)
+    recipients_count = models.PositiveIntegerField(_('recipients count'), default=0)
+    channels = models.JSONField(_('delivery channels'), default=list, blank=True)
+
+    # Status & Scheduling
+    status = models.CharField(
+        _('status'),
+        max_length=50,
+        choices=Status.choices,
+        default=Status.SENT
+    )
+    scheduled_date = models.DateField(_('scheduled date'), null=True, blank=True)
+    scheduled_time = models.CharField(_('scheduled time'), max_length=50, null=True, blank=True)
+    timezone = models.CharField(_('timezone'), max_length=100, default='Organization Time Zone (IST)', blank=True)
+    sent_date = models.CharField(_('sent date display'), max_length=100, null=True, blank=True)
+    sent_at = models.DateTimeField(_('sent at timestamp'), null=True, blank=True)
+
+    # Flags & Extras
+    pinned = models.BooleanField(_('pinned notice'), default=False)
+    allow_replies = models.BooleanField(_('allow replies'), default=True)
+    author = models.CharField(
+        _('author display name'),
+        max_length=255,
+        default='Dr. Alexander Vance (Faculty Advisor)',
+        blank=True
+    )
+    attachments = models.JSONField(_('attachments'), default=list, blank=True)
+    delivery_stats = models.JSONField(_('delivery stats'), default=dict, blank=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='announcements'
+    )
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
+
+    class Meta:
+        ordering = ['-pinned', '-created_at']
+        verbose_name = _('Announcement')
+        verbose_name_plural = _('Announcements')
+
+    def __str__(self):
+        return f"{self.title} [{self.status}]"
+

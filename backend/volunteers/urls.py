@@ -14,6 +14,8 @@ from .views import (
     CertificateGenerateView,
     StudentCertificatesView,
     CertificateDetailView,
+    AnnouncementListCreateView,
+    AnnouncementDetailView,
 )
 
 urlpatterns = [
@@ -21,6 +23,10 @@ urlpatterns = [
     path('events/', EventListCreateView.as_view(), name='event-list-create'),
     path('events/create/', EventListCreateView.as_view(), name='event-create'),
     path('events/<int:pk>/', EventDetailView.as_view(), name='event-detail'),
+
+    # Announcement Endpoints
+    path('announcements/', AnnouncementListCreateView.as_view(), name='announcement-list-create'),
+    path('announcements/<int:pk>/', AnnouncementDetailView.as_view(), name='announcement-detail'),
 
     # Volunteer Applications Endpoints
     path('volunteers/apply/', VolunteerApplyView.as_view(), name='volunteer-apply'),

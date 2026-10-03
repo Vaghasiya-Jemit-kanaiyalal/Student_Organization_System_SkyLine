@@ -109,4 +109,32 @@ export const certificateApi = {
   },
 };
 
+export const announcementsApi = {
+  getAll: async (params = {}) => {
+    const res = await apiClient.get('/announcements/', { params });
+    return res.data;
+  },
+  getById: async (id) => {
+    const res = await apiClient.get(`/announcements/${id}/`);
+    return res.data;
+  },
+  create: async (data) => {
+    const res = await apiClient.post('/announcements/', data);
+    return res.data;
+  },
+  update: async (id, data) => {
+    const res = await apiClient.put(`/announcements/${id}/`, data);
+    return res.data;
+  },
+  patch: async (id, data) => {
+    const res = await apiClient.patch(`/announcements/${id}/`, data);
+    return res.data;
+  },
+  delete: async (id) => {
+    const res = await apiClient.delete(`/announcements/${id}/`);
+    return res.data;
+  },
+};
+
 export default apiClient;
+
