@@ -124,7 +124,7 @@ export const LoginPage = () => {
               <UniversityCrest className="w-12 h-12" variant="gold" />
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white leading-tight">
-                  ConnectU
+                  SkyLine
                 </h1>
                 <p className="text-xs uppercase tracking-widest text-accent font-semibold">
                   University Student Affairs
@@ -144,7 +144,7 @@ export const LoginPage = () => {
               </h2>
 
               <p className="text-sm text-primary-100 font-light leading-relaxed">
-                ConnectU is the premier administration platform for university clubs, societies, student government, and athletic councils.
+                SkyLine is the premier administration platform for university clubs, societies, student government, and athletic councils.
               </p>
             </div>
 

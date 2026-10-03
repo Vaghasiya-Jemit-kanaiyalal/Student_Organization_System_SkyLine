@@ -66,6 +66,19 @@ export const AllEventsView = ({
     return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
+  const formatEventDateTime = (e) => {
+    if (!e) return '';
+    if (e.date && e.date.includes('•')) {
+      return e.date;
+    }
+    const dateStr = e.dateDisplay || e.date || '';
+    const timeStr = e.timeDisplay || '';
+    if (dateStr && timeStr) {
+      return `${dateStr} • ${timeStr}`;
+    }
+    return dateStr || timeStr;
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filters Controls Bar */}
@@ -192,7 +205,7 @@ export const AllEventsView = ({
                     <div className="space-y-1.5 text-xs text-text-secondary pt-1">
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                        <span>{evt.dateDisplay || evt.date} • {evt.timeDisplay || '2:00 PM - 6:00 PM'}</span>
+                        <span>{formatEventDateTime(evt)}</span>
                       </div>
 
                       <div className="flex items-center space-x-2">

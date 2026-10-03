@@ -455,7 +455,7 @@ export const MemberDashboard = () => {
                       <div className="bg-primary text-white p-4 flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <UniversityCrest className="w-6 h-6" variant="gold" />
-                          <span className="font-bold text-sm tracking-wide">CONNECTU PASS</span>
+                          <span className="font-bold text-sm tracking-wide">SKYLINE PASS</span>
                         </div>
                         <span className="text-[10px] font-mono bg-primary-hover text-accent px-2 py-0.5 rounded border border-accent/30">
                           {ticket.status}
@@ -595,7 +595,7 @@ export const MemberDashboard = () => {
                     Official Certificate of Organization Standing
                   </p>
                   <h3 className="text-2xl font-bold text-primary mt-1">
-                    ConnectU Student Leadership Honor
+                    SkyLine Student Leadership Honor
                   </h3>
                 </div>
 

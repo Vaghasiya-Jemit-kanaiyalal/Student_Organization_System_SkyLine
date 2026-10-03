@@ -41,7 +41,7 @@ export const EmailVerificationSuccessPage = () => {
           </span>
 
           <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
-            Welcome to ConnectU
+            Welcome to SkyLine
           </h1>
 
           <p className="text-xs text-text-secondary mt-1">
@@ -86,7 +86,7 @@ export const EmailVerificationSuccessPage = () => {
 
         {/* Classical footer motto */}
         <div className="py-3 px-6 bg-ivory-200 border-t border-border text-center text-[11px] text-text-muted">
-          ConnectU System • Academic Year 2026–2027
+          SkyLine System • Academic Year 2026–2027
         </div>
 
       </div>
