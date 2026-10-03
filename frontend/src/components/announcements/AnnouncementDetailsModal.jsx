@@ -46,7 +46,7 @@ export const AnnouncementDetailsModal = ({ announcement, onClose, onEdit, onRese
             <span>{announcement.category || 'General'} Announcement</span>
           </div>
 
-          <h2 className="font-serif-academic text-2xl font-bold leading-tight">
+          <h2 className="text-xl sm:text-2xl font-semibold leading-snug">
             {announcement.title}
           </h2>
 
@@ -116,7 +116,7 @@ export const AnnouncementDetailsModal = ({ announcement, onClose, onEdit, onRese
 
           {/* Full Announcement Message */}
           <div>
-            <h4 className="font-semibold text-text-primary mb-1.5 text-sm font-serif-academic">
+            <h4 className="font-semibold text-text-primary mb-1.5 text-sm">
               Announcement Message
             </h4>
             <div className="p-4 rounded-lg bg-surface border border-border text-xs leading-relaxed text-text-primary whitespace-pre-line shadow-xs">
@@ -126,7 +126,7 @@ export const AnnouncementDetailsModal = ({ announcement, onClose, onEdit, onRese
 
           {/* Delivery Channels */}
           <div>
-            <h4 className="font-semibold text-text-primary mb-2 text-sm font-serif-academic">
+            <h4 className="font-semibold text-text-primary mb-2 text-sm">
               Delivery Channels Enabled
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -147,7 +147,7 @@ export const AnnouncementDetailsModal = ({ announcement, onClose, onEdit, onRese
           {/* Attachments Section */}
           {announcement.attachments && announcement.attachments.length > 0 && (
             <div>
-              <h4 className="font-semibold text-text-primary mb-2 text-sm font-serif-academic flex items-center gap-1.5">
+              <h4 className="font-semibold text-text-primary mb-2 text-sm flex items-center gap-1.5">
                 <Paperclip className="w-3.5 h-3.5 text-primary" />
                 <span>Enclosed Attachments</span>
               </h4>
@@ -171,26 +171,26 @@ export const AnnouncementDetailsModal = ({ announcement, onClose, onEdit, onRese
           {/* Delivery & Read Analytics (For Sent Announcements) */}
           {announcement.status === 'Sent' && stats && (
             <div>
-              <h4 className="font-semibold text-text-primary mb-2 text-sm font-serif-academic flex items-center gap-1.5">
+              <h4 className="font-semibold text-text-primary mb-2 text-sm flex items-center gap-1.5">
                 <Send className="w-3.5 h-3.5 text-status-success" />
                 <span>Delivery & Reading Metrics</span>
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="p-3 rounded bg-ivory-100 border border-border text-center">
                   <span className="text-[10px] text-text-muted block">Total Targeted</span>
-                  <span className="font-serif-academic text-base font-bold text-text-primary">{stats.total}</span>
+                  <span className="text-base font-bold text-text-primary">{stats.total}</span>
                 </div>
                 <div className="p-3 rounded bg-ivory-100 border border-border text-center">
                   <span className="text-[10px] text-text-muted block">Delivered</span>
-                  <span className="font-serif-academic text-base font-bold text-status-success">{stats.delivered}</span>
+                  <span className="text-base font-bold text-status-success">{stats.delivered}</span>
                 </div>
                 <div className="p-3 rounded bg-ivory-100 border border-border text-center">
                   <span className="text-[10px] text-text-muted block">Opened / Read</span>
-                  <span className="font-serif-academic text-base font-bold text-primary">{stats.opened}</span>
+                  <span className="text-base font-bold text-primary">{stats.opened}</span>
                 </div>
                 <div className="p-3 rounded bg-ivory-100 border border-border text-center">
                   <span className="text-[10px] text-text-muted block">Open Rate</span>
-                  <span className="font-serif-academic text-base font-bold text-accent">{stats.openRate || '80%'}</span>
+                  <span className="text-base font-bold text-accent">{stats.openRate || '80%'}</span>
                 </div>
               </div>
             </div>

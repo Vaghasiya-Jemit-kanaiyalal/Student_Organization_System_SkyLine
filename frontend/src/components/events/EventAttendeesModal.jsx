@@ -22,7 +22,7 @@ export const EventAttendeesModal = ({ event, onClose }) => {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+              <h3 className="text-lg font-bold text-text-primary">
                 Attendee Roster: {event.title}
               </h3>
               <p className="text-xs text-text-secondary mt-0.5">

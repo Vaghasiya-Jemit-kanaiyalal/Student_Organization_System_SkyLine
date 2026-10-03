@@ -42,7 +42,7 @@ class MemberRegisterSerializer(serializers.ModelSerializer):
     )
     password_confirm = serializers.CharField(
         write_only=True,
-        required=True,
+        required=False,
         style={'input_type': 'password'}
     )
 
@@ -74,12 +74,14 @@ class MemberRegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
+        password = attrs.get('password')
+        password_confirm = attrs.get('password_confirm')
+        if password_confirm is not None and password != password_confirm:
             raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
+        validated_data.pop('password_confirm', None)
         password = validated_data.pop('password')
         
         # Enforce MEMBER role upon self-registration
@@ -120,6 +122,8 @@ class CreateTreasurerSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         value = value.strip().lower()
+        if not value.endswith('@treasurer.gmail.com'):
+            raise serializers.ValidationError("Treasurer email must end with @treasurer.gmail.com (e.g. xyz@treasurer.gmail.com).")
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("An account with this email address already exists.")
         return value
@@ -144,7 +148,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     Custom JWT Login serializer that:
     1. Authenticates user by email & password.
     2. Validates user is active.
-    3. Returns access token, refresh token, role, and user profile data.
+    3. Validates that Treasurer accounts use @treasurer.gmail.com.
+    4. Returns access token, refresh token, role, and user profile data.
     """
     username_field = 'email'
 
@@ -165,6 +170,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Check if user account is active
         if not self.user.is_active:
             raise serializers.ValidationError({"detail": "User account is disabled."})
+
+        # Treasurer role email domain restriction
+        if self.user.role == User.Role.TREASURER:
+            if not self.user.email.lower().endswith('@treasurer.gmail.com'):
+                raise serializers.ValidationError({
+                    "detail": "Treasurer can only login with an email ending in @treasurer.gmail.com."
+                })
 
         # Append custom payload to response
         data['role'] = self.user.role

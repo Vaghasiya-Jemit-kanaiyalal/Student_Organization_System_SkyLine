@@ -6,6 +6,9 @@ import { UniversityCrest } from '../../components/common/UniversityCrest';
 import { EventsManagementModule } from '../../components/events/EventsManagementModule';
 import { AnnouncementsManagementModule } from '../../components/announcements/AnnouncementsManagementModule';
 import { AdminMerchManager } from '../../components/merchandise/AdminMerchManager';
+import { FundraisersManagementModule } from '../../components/fundraisers/FundraisersManagementModule';
+import { useTreasurer } from '../../context/TreasurerContext';
+import { TreasurerModal } from '../../components/admin/TreasurerModal';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -41,8 +44,11 @@ import {
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
+  const { currentTreasurer } = useTreasurer();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [isTreasurerModalOpen, setIsTreasurerModalOpen] = useState(false);
 
   const normalizeTab = (t) => {
     if (t === 'roster') return 'members';
@@ -295,6 +301,54 @@ export const AdminDashboard = () => {
     <div className="min-h-screen bg-ivory py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
+        {/* Top Header Card with Appointed Treasurer Button */}
+        <div className="bg-surface rounded-xl border border-border p-4 sm:p-5 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+                SkyLine Admin Panel
+              </h1>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                Official Governance
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Society administration, member quorum, events, merchandise, and fundraising oversight
+            </p>
+          </div>
+
+          {/* Appointed Treasurer Status & Assign Button */}
+          <div className="flex items-center space-x-2 flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setIsTreasurerModalOpen(true)}
+              className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-lg bg-ivory-100 hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition shadow-xs group"
+              title="Click to view appointed treasurer details or assign a new treasurer"
+            >
+              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <div className="text-left leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-bold text-text-muted">Treasurer:</span>
+                  <span className="text-xs font-bold text-text-primary group-hover:text-primary transition">
+                    {currentTreasurer?.name || 'Marcus Sterling'}
+                  </span>
+                  <span className="font-mono text-[10px] text-primary bg-primary/10 px-1 py-0.2 rounded font-semibold">
+                    {currentTreasurer?.studentId || 'STU-2026-4419'}
+                  </span>
+                </div>
+                <div className="text-[10px] text-text-muted mt-0.5">
+                  Serving since: <strong className="text-text-secondary font-mono">{currentTreasurer?.startDate || 'Aug 20, 2026'}</strong>
+                </div>
+              </div>
+              <span className="ml-1 text-[11px] px-2 py-0.5 rounded bg-primary text-white font-semibold">
+                Manage
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* ========================================================= */}
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {/* ========================================================= */}
@@ -313,7 +367,7 @@ export const AdminDashboard = () => {
                       <Users className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {memberRoster.length}
                   </p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
@@ -345,7 +399,7 @@ export const AdminDashboard = () => {
                       <Calendar className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {events.length}
                   </p>
                   <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1">
@@ -376,7 +430,7 @@ export const AdminDashboard = () => {
                       <DollarSign className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     $8,345.50
                   </p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
@@ -407,7 +461,7 @@ export const AdminDashboard = () => {
                       <Megaphone className="w-4 h-4 text-primary" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {announcements.length}
                   </p>
                   <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1.5">
@@ -437,7 +491,7 @@ export const AdminDashboard = () => {
               <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
                   <div>
-                    <h2 className="font-serif-academic text-xl font-bold text-text-primary flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-primary" />
                       <span>Society Governance & Ledger Log</span>
                     </h2>
@@ -509,7 +563,7 @@ export const AdminDashboard = () => {
                 <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                   <div className="flex items-center space-x-2 pb-3 border-b border-border">
                     <Sparkles className="w-4 h-4 text-accent" />
-                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                    <h3 className="text-lg font-bold text-text-primary">
                       Executive Launcher
                     </h3>
                   </div>
@@ -542,7 +596,7 @@ export const AdminDashboard = () => {
                     </button>
 
                     <button
-                      onClick={() => setIsCreateTreasurerModalOpen(true)}
+                      onClick={() => setIsTreasurerModalOpen(true)}
                       className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
@@ -569,7 +623,7 @@ export const AdminDashboard = () => {
                 <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                   <div className="flex items-center space-x-2 pb-3 border-b border-border">
                     <Award className="w-4 h-4 text-primary" />
-                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                    <h3 className="text-lg font-bold text-text-primary">
                       Council Accreditation
                     </h3>
                   </div>
@@ -643,117 +697,7 @@ export const AdminDashboard = () => {
         {/* TAB 6: FUNDRAISERS */}
         {/* ========================================================= */}
         {activeTab === 'fundraisers' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Society Endowments & Fundraisers
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official crowdfunding campaigns for robotic competition chassis, symposium travel, and hardware lab gear
-                  </p>
-                </div>
-                <button
-                  onClick={() => alert('Opening Council Initiative Proposal Submission...')}
-                  className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Launch Fundraiser</span>
-                </button>
-              </div>
-
-              {/* 3 Active Campaigns */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
-                {/* Campaign 1 */}
-                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
-                        72% Funded
-                      </span>
-                      <span className="text-[11px] text-text-muted">14 Days Remaining</span>
-                    </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
-                      Robotics Regional Championship Travel
-                    </h3>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      Funding flights, competition registration dues, and transport crates for national competition in Chicago.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
-                      <div className="bg-primary h-full rounded-full" style={{ width: '72%' }} />
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>Raised: <strong className="text-primary">$4,320.00</strong></span>
-                      <span className="text-text-muted">Goal: $6,000.00</span>
-                    </div>
-                    <span className="text-[10px] text-text-muted block">48 Alumni & Faculty Donors</span>
-                  </div>
-                </div>
-
-                {/* Campaign 2 */}
-                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
-                        85% Funded
-                      </span>
-                      <span className="text-[11px] text-text-muted">22 Days Remaining</span>
-                    </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
-                      Autonomous Sensor & AI Hardware Lab
-                    </h3>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      Procuring NVIDIA Jetson Orin compute units and LiDAR sensory kits for student machine learning projects.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
-                      <div className="bg-accent h-full rounded-full" style={{ width: '85%' }} />
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>Raised: <strong className="text-accent">$8,500.00</strong></span>
-                      <span className="text-text-muted">Goal: $10,000.00</span>
-                    </div>
-                    <span className="text-[10px] text-text-muted block">92 Corporate & Student Donors</span>
-                  </div>
-                </div>
-
-                {/* Campaign 3 */}
-                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
-                        70% Funded
-                      </span>
-                      <span className="text-[11px] text-text-muted">30 Days Remaining</span>
-                    </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
-                      Undergraduate STEM Diversity Grant
-                    </h3>
-                    <p className="text-xs text-text-secondary leading-relaxed">
-                      Scholarships and conference stipends for underrepresented undergraduate students presenting research.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
-                      <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span>Raised: <strong className="text-primary">$2,100.00</strong></span>
-                      <span className="text-text-muted">Goal: $3,000.00</span>
-                    </div>
-                    <span className="text-[10px] text-text-muted block">31 Contributing Donors</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <FundraisersManagementModule />
         )}
 
         {/* ========================================================= */}
@@ -767,7 +711,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Total Certified Hours
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                <p className="text-2xl font-bold text-primary mt-1">
                   420 Hours
                 </p>
                 <span className="text-[11px] text-status-success font-medium">Ratified under Dean Honor Program</span>
@@ -776,7 +720,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Pending Verification
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
+                <p className="text-2xl font-bold text-accent mt-1">
                   {volunteerHours.filter(v => v.status === 'PENDING').reduce((acc, curr) => acc + curr.hours, 0)} Hours
                 </p>
                 <span className="text-[11px] text-text-muted">Awaiting Advisor Signature</span>
@@ -785,7 +729,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Registrar Credits
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
+                <p className="text-2xl font-bold text-text-primary mt-1">
                   28 Students Awarded
                 </p>
                 <span className="text-[11px] text-text-muted">Official academic transcript notation</span>
@@ -796,7 +740,7 @@ export const AdminDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Volunteer Verification & Hour Allocation
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -871,7 +815,7 @@ export const AdminDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Administrative Reports & Audit Exports
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -891,32 +835,32 @@ export const AdminDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 text-xs">
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Membership Retention Rate</span>
-                  <p className="font-serif-academic text-2xl font-bold text-primary mt-1">94.2%</p>
+                  <p className="text-2xl font-bold text-primary mt-1">94.2%</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Top 5% among engineering campus societies.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Total Verified Service Hours</span>
-                  <p className="font-serif-academic text-2xl font-bold text-accent mt-1">420 Hours</p>
+                  <p className="text-2xl font-bold text-accent mt-1">420 Hours</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Ratified under University Dean Honor Program.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Fiscal Ledger Balance</span>
-                  <p className="font-serif-academic text-2xl font-bold text-status-success mt-1">$8,345.50</p>
+                  <p className="text-2xl font-bold text-status-success mt-1">$8,345.50</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Zero outstanding auditor reconciliation flags.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Total Campus Events Hosted</span>
-                  <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
+                  <p className="text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
                   <p className="text-[11px] text-text-muted mt-0.5">100% safety & room reservation clearance.</p>
                 </div>
               </div>
 
               {/* Downloadable Dossiers */}
               <div className="pt-4 border-t border-border space-y-3">
-                <h3 className="font-serif-academic text-base font-bold text-text-primary">
+                <h3 className="text-base font-bold text-text-primary">
                   Official Dossier Exports
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -973,7 +917,7 @@ export const AdminDashboard = () => {
               <div className="flex justify-between items-start border-b border-border pb-3">
                 <div className="flex items-center space-x-2">
                   <UniversityCrest className="w-6 h-6" variant="burgundy" />
-                  <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                  <h3 className="text-lg font-bold text-text-primary">
                     Appoint Society Treasurer
                   </h3>
                 </div>
@@ -1036,9 +980,10 @@ export const AdminDashboard = () => {
                       required
                       value={newTreasurer.email}
                       onChange={(e) => setNewTreasurer({ ...newTreasurer, email: e.target.value })}
-                      placeholder="treasurer@university.edu"
+                      placeholder="xyz@treasurer.gmail.com"
                       className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                     />
+                    <p className="text-[11px] text-text-muted mt-1">Must end with @treasurer.gmail.com</p>
                   </div>
 
                   <div>
@@ -1084,7 +1029,7 @@ export const AdminDashboard = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
             <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
               <div className="flex justify-between items-start border-b border-border pb-3">
-                <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                <h3 className="text-lg font-bold text-text-primary">
                   Enroll Student Member
                 </h3>
                 <button
@@ -1149,6 +1094,12 @@ export const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Appointed Treasurer Management Modal */}
+        <TreasurerModal
+          isOpen={isTreasurerModalOpen}
+          onClose={() => setIsTreasurerModalOpen(false)}
+        />
 
       </div>
     </div>

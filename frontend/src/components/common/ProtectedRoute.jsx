@@ -12,7 +12,17 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect to academic unauthorized screen with contextual role info
+    // Automatically redirect users to their assigned role dashboard
+    if (user.role === 'TREASURER') {
+      return <Navigate to="/treasurer/dashboard" replace />;
+    }
+    if (user.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (user.role === 'MEMBER') {
+      return <Navigate to="/member/dashboard" replace />;
+    }
+
     return (
       <Navigate
         to="/unauthorized"

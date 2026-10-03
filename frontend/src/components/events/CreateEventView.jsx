@@ -160,11 +160,11 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 w-full max-w-7xl mx-auto">
       {/* Top Header Card */}
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h2 className="text-2xl font-bold text-text-primary">
             Create Event
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
@@ -206,13 +206,13 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
       <form className="space-y-6">
         {/* SECTION A — Basic Information */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">A</span>
             Basic Information
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Event Name <span className="text-status-error">*</span>
@@ -266,7 +266,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
             
             <div className="space-y-3">
               {/* Preset Image Options */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { name: 'Robotics Lab', url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80' },
                   { name: 'Auditorium Debate', url: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80' },
@@ -277,14 +277,14 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                     key={preset.name}
                     type="button"
                     onClick={() => setEventBanner(preset.url)}
-                    className={`relative rounded-lg overflow-hidden border text-left p-1 transition ${
+                    className={`relative rounded-lg overflow-hidden border text-left p-1.5 transition ${
                       eventBanner === preset.url
                         ? 'border-primary ring-2 ring-primary/20'
                         : 'border-border hover:border-accent'
                     }`}
                   >
-                    <img src={preset.url} alt={preset.name} className="w-full h-16 object-cover rounded" />
-                    <span className="text-[10px] font-semibold text-text-primary block mt-1 px-1 truncate">
+                    <img src={preset.url} alt={preset.name} className="w-full h-24 sm:h-28 object-cover rounded" />
+                    <span className="text-xs font-semibold text-text-primary block mt-1.5 px-1 truncate">
                       {preset.name}
                     </span>
                   </button>
@@ -304,10 +304,10 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
               {/* Live Preview */}
               {eventBanner && (
-                <div className="p-2 bg-ivory-100 border border-border rounded-lg flex items-center space-x-3">
-                  <img src={eventBanner} alt="Preview" className="w-20 h-12 object-cover rounded border border-border" />
-                  <div className="text-[11px] text-text-secondary">
-                    <strong className="text-text-primary block">Banner Preview Selected</strong>
+                <div className="p-3 bg-ivory-100 border border-border rounded-lg flex items-center space-x-4">
+                  <img src={eventBanner} alt="Preview" className="w-28 h-16 object-cover rounded border border-border flex-shrink-0" />
+                  <div className="text-xs text-text-secondary">
+                    <strong className="text-text-primary block font-semibold mb-0.5">Banner Preview Selected</strong>
                     Selected cover image will be displayed on event cards, details modal, and ticket headers.
                   </div>
                 </div>
@@ -317,13 +317,13 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         </div>
 
         {/* SECTION B — Date & Venue */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">B</span>
             Date & Venue
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <div>
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Event Date <span className="text-status-error">*</span>
@@ -363,8 +363,8 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Venue Location <span className="text-status-error">*</span>
               </label>
@@ -378,7 +378,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-1">
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Venue Capacity <span className="text-status-error">*</span>
               </label>
@@ -397,7 +397,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
         {/* SECTION C — Registration */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">C</span>
             Registration Controls
           </h3>
@@ -408,7 +408,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
               id="registrationRequired"
               checked={registrationRequired}
               onChange={(e) => setRegistrationRequired(e.target.checked)}
-              className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
             />
             <label htmlFor="registrationRequired" className="text-xs font-semibold text-text-primary cursor-pointer">
               Registration Required for Event Entry
@@ -416,7 +416,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
           </div>
 
           {registrationRequired && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-text-primary mb-1">
                   Maximum Attendees
@@ -426,6 +426,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                   min={1}
                   value={maxAttendees}
                   onChange={(e) => setMaxAttendees(e.target.value)}
+                  placeholder="e.g. 150"
                   className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -447,39 +448,44 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
         {/* SECTION D — Ticket Configuration */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <div className="flex justify-between items-center border-b border-border pb-2">
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">D</span>
-              Ticket Configuration
-            </h3>
+          <div className="flex justify-between items-center border-b border-border pb-3">
+            <div>
+              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">D</span>
+                Ticket Configuration
+              </h3>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Configure ticket tiers, member allowances, pricing, and availability.
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleAddTicketType}
-              className="px-3 py-1.5 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition-campus flex items-center gap-1"
+              className="px-3.5 py-2 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition-campus flex items-center gap-1.5 shadow-sm"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Ticket Type</span>
+              <Plus className="w-4 h-4" />
+              <span>Add Ticket Tier</span>
             </button>
           </div>
 
           <div className="space-y-3">
-            {ticketTypes.map((t, index) => (
-              <div key={t.id} className="p-4 rounded-lg bg-ivory-100 border border-border grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            {ticketTypes.map((t) => (
+              <div key={t.id} className="p-4 sm:p-5 rounded-lg bg-ivory-100 border border-border grid grid-cols-1 sm:grid-cols-12 gap-4 items-end transition hover:border-accent/40">
                 <div className="sm:col-span-4">
-                  <label className="block text-[11px] font-semibold text-text-primary mb-1">
-                    Ticket Type Name
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
+                    Ticket Tier Name
                   </label>
                   <input
                     type="text"
                     value={t.name}
                     onChange={(e) => handleUpdateTicketType(t.id, 'name', e.target.value)}
-                    placeholder="e.g. Member Ticket"
-                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-surface text-text-primary"
+                    placeholder="e.g. General Admission / VIP"
+                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-semibold text-text-primary mb-1">
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
                     Price ($)
                   </label>
                   <input
@@ -488,12 +494,12 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                     step={0.01}
                     value={t.price}
                     onChange={(e) => handleUpdateTicketType(t.id, 'price', e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-surface text-text-primary font-mono"
+                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-semibold text-text-primary mb-1">
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
                     Capacity
                   </label>
                   <input
@@ -501,18 +507,18 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                     min={1}
                     value={t.capacity}
                     onChange={(e) => handleUpdateTicketType(t.id, 'capacity', e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-surface text-text-primary font-mono"
+                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label className="block text-[11px] font-semibold text-text-primary mb-1">
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
                     Availability Status
                   </label>
                   <select
                     value={t.availability || 'Available'}
                     onChange={(e) => handleUpdateTicketType(t.id, 'availability', e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs rounded border border-border bg-surface text-text-primary"
+                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="Available">Available</option>
                     <option value="Presale">Presale</option>
@@ -520,11 +526,11 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                   </select>
                 </div>
 
-                <div className="sm:col-span-1 text-right">
+                <div className="sm:col-span-1 flex items-center justify-end pb-0.5">
                   <button
                     type="button"
                     onClick={() => handleRemoveTicketType(t.id)}
-                    className="p-1.5 rounded text-status-error hover:bg-status-error-bg transition"
+                    className="p-2 rounded text-status-error hover:bg-status-error-bg transition"
                     title="Remove ticket type"
                   >
                     <Trash2 className="w-4 h-4" />

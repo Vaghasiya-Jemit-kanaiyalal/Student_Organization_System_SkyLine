@@ -27,7 +27,7 @@ export const SessionExpiredPage = () => {
             SECURITY PROTOCOL • TIMEOUT
           </span>
 
-          <h1 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold text-text-primary">
             Session Inactivity Timeout
           </h1>
 
@@ -56,7 +56,7 @@ export const SessionExpiredPage = () => {
         </div>
 
         <div className="py-3 px-6 bg-ivory-200 border-t border-border text-center text-[11px] text-text-muted">
-          ConnectU Identity Service • Session Reference: ID-TIMEOUT-2026
+          SkyLine Identity Service • Session Reference: ID-TIMEOUT-2026
         </div>
 
       </div>

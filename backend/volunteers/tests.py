@@ -26,7 +26,7 @@ class VolunteerFlowTests(APITestCase):
             role=User.Role.MEMBER
         )
         self.treasurer = User.objects.create_user(
-            email='treasurer@studentorg.edu',
+            email='treasurer@treasurer.gmail.com',
             password='TreasurerPassword123!',
             full_name='Organization Treasurer',
             role=User.Role.TREASURER

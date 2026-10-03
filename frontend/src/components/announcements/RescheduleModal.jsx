@@ -37,7 +37,7 @@ export const RescheduleModal = ({ announcement, onClose, onSave }) => {
         <div className="flex justify-between items-start border-b border-border pb-3">
           <div className="flex items-center space-x-2">
             <UniversityCrest className="w-5 h-5" variant="burgundy" />
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+            <h3 className="text-lg font-bold text-text-primary">
               Reschedule Announcement
             </h3>
           </div>

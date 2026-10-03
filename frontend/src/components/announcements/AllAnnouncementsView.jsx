@@ -115,26 +115,6 @@ export const AllAnnouncementsView = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary">
-            All Announcements
-          </h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            View, manage, and track all organization announcements across their lifecycle.
-          </p>
-        </div>
-
-        <button
-          onClick={onNavigateToCreate}
-          className="px-4 py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5"
-        >
-          <Plus className="w-4 h-4 text-accent" />
-          <span>+ Create Announcement</span>
-        </button>
-      </div>
-
       {/* Notification Toast */}
       {bannerMessage && (
         <div
@@ -253,7 +233,7 @@ export const AllAnnouncementsView = ({
                 paginated.map((item) => (
                   <tr key={item.id} className="hover:bg-ivory-50 transition">
                     <td className="py-3.5 px-4 font-semibold text-text-primary max-w-xs">
-                      <div className="font-serif-academic text-sm font-bold text-text-primary">
+                      <div className="text-sm font-bold text-text-primary">
                         {item.title}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1">

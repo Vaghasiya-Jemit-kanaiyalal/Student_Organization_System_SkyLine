@@ -9,6 +9,19 @@ import { UniversityCrest } from '../common/UniversityCrest';
 export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
   if (!event) return null;
 
+  const formatEventDateTime = (e) => {
+    if (!e) return '';
+    if (e.date && e.date.includes('•')) {
+      return e.date;
+    }
+    const dateStr = e.dateDisplay || e.date || '';
+    const timeStr = e.timeDisplay || '';
+    if (dateStr && timeStr) {
+      return `${dateStr} • ${timeStr}`;
+    }
+    return dateStr || timeStr;
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs overflow-y-auto">
       <div className="max-w-2xl w-full bg-surface border border-border rounded-xl shadow-elevated overflow-hidden animate-fadeIn my-8">
@@ -40,7 +53,7 @@ export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
           </div>
 
           <div className="p-6 bg-gradient-to-r from-primary via-primary-hover to-primary">
-            <h2 className="font-serif-academic text-2xl font-bold leading-tight">
+            <h2 className="text-2xl font-bold leading-tight">
               {event.title}
             </h2>
             <p className="text-xs text-primary-100 mt-1">
@@ -58,7 +71,7 @@ export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
               <Calendar className="w-4 h-4 text-primary mt-0.5" />
               <div>
                 <span className="font-semibold block text-text-primary">Date & Time</span>
-                <span className="text-text-secondary">{event.dateDisplay || event.date} • {event.timeDisplay || '2:00 PM - 6:00 PM'}</span>
+                <span className="text-text-secondary">{formatEventDateTime(event)}</span>
               </div>
             </div>
 
@@ -89,7 +102,7 @@ export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
 
           {/* Description */}
           <div>
-            <h4 className="font-semibold text-text-primary mb-1 text-sm font-serif-academic">About This Event</h4>
+            <h4 className="font-semibold text-text-primary mb-1 text-sm">About This Event</h4>
             <p className="text-text-secondary leading-relaxed bg-surface p-3 rounded border border-border">
               {event.description || 'Official campus student organization event.'}
             </p>
@@ -97,7 +110,7 @@ export const EventDetailsModal = ({ event, onClose, onNavigateToTickets }) => {
 
           {/* Ticket Tier Breakdown */}
           <div>
-            <h4 className="font-semibold text-text-primary mb-2 text-sm font-serif-academic flex items-center justify-between">
+            <h4 className="font-semibold text-text-primary mb-2 text-sm flex items-center justify-between">
               <span>Configured Ticket Types</span>
               <span className="text-xs text-text-muted font-normal font-sans">
                 {event.ticketTypes ? event.ticketTypes.length : 0} configured tiers

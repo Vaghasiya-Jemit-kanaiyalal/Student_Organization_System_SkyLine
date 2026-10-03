@@ -32,7 +32,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Admin already exists: {admin_email}")
 
         # 2. Create Treasurer
-        treasurer_email = 'treasurer@studentorg.edu'
+        treasurer_email = 'treasurer@treasurer.gmail.com'
         treasurer, created = User.objects.get_or_create(
             email=treasurer_email,
             defaults={
