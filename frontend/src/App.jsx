@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MerchandiseProvider } from './context/MerchandiseContext';
 import { FinanceProvider } from './context/FinanceContext';
+import { FundraiserProvider } from './context/FundraiserContext';
+import { TreasurerProvider } from './context/TreasurerContext';
 import { Navbar } from './components/common/Navbar';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { UniversityCrest } from './components/common/UniversityCrest';
@@ -151,7 +153,11 @@ export const App = () => {
       <AuthProvider>
         <MerchandiseProvider>
           <FinanceProvider>
-            <AppContent />
+            <FundraiserProvider>
+              <TreasurerProvider>
+                <AppContent />
+              </TreasurerProvider>
+            </FundraiserProvider>
           </FinanceProvider>
         </MerchandiseProvider>
       </AuthProvider>
