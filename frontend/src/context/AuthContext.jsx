@@ -340,6 +340,20 @@ export const AuthProvider = ({ children }) => {
     return { success: true, membership: newMembership, user: updatedUser };
   };
 
+  /**
+   * Update User Profile (e.g. avatar, name, department)
+   */
+  const updateUserProfile = (updatedFields) => {
+    if (!user) return;
+    const updated = {
+      ...user,
+      ...updatedFields
+    };
+    setUser(updated);
+    localStorage.setItem('connectu_active_user', JSON.stringify(updated));
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -354,6 +368,7 @@ export const AuthProvider = ({ children }) => {
         triggerSessionExpired,
         quickSwitchRole,
         buyClubMembership,
+        updateUserProfile,
         users: []
       }}
     >

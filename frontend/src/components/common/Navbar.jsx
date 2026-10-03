@@ -8,7 +8,6 @@ import {
   ChevronDown,
   LogOut,
   User,
-  ShieldAlert,
   ShieldCheck,
   LayoutDashboard,
   Users,
@@ -19,7 +18,6 @@ import {
   HeartHandshake,
   FileText,
   CreditCard,
-  Building2,
   Ticket,
   Award,
   TrendingUp,
@@ -27,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, isAuthenticated, logout, triggerSessionExpired } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { currentTreasurer } = useTreasurer();
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,65 +59,36 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  const getRoleBadge = (role) => {
-    switch (role) {
-      case 'ADMIN':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#1557B0] text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#58A6FF] mr-1.5"></span>
-            Club Admin
-          </span>
-        );
-      case 'TREASURER':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#123552] text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#58A6FF] mr-1.5"></span>
-            Treasurer
-          </span>
-        );
-      default: {
-        const hasClub = user?.memberships && user.memberships.length > 0;
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            hasClub ? 'bg-[#15466A] text-white' : 'bg-[#1E293B] text-[#94A3B8] border border-[#334155]'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${hasClub ? 'bg-[#159947]' : 'bg-amber-400'}`}></span>
-            {hasClub ? 'Club Member' : 'Standard Student'}
-          </span>
-        );
-      }
-    }
-  };
-
-  // Compact tab definitions fitting cleanly without horizontal scroll
-  const adminNavTabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'members', label: 'Member Management', badge: 5, icon: Users },
-    { id: 'events', label: 'Events', badge: 4, icon: Calendar },
-    { id: 'announcements', label: 'Announcement', icon: Megaphone },
-    { id: 'merchandise', label: 'Merch', icon: ShoppingBag },
-    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign },
-    { id: 'volunteers', label: 'Volunteers', icon: HeartHandshake },
-  ];
-
-  const treasurerNavTabs = [
-    { id: 'overview', label: 'Finance Dashboard', icon: LayoutDashboard },
-    { id: 'income', label: 'Income Management', icon: TrendingUp },
-    { id: 'expenses', label: 'Expense Management', icon: TrendingDown },
-    { id: 'reimbursements', label: 'Reimbursements', badge: 3, icon: CreditCard },
-    { id: 'merch', label: 'Merch Revenue', icon: ShoppingBag },
-    { id: 'reports', label: 'Reports & Analytics', icon: FileText },
-  ];
-
-  const memberNavTabs = [
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+  // Student navigation items specified in prompt (no arbitrary badges)
+  const studentNavTabs = [
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'membership', label: 'Clubs & Memberships', icon: Users },
-    { id: 'events', label: 'Events', badge: 3, icon: Calendar },
-    { id: 'tickets', label: 'My Tickets', badge: 2, icon: Ticket },
+    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'tickets', label: 'My Tickets', icon: Ticket },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
     { id: 'certificates', label: 'Certificates', icon: Award },
-    { id: 'announcements', label: 'Announcements', badge: 1, icon: Megaphone },
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone }
+  ];
+
+  // Admin navigation items
+  const adminNavTabs = [
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'members', label: 'Members', icon: Users },
+    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'merchandise', label: 'Merchandise', icon: ShoppingBag },
+    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign },
+    { id: 'volunteers', label: 'Volunteers', icon: HeartHandshake }
+  ];
+
+  // Treasurer navigation items
+  const treasurerNavTabs = [
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'income', label: 'Income', icon: TrendingUp },
+    { id: 'expenses', label: 'Expenses', icon: TrendingDown },
+    { id: 'reimbursements', label: 'Reimbursements', badge: 3, icon: CreditCard },
+    { id: 'merch', label: 'Merch Revenue', icon: ShoppingBag },
+    { id: 'reports', label: 'Reports', icon: FileText }
   ];
 
   const currentTabs =
@@ -127,7 +96,7 @@ export const Navbar = () => {
       ? adminNavTabs
       : user?.role === 'TREASURER'
       ? treasurerNavTabs
-      : memberNavTabs;
+      : studentNavTabs;
 
   const currentBasePath =
     user?.role === 'ADMIN'
@@ -136,48 +105,67 @@ export const Navbar = () => {
       ? '/treasurer/dashboard'
       : '/member/dashboard';
 
+  // Format user role label cleanly
+  const getUserRoleLabel = () => {
+    if (user?.role === 'ADMIN') return 'Club Administrator';
+    if (user?.role === 'TREASURER') return 'Treasury Officer';
+    const hasClub = user?.memberships && user.memberships.length > 0;
+    return hasClub ? 'Club Member' : 'Student';
+  };
+
+  const isStudent = user?.role !== 'ADMIN' && user?.role !== 'TREASURER';
+
   return (
-    <header className="sticky top-0 z-40 bg-[#0F2942] text-white shadow-md border-b border-[#0C2135]" ref={menuRef}>
-      {/* Full Width Header Container: Far Left Logo & Far Right Profile */}
-      <div className="w-full px-3 sm:px-5 lg:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+    <header
+      className={`sticky top-0 z-40 text-white transition-colors ${
+        isStudent
+          ? 'bg-[#0B0F17] border-b border-zinc-800 shadow-xs'
+          : 'bg-[#0F2942] border-b border-[#1A3A5A]'
+      }`}
+      ref={menuRef}
+    >
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-15 flex items-center justify-between gap-4">
         
-        {/* VERY LEFT: Brand Logo & Name */}
+        {/* LEFT: Brand Logo, Name, Subtitle */}
         <Link to="/" className="flex items-center space-x-2.5 group flex-shrink-0">
-          <UniversityCrest className="w-8 h-8 sm:w-9 sm:h-9 transition-transform group-hover:scale-105" variant="navy" />
+          <UniversityCrest className="w-8 h-8 text-white transition-opacity group-hover:opacity-90" variant="white" />
           <div className="flex flex-col text-left">
-            <span className="text-lg sm:text-xl font-bold tracking-tight text-white leading-none group-hover:text-[#58A6FF]">
-              SkyLine
+            <span className="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
+              Skyline
             </span>
-            <span className="text-[9px] sm:text-[10px] uppercase font-semibold tracking-wider text-[#98A2B3] mt-0.5">
+            <span className={`text-[10px] font-medium tracking-normal -mt-0.5 ${isStudent ? 'text-zinc-400' : 'text-slate-300'}`}>
               Campus Organizations
             </span>
           </div>
         </Link>
 
-        {/* CENTER: Tab Navigation fitting cleanly without horizontal scrollbar */}
+        {/* CENTER: Main Navigation */}
         {isAuthenticated && user && (
-          <nav className="hidden md:flex items-center justify-center space-x-1 sm:space-x-1.5 flex-1 max-w-4xl mx-auto px-2">
+          <nav className="hidden lg:flex items-center justify-center space-x-1 flex-1 px-2">
             {currentTabs.map((tab) => {
               const Icon = tab.icon;
               const isTabActive = location.pathname.startsWith(currentBasePath) && activeTab === tab.id;
+
+              const activeClass = isStudent
+                ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                : 'bg-[#1D70B8] text-white shadow-xs font-semibold';
+
+              const inactiveClass = isStudent
+                ? 'text-zinc-300 hover:text-white hover:bg-white/10'
+                : 'text-slate-300 hover:text-white hover:bg-white/10';
+
               return (
                 <Link
                   key={tab.id}
                   to={`${currentBasePath}?tab=${tab.id}`}
-                  className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-md text-[11px] xl:text-xs font-semibold transition-campus ${
-                    isTabActive
-                      ? 'bg-[#1557B0] text-white shadow-sm'
-                      : 'text-[#D9E2EC] hover:text-white hover:bg-white/10'
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
+                    isTabActive ? activeClass : inactiveClass
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isTabActive ? 'text-white' : 'text-[#98A2B3]'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isTabActive ? 'text-white' : isStudent ? 'text-zinc-400' : 'text-slate-400'}`} />
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && (
-                    <span
-                      className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        isTabActive ? 'bg-[#104A96] text-white' : 'bg-white/20 text-[#D9E2EC]'
-                      }`}
-                    >
+                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-400 text-slate-900">
                       {tab.badge}
                     </span>
                   )}
@@ -187,19 +175,21 @@ export const Navbar = () => {
           </nav>
         )}
 
-        {/* VERY RIGHT: User Profile Header Panel */}
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          {/* Appointed Treasurer Header Button for Club Admin */}
+        {/* RIGHT: User Profile & Actions */}
+        <div className="flex items-center space-x-2.5 flex-shrink-0">
+          {/* Admin Treasurer Quick Action */}
           {isAuthenticated && user?.role === 'ADMIN' && (
             <button
               type="button"
               onClick={() => setTreasurerModalOpen(true)}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md bg-[#123552] hover:bg-[#15466A] text-white border border-[#15466A] transition text-xs font-semibold"
-              title="Treasurer Management: View Current & Assign New Treasurer"
+              className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md bg-[#163656] hover:bg-[#1E446C] text-xs font-medium text-slate-200 border border-[#234A74] transition"
+              title="Manage Active Treasurer"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-[#58A6FF]" />
-              <span className="hidden xl:inline text-[11px] text-[#98A2B3]">Treasurer:</span>
-              <span className="max-w-[100px] truncate text-white">{currentTreasurer?.name || 'Marcus Sterling'}</span>
+              <span className="text-[11px] text-slate-400">Treasurer:</span>
+              <span className="text-[11px] font-semibold text-white max-w-[90px] truncate">
+                {currentTreasurer?.name?.split(' ')[0] || 'Marcus'}
+              </span>
             </button>
           )}
 
@@ -208,61 +198,53 @@ export const Navbar = () => {
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-md bg-[#123552] hover:bg-[#15466A] text-white border border-[#15466A] transition-campus"
+                className="flex items-center space-x-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-md hover:bg-white/10 transition text-left"
               >
                 <img
                   src={user.avatar}
                   alt={user.name}
-                  className="w-7 h-7 rounded-full object-cover border border-white/20"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20 flex-shrink-0"
                 />
                 <div className="hidden sm:flex flex-col text-left leading-tight">
-                  <span className="text-xs font-semibold max-w-[120px] truncate">
+                  <span className="text-xs font-semibold text-white max-w-[130px] truncate">
                     {user.name}
                   </span>
-                  <span className="text-[10px] text-[#98A2B3] truncate">
-                    {user.role === 'ADMIN' ? 'Club Admin' : user.role === 'TREASURER' ? 'Treasurer' : 'Student Member'}
+                  <span className={`text-[10px] truncate ${isStudent ? 'text-emerald-400 font-medium' : 'text-slate-300'}`}>
+                    {getUserRoleLabel()}
                   </span>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-60 rounded-md shadow-lg bg-surface border border-border py-1.5 z-50 text-xs">
-                  <div className="px-3.5 py-2.5 border-b border-border bg-[#F4F5F7]">
-                    <p className="font-semibold text-text-primary">{user.name}</p>
-                    <p className="text-[11px] text-text-secondary truncate">{user.email}</p>
-                    <div className="mt-1.5">{getRoleBadge(user.role)}</div>
+                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-md bg-white border border-slate-200 py-1 z-50 text-xs animate-fadeIn text-slate-800">
+                  <div className="px-3.5 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <p className="font-semibold text-slate-900 truncate">{user.name}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                    <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
+                      isStudent ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                      {getUserRoleLabel()}
+                    </span>
                   </div>
 
                   <div className="py-1">
                     <Link
-                      to={currentBasePath}
+                      to={`${currentBasePath}?tab=profile`}
                       onClick={() => setMenuOpen(false)}
-                      className="px-3.5 py-2 flex items-center space-x-2.5 hover:bg-[#F4F5F7] text-text-primary"
+                      className="px-3.5 py-2 flex items-center space-x-2 hover:bg-slate-50 text-slate-700"
                     >
-                      <LayoutDashboard className="w-4 h-4 text-[#1557B0]" />
-                      <span>My Dashboard</span>
+                      <User className="w-3.5 h-3.5 text-slate-500" />
+                      <span>My Profile</span>
                     </Link>
-
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        triggerSessionExpired();
-                        navigate('/session-expired');
-                      }}
-                      className="w-full text-left px-3.5 py-2 flex items-center space-x-2.5 hover:bg-[#F4F5F7] text-text-secondary"
-                    >
-                      <ShieldAlert className="w-4 h-4 text-status-warning" />
-                      <span>Simulate Session Expiry</span>
-                    </button>
                   </div>
 
-                  <div className="border-t border-border pt-1">
+                  <div className="border-t border-slate-100 pt-1">
                     <button
                       onClick={handleLogout}
-                      className="w-full text-left px-3.5 py-2 flex items-center space-x-2.5 hover:bg-red-50 text-status-error font-medium"
+                      className="w-full text-left px-3.5 py-2 flex items-center space-x-2 hover:bg-red-50 text-red-600 font-medium"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>
                     </button>
                   </div>
@@ -272,7 +254,9 @@ export const Navbar = () => {
           ) : (
             <Link
               to="/login"
-              className="inline-flex items-center space-x-1.5 px-4 py-1.5 bg-[#1557B0] hover:bg-[#104A96] text-white text-xs font-semibold rounded-md shadow-sm transition-campus"
+              className={`inline-flex items-center px-3.5 py-1.5 text-white text-xs font-semibold rounded-md transition shadow-xs ${
+                isStudent ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#1D70B8] hover:bg-[#1557B0]'
+              }`}
             >
               <span>Sign In</span>
             </Link>
@@ -280,24 +264,27 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Sub-Header for Tab Links */}
+      {/* Mobile Navigation Sub-Bar */}
       {isAuthenticated && user && (
-        <div className="md:hidden bg-[#123552] border-t border-[#15466A] px-3 py-1.5 overflow-x-auto no-scrollbar">
+        <div className={`lg:hidden px-3 py-1.5 overflow-x-auto no-scrollbar ${
+          isStudent ? 'bg-[#080C14] border-t border-zinc-800' : 'bg-[#0C2135] border-t border-[#163656]'
+        }`}>
           <nav className="flex space-x-1 min-w-max">
             {currentTabs.map((tab) => {
               const Icon = tab.icon;
               const isTabActive = location.pathname.startsWith(currentBasePath) && activeTab === tab.id;
+
               return (
                 <Link
                   key={tab.id}
                   to={`${currentBasePath}?tab=${tab.id}`}
-                  className={`flex items-center space-x-1 px-2.5 py-1 rounded text-[11px] font-semibold transition-campus ${
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded text-xs font-medium transition ${
                     isTabActive
-                      ? 'bg-[#1557B0] text-white'
-                      : 'text-[#D9E2EC] hover:text-white'
+                      ? isStudent ? 'bg-emerald-600 text-white font-semibold' : 'bg-[#1D70B8] text-white font-semibold'
+                      : isStudent ? 'text-zinc-300 hover:text-white' : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  <Icon className="w-3 h-3" />
+                  <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                 </Link>
               );
@@ -306,7 +293,7 @@ export const Navbar = () => {
         </div>
       )}
 
-      {/* Appointed Treasurer Management Modal */}
+      {/* Admin Treasurer Modal */}
       {user?.role === 'ADMIN' && (
         <TreasurerModal
           isOpen={treasurerModalOpen}
