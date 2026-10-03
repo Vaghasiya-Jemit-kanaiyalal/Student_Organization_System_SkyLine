@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MerchandiseProvider } from './context/MerchandiseContext';
 import { Navbar } from './components/common/Navbar';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { UniversityCrest } from './components/common/UniversityCrest';
@@ -70,65 +71,67 @@ export const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col bg-ivory text-text-primary antialiased selection:bg-primary-100 selection:text-primary-800">
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              {/* Root default */}
-              <Route path="/" element={<RootRedirector />} />
+        <MerchandiseProvider>
+          <div className="min-h-screen flex flex-col bg-ivory text-text-primary antialiased selection:bg-primary-100 selection:text-primary-800">
+            <Navbar />
+            <main className="flex-1">
+              <Routes>
+                {/* Root default */}
+                <Route path="/" element={<RootRedirector />} />
 
-              {/* Public Auth Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />
-              <Route path="/unauthorized" element={<UnauthorizedPage />} />
-              <Route path="/session-expired" element={<SessionExpiredPage />} />
+                {/* Public Auth Routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />
+                <Route path="/unauthorized" element={<UnauthorizedPage />} />
+                <Route path="/session-expired" element={<SessionExpiredPage />} />
 
-              {/* Protected Role-Based Routes */}
-              <Route
-                path="/member/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['MEMBER', 'ADMIN', 'TREASURER']}>
-                    <MemberDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Role-Based Routes */}
+                <Route
+                  path="/member/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['MEMBER', 'ADMIN', 'TREASURER']}>
+                      <MemberDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/admin/members"
-                element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
-                    <MemberManagementPage />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/admin/members"
+                  element={
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                      <MemberManagementPage />
+                    </ProtectedRoute>
+                  }
+                />
 
-              <Route
-                path="/treasurer/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['TREASURER']}>
-                    <TreasurerDashboard />
-                  </ProtectedRoute>
-                }
-              />
+                <Route
+                  path="/treasurer/dashboard"
+                  element={
+                    <ProtectedRoute allowedRoles={['TREASURER']}>
+                      <TreasurerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </main>
-          <UniversityFooter />
-        </div>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </main>
+            <UniversityFooter />
+          </div>
+        </MerchandiseProvider>
       </AuthProvider>
     </BrowserRouter>
   );

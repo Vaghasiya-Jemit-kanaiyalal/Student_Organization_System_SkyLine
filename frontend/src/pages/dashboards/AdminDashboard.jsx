@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
 import { EventsManagementModule } from '../../components/events/EventsManagementModule';
 import { AnnouncementsManagementModule } from '../../components/announcements/AnnouncementsManagementModule';
+import { AdminMerchManager } from '../../components/merchandise/AdminMerchManager';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -452,8 +453,8 @@ export const AdminDashboard = () => {
                         key={category}
                         onClick={() => setGovernanceFilter(category)}
                         className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${governanceFilter === category
-                            ? 'bg-primary text-white shadow-xs'
-                            : 'text-text-secondary hover:text-text-primary'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-text-secondary hover:text-text-primary'
                           }`}
                       >
                         {category}
@@ -632,125 +633,10 @@ export const AdminDashboard = () => {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 5: MERCHANDISE STOCK */}
+        {/* TAB 5: MERCHANDISE STOCK & ONLINE ORDERS */}
         {/* ========================================================= */}
-        {activeTab === 'merchandise' && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Top Inventory Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Total Catalog SKUs
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
-                  {MERCHANDISE_ITEMS.length} Unique Items
-                </p>
-                <span className="text-[11px] text-text-muted">Hoodies, Tech Kits, Accessories</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Total Units In Stock
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
-                  {MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.inStock, 0)} Units
-                </p>
-                <span className="text-[11px] text-status-success font-medium">All Warehoused at Student Center</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Estimated Inventory Value
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
-                  ${MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.price * curr.inStock, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-                <span className="text-[11px] text-text-muted">Net retail value toward club treasury</span>
-              </div>
-            </div>
-
-            {/* Inventory Table Container */}
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Society Merchandise Inventory & Distribution
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official society branded apparel, engineering hardware kits, and student gear
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                    <input
-                      type="text"
-                      placeholder="Search merchandise..."
-                      value={merchSearch}
-                      onChange={(e) => setMerchSearch(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                  <select
-                    value={merchCategoryFilter}
-                    onChange={(e) => setMerchCategoryFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
-                  >
-                    <option value="ALL">All Categories</option>
-                    <option value="Apparel">Apparel</option>
-                    <option value="Hardware">Hardware</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
-                    <tr>
-                      <th className="py-3 px-4">Item Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Unit Price</th>
-                      <th className="py-3 px-4">Current Stock</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredMerchandise.map((item) => (
-                      <tr key={item.id} className="hover:bg-ivory-50 transition">
-                        <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
-                          <ShoppingBag className="w-3.5 h-3.5 text-primary" />
-                          <span>{item.name}</span>
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary">{item.category}</td>
-                        <td className="py-3 px-4 font-bold text-primary">${item.price.toFixed(2)}</td>
-                        <td className="py-3 px-4 font-mono font-medium">{item.inStock} units</td>
-                        <td className="py-3 px-4">
-                          {item.inStock > 15 ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
-                              Well Stocked
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                              Low Stock Alert
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => alert(`Initiating replenishment order for: ${item.name}`)}
-                            className="px-2.5 py-1 rounded bg-ivory-200 hover:bg-ivory-300 text-text-primary text-[11px] font-semibold border border-border transition"
-                          >
-                            Restock Order
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        {(activeTab === 'merchandise' || activeTab === 'store') && (
+          <AdminMerchManager />
         )}
 
         {/* ========================================================= */}
@@ -961,8 +847,8 @@ export const AdminDashboard = () => {
                           <button
                             onClick={() => handleToggleVolunteerApproval(vol.id)}
                             className={`px-3 py-1 rounded text-xs font-semibold transition ${vol.status === 'VERIFIED'
-                                ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
-                                : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
+                              ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
+                              : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
                               }`}
                           >
                             {vol.status === 'VERIFIED' ? 'Revoke Credit' : 'Certify Credit'}
