@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { INITIAL_MEMBERS_DATA } from '../../data/membersData';
 import {
@@ -35,13 +35,20 @@ import {
 
 export const MemberManagementPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTabParam = searchParams.get('tab') || 'all'; // 'all' | 'renewals'
+  const subTabParam = searchParams.get('subtab') || (searchParams.get('tab') === 'renewals' ? 'renewals' : 'all');
 
   // Master Members State
   const [members, setMembers] = useState(INITIAL_MEMBERS_DATA);
 
   // Active Sub-Page: 'all' | 'renewals'
-  const [activeSubPage, setActiveSubPage] = useState(activeTabParam);
+  const [activeSubPage, setActiveSubPage] = useState(subTabParam === 'renewals' ? 'renewals' : 'all');
+
+  useEffect(() => {
+    const subParam = searchParams.get('subtab');
+    if (subParam === 'renewals' || subParam === 'all') {
+      setActiveSubPage(subParam);
+    }
+  }, [searchParams]);
 
   // Search & Filter State - All Members
   const [allSearchTerm, setAllSearchTerm] = useState('');
@@ -69,7 +76,9 @@ export const MemberManagementPage = () => {
   // Switch Sub-Page Tab
   const handleTabChange = (tab) => {
     setActiveSubPage(tab);
-    setSearchParams({ tab });
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('subtab', tab);
+    setSearchParams(newParams, { replace: true });
   };
 
   // Helper to determine renewal status for Renewals table

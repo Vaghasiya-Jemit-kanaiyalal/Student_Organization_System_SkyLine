@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import MemberManagementPage from '../admin/MemberManagementPage';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
 import { EventsManagementModule } from '../../components/events/EventsManagementModule';
 import { AnnouncementsManagementModule } from '../../components/announcements/AnnouncementsManagementModule';
+import { AdminMerchManager } from '../../components/merchandise/AdminMerchManager';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
@@ -41,9 +42,17 @@ import {
 export const AdminDashboard = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const normalizeTab = (t) => {
+    if (t === 'roster') return 'members';
+    if (t === 'broadcasts' || t === 'broadcast') return 'announcements';
+    if (t === 'store') return 'merchandise';
+    return t;
+  };
 
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get('tab') || 'overview';
+  const initialTab = normalizeTab(queryParams.get('tab') || 'overview');
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [eventsSubTab, setEventsSubTab] = useState('all');
@@ -53,7 +62,9 @@ export const AdminDashboard = () => {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     if (tab) {
-      setActiveTab(tab);
+      setActiveTab(normalizeTab(tab));
+    } else {
+      setActiveTab('overview');
     }
   }, [location.search]);
 
@@ -140,14 +151,21 @@ export const AdminDashboard = () => {
   });
 
   // Navigation Helpers
+  const handleTabSelect = (tabId) => {
+    setActiveTab(tabId);
+    navigate(`/admin/dashboard?tab=${tabId}`);
+  };
+
   const navigateToEvents = (subTab = 'all') => {
     setEventsSubTab(subTab);
     setActiveTab('events');
+    navigate('/admin/dashboard?tab=events');
   };
 
   const navigateToAnnouncements = (subTab = 'all') => {
     setAnnouncementsSubTab(subTab);
     setActiveTab('announcements');
+    navigate('/admin/dashboard?tab=announcements');
   };
 
   const handleCreateTreasurer = (e) => {
@@ -215,16 +233,6 @@ export const AdminDashboard = () => {
 
   const scheduledAnnouncementsCount = announcements.filter((a) => a.status === 'Scheduled').length;
 
-  const tabs = [
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'members', label: 'Member Management', icon: Users, badge: memberRoster.length },
-    { id: 'events', label: 'Events Management', icon: Calendar, badge: events.length },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone, badge: scheduledAnnouncementsCount },
-    { id: 'merchandise', label: 'Merchandise Stock', icon: ShoppingBag, badge: MERCHANDISE_ITEMS.length },
-    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign, badge: '3 Active' },
-    { id: 'volunteers', label: 'Volunteer Control', icon: HeartHandshake, badge: '28 hrs' },
-    { id: 'reports', label: 'Council Reports', icon: FileText }
-  ];
 
   // Governance Log Mock Data
   const governanceLogs = [
@@ -287,108 +295,6 @@ export const AdminDashboard = () => {
     <div className="min-h-screen bg-ivory py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Executive Admin Header Card */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-          <div className="flex items-center space-x-5 z-10">
-            <div className="relative flex-shrink-0">
-              <img
-                src={user?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"}
-                alt={user?.name || "Advisor"}
-                className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-primary object-cover shadow-sm"
-              />
-              <span className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-surface shadow-xs">
-                <UniversityCrest className="w-4 h-4" variant="gold" />
-              </span>
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold text-text-primary">
-                  {user?.name || 'Dr. Alexander Vance'}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-primary text-white tracking-wide shadow-xs">
-                  Lead Organizer & Faculty Advisor
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Accredited Chapter
-                </span>
-              </div>
-              <p className="text-xs text-text-secondary mt-1 flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-primary">Robotics & AI Society</span>
-                <span>•</span>
-                <span>Council Chapter #SOC-2026-ENG</span>
-                <span>•</span>
-                <span className="font-mono text-accent">ID: {user?.studentId || 'FAC-2026-1049'}</span>
-                <span>•</span>
-                <span className="text-text-muted">Term: Fall 2026 Academic Year</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Action Header Bar */}
-          <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
-            <button
-              onClick={() => setIsCreateTreasurerModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
-              title="Grant fiscal authority and credentials"
-            >
-              <ShieldPlus className="w-3.5 h-3.5" />
-              <span>Appoint Treasurer</span>
-            </button>
-            <button
-              onClick={() => setIsAddMemberModalOpen(true)}
-              className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Enroll Member</span>
-            </button>
-            <button
-              onClick={() => navigateToEvents('create')}
-              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5 text-primary" />
-              <span>New Event</span>
-            </button>
-            <button
-              onClick={() => navigateToAnnouncements('create')}
-              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
-            >
-              <Megaphone className="w-3.5 h-3.5 text-accent" />
-              <span>Broadcast</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="border-b border-border bg-surface rounded-xl p-1.5 shadow-subtle overflow-x-auto">
-          <nav className="flex space-x-1.5 min-w-max">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-campus ${isActive
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                    }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-accent' : 'text-text-muted'}`} />
-                  <span>{tab.label}</span>
-                  {tab.badge !== undefined && (
-                    <span
-                      className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
-                        }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
         {/* ========================================================= */}
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {/* ========================================================= */}
@@ -419,10 +325,10 @@ export const AdminDashboard = () => {
                 <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-[11px] text-text-muted">Quorum Reached</span>
                   <button
-                    onClick={() => setActiveTab('members')}
+                    onClick={() => handleTabSelect('members')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
-                    <span>View Roster</span>
+                    <span>Member Management</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -481,7 +387,7 @@ export const AdminDashboard = () => {
                 <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                   <span className="text-[11px] text-text-muted">Dues 92% Collected</span>
                   <button
-                    onClick={() => setActiveTab('fundraisers')}
+                    onClick={() => handleTabSelect('fundraisers')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
                     <span>View Funds</span>
@@ -495,7 +401,7 @@ export const AdminDashboard = () => {
                 <div>
                   <div className="flex justify-between items-start">
                     <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                      Broadcast Center
+                      Announcements Center
                     </span>
                     <div className="w-8 h-8 rounded-lg bg-ivory-200 flex items-center justify-center text-text-secondary">
                       <Megaphone className="w-4 h-4 text-primary" />
@@ -517,7 +423,7 @@ export const AdminDashboard = () => {
                     onClick={() => navigateToAnnouncements('all')}
                     className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
                   >
-                    <span>Open Center</span>
+                    <span>Announcement</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -547,8 +453,8 @@ export const AdminDashboard = () => {
                         key={category}
                         onClick={() => setGovernanceFilter(category)}
                         className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${governanceFilter === category
-                            ? 'bg-primary text-white shadow-xs'
-                            : 'text-text-secondary hover:text-text-primary'
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'text-text-secondary hover:text-text-primary'
                           }`}
                       >
                         {category}
@@ -727,125 +633,10 @@ export const AdminDashboard = () => {
         )}
 
         {/* ========================================================= */}
-        {/* TAB 5: MERCHANDISE STOCK */}
+        {/* TAB 5: MERCHANDISE STOCK & ONLINE ORDERS */}
         {/* ========================================================= */}
-        {activeTab === 'merchandise' && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Top Inventory Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Total Catalog SKUs
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
-                  {MERCHANDISE_ITEMS.length} Unique Items
-                </p>
-                <span className="text-[11px] text-text-muted">Hoodies, Tech Kits, Accessories</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Total Units In Stock
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
-                  {MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.inStock, 0)} Units
-                </p>
-                <span className="text-[11px] text-status-success font-medium">All Warehoused at Student Center</span>
-              </div>
-              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
-                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                  Estimated Inventory Value
-                </span>
-                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
-                  ${MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.price * curr.inStock, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
-                <span className="text-[11px] text-text-muted">Net retail value toward club treasury</span>
-              </div>
-            </div>
-
-            {/* Inventory Table Container */}
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Society Merchandise Inventory & Distribution
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official society branded apparel, engineering hardware kits, and student gear
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                    <input
-                      type="text"
-                      placeholder="Search merchandise..."
-                      value={merchSearch}
-                      onChange={(e) => setMerchSearch(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary focus:outline-none focus:border-primary"
-                    />
-                  </div>
-                  <select
-                    value={merchCategoryFilter}
-                    onChange={(e) => setMerchCategoryFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
-                  >
-                    <option value="ALL">All Categories</option>
-                    <option value="Apparel">Apparel</option>
-                    <option value="Hardware">Hardware</option>
-                    <option value="Accessories">Accessories</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
-                    <tr>
-                      <th className="py-3 px-4">Item Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Unit Price</th>
-                      <th className="py-3 px-4">Current Stock</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {filteredMerchandise.map((item) => (
-                      <tr key={item.id} className="hover:bg-ivory-50 transition">
-                        <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
-                          <ShoppingBag className="w-3.5 h-3.5 text-primary" />
-                          <span>{item.name}</span>
-                        </td>
-                        <td className="py-3 px-4 text-text-secondary">{item.category}</td>
-                        <td className="py-3 px-4 font-bold text-primary">${item.price.toFixed(2)}</td>
-                        <td className="py-3 px-4 font-mono font-medium">{item.inStock} units</td>
-                        <td className="py-3 px-4">
-                          {item.inStock > 15 ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
-                              Well Stocked
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                              Low Stock Alert
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            onClick={() => alert(`Initiating replenishment order for: ${item.name}`)}
-                            className="px-2.5 py-1 rounded bg-ivory-200 hover:bg-ivory-300 text-text-primary text-[11px] font-semibold border border-border transition"
-                          >
-                            Restock Order
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        {(activeTab === 'merchandise' || activeTab === 'store') && (
+          <AdminMerchManager />
         )}
 
         {/* ========================================================= */}
@@ -1056,8 +847,8 @@ export const AdminDashboard = () => {
                           <button
                             onClick={() => handleToggleVolunteerApproval(vol.id)}
                             className={`px-3 py-1 rounded text-xs font-semibold transition ${vol.status === 'VERIFIED'
-                                ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
-                                : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
+                              ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
+                              : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
                               }`}
                           >
                             {vol.status === 'VERIFIED' ? 'Revoke Credit' : 'Certify Credit'}

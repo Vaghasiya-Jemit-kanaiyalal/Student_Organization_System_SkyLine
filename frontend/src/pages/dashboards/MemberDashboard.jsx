@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
+import { MemberMerchStore } from '../../components/merchandise/MemberMerchStore';
 import {
   CAMPUS_EVENTS,
   MEMBER_TICKETS,
@@ -40,6 +41,14 @@ export const MemberDashboard = () => {
   const initialTab = queryParams.get('tab') || 'overview';
 
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
   const [eventsList, setEventsList] = useState(CAMPUS_EVENTS);
   const [ticketsList, setTicketsList] = useState(MEMBER_TICKETS);
   const [cartSuccess, setCartSuccess] = useState(null);
@@ -501,69 +510,7 @@ export const MemberDashboard = () => {
 
         {/* Tab 5: MERCHANDISE STORE */}
         {activeTab === 'store' && (
-          <div className="space-y-6">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Official Student Society Merchandise
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official collegiate hoodies, laser-cut pins, leather journals, and society accessories
-                  </p>
-                </div>
-                {cartSuccess && (
-                  <span className="text-xs font-semibold text-status-success bg-status-success-bg px-3 py-1 rounded border border-status-success/30 animate-fadeIn">
-                    ✓ {cartSuccess} reserved for campus pickup!
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pt-2">
-                {MERCHANDISE_ITEMS.map((item) => (
-                  <div
-                    key={item.id}
-                    className="border border-border rounded-lg bg-surface overflow-hidden shadow-subtle flex flex-col justify-between hover:shadow-card transition"
-                  >
-                    <div className="relative h-44 bg-ivory-200 overflow-hidden">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
-                      />
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-primary text-white">
-                        {item.tag}
-                      </span>
-                    </div>
-
-                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 className="font-serif-academic text-sm font-bold text-text-primary leading-tight">
-                          {item.name}
-                        </h4>
-                        <p className="text-[11px] text-text-muted mt-1">In Stock: {item.inStock} units</p>
-                      </div>
-
-                      <div className="pt-3 border-t border-border flex items-center justify-between">
-                        <span className="font-serif-academic text-base font-bold text-primary">
-                          ${item.price.toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setCartSuccess(item.name);
-                            setTimeout(() => setCartSuccess(null), 3000);
-                          }}
-                          className="px-2.5 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition"
-                        >
-                          Order Pickup
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <MemberMerchStore />
         )}
 
         {/* Tab 6: VOLUNTEER HOURS */}
