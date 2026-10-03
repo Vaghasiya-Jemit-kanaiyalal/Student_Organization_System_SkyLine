@@ -3,6 +3,7 @@ import { AnnouncementsSubNav } from './AnnouncementsSubNav';
 import { AllAnnouncementsView } from './AllAnnouncementsView';
 import { CreateAnnouncementView } from './CreateAnnouncementView';
 import { ScheduledAnnouncementsView } from './ScheduledAnnouncementsView';
+import { announcementsApi } from '../../services/api';
 
 /**
  * AnnouncementsManagementModule Component
@@ -17,6 +18,23 @@ export const AnnouncementsManagementModule = ({
 }) => {
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab || 'all');
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+
+  // Sync with Backend
+  const refreshAnnouncements = async () => {
+    try {
+      const data = await announcementsApi.getAll();
+      const list = Array.isArray(data) ? data : data?.results || [];
+      if (list.length > 0 && setAnnouncements) {
+        setAnnouncements(list);
+      }
+    } catch (err) {
+      console.warn('Announcements fetch warning:', err);
+    }
+  };
+
+  useEffect(() => {
+    refreshAnnouncements();
+  }, []);
 
   useEffect(() => {
     if (initialSubTab) {

@@ -38,6 +38,7 @@ def api_root(request):
                 "events_list_create": request.build_absolute_uri("/api/events/"),
                 "apply_volunteer": request.build_absolute_uri("/api/volunteer/apply/"),
                 "my_volunteer_applications": request.build_absolute_uri("/api/volunteer/my-applications/"),
+                "announcements": request.build_absolute_uri("/api/announcements/"),
             },
             "finance": {
                 "finance_dashboard": request.build_absolute_uri("/api/finance/"),

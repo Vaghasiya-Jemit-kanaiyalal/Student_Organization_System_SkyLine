@@ -1,184 +1,251 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Calendar, Clock, MapPin, Ticket, ShieldCheck, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Ticket,
+  Users,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Plus,
+  Trash2,
+  Sparkles,
+  Image as ImageIcon,
+  Check
+} from 'lucide-react';
+import { eventsApi } from '../../services/api';
 
-/**
- * CreateEventView Component
- * Form structured into Sections A-E for creating and publishing a new organization event.
- */
+const EVENT_TYPE_OPTIONS = [
+  'Flagship Event',
+  'Career & Networking',
+  'Hackathon',
+  'Technical Workshop',
+  'Seminar & Lecture',
+  'Social & Culture',
+  'Competition & Exhibition',
+  'Community Service',
+  'Debate & Public Forum',
+  'General Event',
+];
+
+const DEFAULT_VOLUNTEER_ROLES = [
+  'Registration Desk',
+  'Photography Team',
+  'Technical Support',
+  'Stage Management',
+  'Hospitality',
+  'Event Coordinator',
+];
+
+const PRESET_BANNER_IMAGES = [
+  { label: 'Tech & Hackathon', url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Campus Conference', url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Music & Cultural', url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80' },
+  { label: 'Workshop & Lab', url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80' },
+];
+
 export const CreateEventView = ({ onSaveEvent, onCancel }) => {
-  // Form State
+  // Event Information
   const [eventName, setEventName] = useState('');
   const [eventType, setEventType] = useState('Competition & Exhibition');
   const [eventDescription, setEventDescription] = useState('');
-  const [eventBanner, setEventBanner] = useState('');
-
-  // Section B
-  const [eventDate, setEventDate] = useState('2026-11-25');
-  const [startTime, setStartTime] = useState('14:00');
-  const [endTime, setEndTime] = useState('17:00');
   const [venue, setVenue] = useState('');
-  const [venueCapacity, setVenueCapacity] = useState(150);
+  const [eventDate, setEventDate] = useState('2026-11-20');
+  const [startTime, setStartTime] = useState('10:00');
+  const [endTime, setEndTime] = useState('16:00');
+  const [capacity, setCapacity] = useState(150);
+  const [ticketPrice, setTicketPrice] = useState(0);
+  const [eventBanner, setEventBanner] = useState(PRESET_BANNER_IMAGES[0].url);
 
-  // Section C
-  const [registrationRequired, setRegistrationRequired] = useState(true);
-  const [maxAttendees, setMaxAttendees] = useState(150);
-  const [registrationDeadline, setRegistrationDeadline] = useState('2026-11-24');
-
-  // Section D: Ticket Configurations
-  const [ticketTypes, setTicketTypes] = useState([
-    { id: 'tt-1', name: 'Member Ticket', price: 0, capacity: 100, memberDiscount: 0, availability: 'Available' },
-    { id: 'tt-2', name: 'Student Ticket', price: 5, capacity: 50, memberDiscount: 5, availability: 'Available' }
+  // Volunteer Configuration
+  const [volunteersRequired, setVolunteersRequired] = useState(true);
+  const [volunteerCountRequired, setVolunteerCountRequired] = useState(12);
+  const [volunteerDeadline, setVolunteerDeadline] = useState('2026-11-18');
+  const [selectedRoles, setSelectedRoles] = useState([
+    'Registration Desk',
+    'Technical Support',
+    'Hospitality',
   ]);
+  const [customRoleInput, setCustomRoleInput] = useState('');
 
-  // Validation & Feedback
+  // Event Status
+  const [eventStatus, setEventStatus] = useState('Published');
+
+  // UI Feedback & States
+  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
 
-  const EVENT_TYPE_OPTIONS = [
-    'Competition & Exhibition',
-    'Debate & Public Forum',
-    'Community Service',
-    'Hackathon',
-    'Workshop',
-    'Seminar',
-    'Lecture',
-    'Social Event',
-    'Other'
-  ];
-
-  // Ticket Handler Functions
-  const handleAddTicketType = () => {
-    const newId = `tt-${Date.now()}`;
-    setTicketTypes([
-      ...ticketTypes,
-      { id: newId, name: 'Public Ticket', price: 10, capacity: 25, memberDiscount: 0, availability: 'Available' }
-    ]);
-  };
-
-  const handleRemoveTicketType = (id) => {
-    if (ticketTypes.length === 1) {
-      alert('At least one ticket type must be configured.');
-      return;
+  // Role toggle handler
+  const handleToggleRole = (role) => {
+    if (selectedRoles.includes(role)) {
+      setSelectedRoles(selectedRoles.filter((r) => r !== role));
+    } else {
+      setSelectedRoles([...selectedRoles, role]);
     }
-    setTicketTypes(ticketTypes.filter((t) => t.id !== id));
   };
 
-  const handleUpdateTicketType = (id, field, value) => {
-    setTicketTypes(
-      ticketTypes.map((t) => (t.id === id ? { ...t, [field]: value } : t))
-    );
+  const handleAddCustomRole = (e) => {
+    e.preventDefault();
+    const trimmed = customRoleInput.trim();
+    if (trimmed && !selectedRoles.includes(trimmed)) {
+      setSelectedRoles([...selectedRoles, trimmed]);
+      setCustomRoleInput('');
+    }
   };
 
-  // Validation Rules
+  const handleRemoveRole = (role) => {
+    setSelectedRoles(selectedRoles.filter((r) => r !== role));
+  };
+
   const validateForm = () => {
     const errs = {};
+    if (!eventName.trim()) errs.eventName = 'Event Name is required.';
+    if (!venue.trim()) errs.venue = 'Venue is required.';
+    if (!eventDate) errs.eventDate = 'Event Date is required.';
+    if (!startTime) errs.startTime = 'Start Time is required.';
+    if (!endTime) errs.endTime = 'End Time is required.';
+    if (Number(capacity) <= 0) errs.capacity = 'Capacity must be greater than 0.';
+    if (Number(ticketPrice) < 0) errs.ticketPrice = 'Ticket price cannot be negative.';
 
-    if (!eventName.trim()) errs.eventName = 'Event name is required.';
-    if (!eventType) errs.eventType = 'Event type selection is required.';
-    if (!eventDate) errs.eventDate = 'Event date is required.';
-    if (!startTime) errs.startTime = 'Start time is required.';
-    if (!venue.trim()) errs.venue = 'Venue location is required.';
-    if (!venueCapacity || Number(venueCapacity) <= 0) errs.venueCapacity = 'Valid venue capacity is required.';
-
-    if (endTime && startTime && endTime < startTime) {
-      errs.endTime = 'End time cannot be before start time.';
-    }
-
-    if (registrationRequired) {
-      if (Number(maxAttendees) > Number(venueCapacity)) {
-        errs.maxAttendees = 'Maximum attendees cannot exceed venue capacity.';
+    if (volunteersRequired) {
+      if (Number(volunteerCountRequired) <= 0) {
+        errs.volunteerCount = 'Please specify the number of volunteers required.';
       }
-      if (registrationDeadline && eventDate && registrationDeadline > eventDate) {
-        errs.registrationDeadline = 'Registration deadline cannot be after the event date.';
+      if (selectedRoles.length === 0) {
+        errs.volunteerRoles = 'Please select at least one required volunteer role.';
       }
     }
-
-    // Validate Tickets
-    const totalTicketCapacity = ticketTypes.reduce((acc, curr) => acc + Number(curr.capacity || 0), 0);
-    if (totalTicketCapacity > Number(venueCapacity)) {
-      errs.tickets = `Total ticket capacity (${totalTicketCapacity}) exceeds venue capacity (${venueCapacity}).`;
-    }
-
-    ticketTypes.forEach((t) => {
-      if (Number(t.price) < 0) {
-        errs.tickets = 'Ticket price must be a valid non-negative number.';
-      }
-    });
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (status = 'Published & Active') => {
-    setSuccessMessage('');
+  const handleSubmit = async (overrideStatus) => {
+    const finalStatus = overrideStatus || eventStatus;
     if (!validateForm()) return;
 
-    // Calculate display strings
-    const dateObj = new Date(eventDate);
-    const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-    
-    // Create new event payload
-    const formattedPriceString = ticketTypes.map(t => t.price === 0 ? `${t.name}: Free` : `${t.name}: $${t.price}`).join(' / ');
+    setSubmitting(true);
+    setSuccessMessage('');
 
-    const newEvent = {
-      id: `evt-${Date.now()}`,
+    const payload = {
       title: eventName,
-      category: eventType,
-      date: eventDate,
-      dateDisplay: dateDisplay,
-      startTime: startTime,
-      endTime: endTime,
-      timeDisplay: `${startTime} - ${endTime}`,
+      description: eventDescription,
+      event_type: eventType,
       venue: venue,
       location: venue,
-      capacity: Number(venueCapacity),
-      attendees: 0,
-      price: formattedPriceString || 'Free',
-      badge: status === 'Draft' ? 'Draft Event' : 'Newly Created',
-      status: status,
-      createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      image: eventBanner || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
-      description: eventDescription || 'Official student organization campus event.',
-      userRsvp: false,
-      ticketTypes: ticketTypes.map((tt, idx) => ({
-        id: tt.id,
-        name: tt.name,
-        price: Number(tt.price),
-        capacity: Number(tt.capacity),
-        sold: 0,
-        available: Number(tt.capacity),
-        revenue: 0
-      })),
-      tickets: []
+      date: eventDate,
+      start_time: startTime,
+      end_time: endTime,
+      capacity: Number(capacity),
+      ticket_price: Number(ticketPrice),
+      image: eventBanner,
+      volunteers_required: volunteersRequired,
+      volunteer_count_required: volunteersRequired ? Number(volunteerCountRequired) : 0,
+      volunteer_deadline: volunteersRequired && volunteerDeadline ? volunteerDeadline : null,
+      volunteer_roles_required: volunteersRequired ? selectedRoles : [],
+      status: finalStatus,
     };
 
-    setSuccessMessage(`Event "${eventName}" successfully ${status === 'Draft' ? 'saved as Draft' : 'created and published'}!`);
-    
-    setTimeout(() => {
-      onSaveEvent(newEvent);
-    }, 1200);
+    try {
+      let createdEvent = null;
+      try {
+        createdEvent = await eventsApi.create(payload);
+      } catch (apiErr) {
+        console.error('Backend API save failed:', apiErr);
+        const errData = apiErr.response?.data?.details || apiErr.response?.data;
+        const errMsg = errData
+          ? (typeof errData === 'object'
+              ? Object.entries(errData).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : v}`).join(' | ')
+              : String(errData))
+          : apiErr.message || 'Network error saving event';
+        setErrors({ submit: `Failed to create event: ${errMsg}` });
+        setSubmitting(false);
+        return;
+      }
+
+      const formattedPrice = Number(ticketPrice) === 0 ? 'Free' : `$${Number(ticketPrice).toFixed(2)}`;
+
+      const localEventObj = {
+        ...createdEvent,
+        id: createdEvent?.id || `evt-${Date.now()}`,
+        title: createdEvent?.title || eventName,
+        category: createdEvent?.event_type || eventType,
+        date: createdEvent?.date || eventDate,
+        dateDisplay: (() => {
+          const parts = (createdEvent?.date || eventDate).split('-');
+          if (parts.length === 3) {
+            return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+          }
+          return createdEvent?.date || eventDate;
+        })(),
+        startTime: startTime,
+        endTime: endTime,
+        timeDisplay: `${startTime} – ${endTime}`,
+        venue: venue,
+        location: venue,
+        capacity: Number(capacity),
+        availableSeats: Number(capacity),
+        attendees: 0,
+        price: formattedPrice,
+        ticketPrice: Number(ticketPrice),
+        image: eventBanner,
+        description: eventDescription,
+        status: finalStatus,
+        volunteersRequired: volunteersRequired,
+        volunteers_required: volunteersRequired,
+        volunteerCountRequired: Number(volunteerCountRequired),
+        volunteer_count_required: Number(volunteerCountRequired),
+        volunteerDeadline: volunteerDeadline,
+        volunteer_deadline: volunteerDeadline,
+        volunteerRolesRequired: selectedRoles,
+        volunteer_roles_required: selectedRoles,
+        roles_list: selectedRoles,
+        volunteer_slots_remaining: Number(volunteerCountRequired),
+        createdDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      };
+
+      setSuccessMessage(`Event "${eventName}" successfully ${finalStatus === 'Draft' ? 'saved as Draft' : 'created and published'}!`);
+
+      setTimeout(() => {
+        if (onSaveEvent) onSaveEvent(localEventObj);
+      }, 800);
+    } catch (err) {
+      console.error(err);
+      setErrors({ submit: 'Failed to create event. Please verify all fields.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="space-y-6 w-full max-w-7xl mx-auto">
+    <div className="space-y-6 w-full max-w-5xl mx-auto">
       {/* Top Header Card */}
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-text-primary">
-            Create Event
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-text-primary">
+              Create New Event
+            </h2>
+            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
+              Admin Console
+            </span>
+          </div>
           <p className="text-xs text-text-secondary mt-0.5">
-            Create and publish a new organization event.
+            Configure event details, ticket availability, and volunteer recruitment quotas.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3.5 py-2 rounded bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary transition-campus"
-        >
-          Cancel & Return
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary transition"
+          >
+            Cancel & Return
+          </button>
+        </div>
       </div>
 
       {/* Success Notification Banner */}
@@ -194,7 +261,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         <div className="p-4 rounded-xl bg-status-error-bg border border-status-error/30 text-status-error text-xs space-y-1 animate-fadeIn">
           <div className="flex items-center space-x-2 font-bold">
             <AlertCircle className="w-4 h-4" />
-            <span>Please correct the errors in the event form:</span>
+            <span>Please resolve the following before saving:</span>
           </div>
           <ul className="list-disc list-inside space-y-0.5 text-[11px] pl-2">
             {Object.values(errors).map((err, idx) => (
@@ -204,15 +271,17 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         </div>
       )}
 
-      <form className="space-y-6">
-        {/* SECTION A — Basic Information */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+        {/* ================================================================= */}
+        {/* SECTION 1: EVENT INFORMATION                                      */}
+        {/* ================================================================= */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
-          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">A</span>
-            Basic Information
+          <h3 className="text-base font-bold text-text-primary border-b border-border pb-2.5 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">1</span>
+            Event Information
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Event Name <span className="text-status-error">*</span>
@@ -223,7 +292,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                 value={eventName}
                 onChange={(e) => setEventName(e.target.value)}
                 placeholder="e.g. Annual Autonomous Robotics Showcase 2026"
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
@@ -234,7 +303,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
               <select
                 value={eventType}
                 onChange={(e) => setEventType(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {EVENT_TYPE_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -247,124 +316,19 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
           <div>
             <label className="block text-xs font-semibold text-text-primary mb-1">
-              Event Description
+              Description
             </label>
             <textarea
-              rows={3}
+              rows="3"
               value={eventDescription}
               onChange={(e) => setEventDescription(e.target.value)}
-              placeholder="Describe the purpose, schedule, guest speakers, and requirements for attendees..."
-              className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+              placeholder="Describe event agenda, keynote speakers, eligibility, and program schedule..."
+              className="w-full p-2.5 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            ></textarea>
           </div>
 
-          {/* Event Banner / Image Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-text-primary mb-1.5">
-              Event Cover Banner / Image Option
-            </label>
-            
-            <div className="space-y-3">
-              {/* Preset Image Options */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { name: 'Robotics Lab', url: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80' },
-                  { name: 'Auditorium Debate', url: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80' },
-                  { name: 'Botanical Reserve', url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80' },
-                  { name: 'Hackathon Coding', url: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80' }
-                ].map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => setEventBanner(preset.url)}
-                    className={`relative rounded-lg overflow-hidden border text-left p-1.5 transition ${
-                      eventBanner === preset.url
-                        ? 'border-primary ring-2 ring-primary/20'
-                        : 'border-border hover:border-accent'
-                    }`}
-                  >
-                    <img src={preset.url} alt={preset.name} className="w-full h-24 sm:h-28 object-cover rounded" />
-                    <span className="text-xs font-semibold text-text-primary block mt-1.5 px-1 truncate">
-                      {preset.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom Image URL Input */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="url"
-                  value={eventBanner}
-                  onChange={(e) => setEventBanner(e.target.value)}
-                  placeholder="Or paste custom image URL (https://...)"
-                  className="flex-1 px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              {/* Live Preview */}
-              {eventBanner && (
-                <div className="p-3 bg-ivory-100 border border-border rounded-lg flex items-center space-x-4">
-                  <img src={eventBanner} alt="Preview" className="w-28 h-16 object-cover rounded border border-border flex-shrink-0" />
-                  <div className="text-xs text-text-secondary">
-                    <strong className="text-text-primary block font-semibold mb-0.5">Banner Preview Selected</strong>
-                    Selected cover image will be displayed on event cards, details modal, and ticket headers.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION B — Date & Venue */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
-          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">B</span>
-            Date & Venue
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">
-                Event Date <span className="text-status-error">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">
-                Start Time <span className="text-status-error">*</span>
-              </label>
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-text-primary mb-1">
-                End Time
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-1">
               <label className="block text-xs font-semibold text-text-primary mb-1">
                 Venue Location <span className="text-status-error">*</span>
               </label>
@@ -373,204 +337,327 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
                 required
                 value={venue}
                 onChange={(e) => setVenue(e.target.value)}
-                placeholder="e.g. Grand Hall, Turing Science Quad"
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="e.g. Grand Auditorium, Engineering Block B"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
-            <div className="md:col-span-1">
+            <div>
               <label className="block text-xs font-semibold text-text-primary mb-1">
-                Venue Capacity <span className="text-status-error">*</span>
+                Date <span className="text-status-error">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-text-primary mb-1">
+                  Start Time <span className="text-status-error">*</span>
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-2 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-text-primary mb-1">
+                  End Time <span className="text-status-error">*</span>
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-2 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Attendee Capacity <span className="text-status-error">*</span>
               </label>
               <input
                 type="number"
+                min="1"
                 required
-                min={1}
-                value={venueCapacity}
-                onChange={(e) => setVenueCapacity(e.target.value)}
-                placeholder="e.g. 200"
-                className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Ticket Price ($) <span className="text-status-error">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                value={ticketPrice}
+                onChange={(e) => setTicketPrice(e.target.value)}
+                placeholder="0.00 for Free admission"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span className="text-[10px] text-text-muted mt-0.5 block">Enter 0 for free student admission.</span>
+            </div>
+          </div>
+
+          {/* Banner Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-text-primary mb-1.5">
+              Event Banner / Cover Image URL
+            </label>
+            <input
+              type="url"
+              value={eventBanner}
+              onChange={(e) => setEventBanner(e.target.value)}
+              placeholder="https://images.unsplash.com/..."
+              className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary mb-2"
+            />
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] text-text-muted">Preset Banners:</span>
+              {PRESET_BANNER_IMAGES.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => setEventBanner(preset.url)}
+                  className={`text-[11px] px-2.5 py-1 rounded-md border transition ${
+                    eventBanner === preset.url
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-canvas text-text-secondary hover:text-text-primary border-border'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {eventBanner && (
+              <div className="mt-3 relative h-32 w-full rounded-lg overflow-hidden border border-border">
+                <img
+                  src={eventBanner}
+                  alt="Banner Preview"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-xs">
+                  Cover Preview
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* SECTION C — Registration */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">C</span>
-            Registration Controls
-          </h3>
+        {/* ================================================================= */}
+        {/* SECTION 2: VOLUNTEER CONFIGURATION                                */}
+        {/* ================================================================= */}
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border pb-3">
+            <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">2</span>
+              Volunteer Configuration
+            </h3>
 
-          <div className="flex items-center space-x-3 pt-1">
-            <input
-              type="checkbox"
-              id="registrationRequired"
-              checked={registrationRequired}
-              onChange={(e) => setRegistrationRequired(e.target.checked)}
-              className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-            />
-            <label htmlFor="registrationRequired" className="text-xs font-semibold text-text-primary cursor-pointer">
-              Registration Required for Event Entry
-            </label>
+            {/* YES / NO TOGGLE */}
+            <div className="flex items-center space-x-2 bg-canvas p-1 rounded-lg border border-border">
+              <span className="text-xs font-semibold text-text-secondary pl-1.5">
+                Volunteers Required?
+              </span>
+              <button
+                type="button"
+                onClick={() => setVolunteersRequired(true)}
+                className={`px-3 py-1 rounded text-xs font-bold transition ${
+                  volunteersRequired
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                YES
+              </button>
+              <button
+                type="button"
+                onClick={() => setVolunteersRequired(false)}
+                className={`px-3 py-1 rounded text-xs font-bold transition ${
+                  !volunteersRequired
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-text-muted hover:text-text-primary'
+                }`}
+              >
+                NO
+              </button>
+            </div>
           </div>
 
-          {registrationRequired && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">
-                  Maximum Attendees
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={maxAttendees}
-                  onChange={(e) => setMaxAttendees(e.target.value)}
-                  placeholder="e.g. 150"
-                  className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+          {volunteersRequired ? (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
+                    Number of Volunteers Required <span className="text-status-error">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required={volunteersRequired}
+                    value={volunteerCountRequired}
+                    onChange={(e) => setVolunteerCountRequired(e.target.value)}
+                    placeholder="e.g. 10"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-primary mb-1">
+                    Volunteer Registration Deadline <span className="text-status-error">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required={volunteersRequired}
+                    value={volunteerDeadline}
+                    onChange={(e) => setVolunteerDeadline(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
               </div>
 
+              {/* Volunteer Roles Required */}
               <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">
-                  Registration Deadline
+                <label className="block text-xs font-semibold text-text-primary mb-1.5">
+                  Volunteer Roles Required <span className="text-status-error">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={registrationDeadline}
-                  onChange={(e) => setRegistrationDeadline(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <p className="text-[11px] text-text-muted mb-2">
+                  Select available roles for student applicants (click to toggle):
+                </p>
+
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {DEFAULT_VOLUNTEER_ROLES.map((role) => {
+                    const isSelected = selectedRoles.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => handleToggleRole(role)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                          isSelected
+                            ? 'bg-primary text-white border-primary shadow-xs'
+                            : 'bg-canvas text-text-secondary hover:text-text-primary border-border'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                        <span>{role}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Role Input */}
+                <div className="flex gap-2 max-w-md">
+                  <input
+                    type="text"
+                    placeholder="Add custom role (e.g. Drone Pilot, Audio Tech)..."
+                    value={customRoleInput}
+                    onChange={(e) => setCustomRoleInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomRole(e);
+                      }
+                    }}
+                    className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomRole}
+                    className="px-3 py-1.5 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary"
+                  >
+                    Add Role
+                  </button>
+                </div>
+
+                {/* Selected Roles Badges */}
+                <div className="mt-3 flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] font-bold text-text-muted uppercase">Active Selection:</span>
+                  {selectedRoles.map((role) => (
+                    <span
+                      key={role}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20"
+                    >
+                      {role}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRole(role)}
+                        className="hover:text-status-error ml-0.5"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg bg-canvas text-text-muted text-xs">
+              No volunteer quota assigned for this event. Students will only be able to view details and buy tickets.
             </div>
           )}
         </div>
 
-        {/* SECTION D — Ticket Configuration */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <div className="flex justify-between items-center border-b border-border pb-3">
+        {/* ================================================================= */}
+        {/* SECTION 3: EVENT STATUS & SUBMISSION                              */}
+        {/* ================================================================= */}
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center space-x-3">
             <div>
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">D</span>
-                Ticket Configuration
-              </h3>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Configure ticket tiers, member allowances, pricing, and availability.
-              </p>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Publication Status:
+              </label>
+              <select
+                value={eventStatus}
+                onChange={(e) => setEventStatus(e.target.value)}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary font-semibold"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Published">Published</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
             </div>
-            <button
-              type="button"
-              onClick={handleAddTicketType}
-              className="px-3.5 py-2 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition-campus flex items-center gap-1.5 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Ticket Tier</span>
-            </button>
+            <span className="text-[11px] text-text-muted max-w-xs">
+              Published events will immediately appear on Student Accounts.
+            </span>
           </div>
 
-          <div className="space-y-3">
-            {ticketTypes.map((t) => (
-              <div key={t.id} className="p-4 sm:p-5 rounded-lg bg-ivory-100 border border-border grid grid-cols-1 sm:grid-cols-12 gap-4 items-end transition hover:border-accent/40">
-                <div className="sm:col-span-4">
-                  <label className="block text-xs font-semibold text-text-primary mb-1">
-                    Ticket Tier Name
-                  </label>
-                  <input
-                    type="text"
-                    value={t.name}
-                    onChange={(e) => handleUpdateTicketType(t.id, 'name', e.target.value)}
-                    placeholder="e.g. General Admission / VIP"
-                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-text-primary mb-1">
-                    Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={t.price}
-                    onChange={(e) => handleUpdateTicketType(t.id, 'price', e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-text-primary mb-1">
-                    Capacity
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={t.capacity}
-                    onChange={(e) => handleUpdateTicketType(t.id, 'capacity', e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="sm:col-span-3">
-                  <label className="block text-xs font-semibold text-text-primary mb-1">
-                    Availability Status
-                  </label>
-                  <select
-                    value={t.availability || 'Available'}
-                    onChange={(e) => handleUpdateTicketType(t.id, 'availability', e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Presale">Presale</option>
-                    <option value="Sold Out">Sold Out</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-1 flex items-center justify-end pb-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTicketType(t.id)}
-                    className="p-2 rounded text-status-error hover:bg-status-error-bg transition"
-                    title="Remove ticket type"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* SECTION E — Publishing Actions */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-text-secondary">
-            Event will be saved in the institutional catalog and available for ticket management.
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={onCancel}
-              className="px-4 py-2.5 rounded bg-surface hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition-campus"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
+              disabled={submitting}
               onClick={() => handleSubmit('Draft')}
-              className="px-4 py-2.5 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus"
+              className="px-4 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 border border-border text-xs font-semibold text-text-primary transition"
             >
               Save as Draft
             </button>
 
             <button
-              type="button"
-              onClick={() => handleSubmit('Published & Active')}
-              className="px-5 py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5"
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition flex items-center gap-2"
             >
-              <span>Publish Event</span>
-              <ArrowRight className="w-4 h-4 text-accent" />
+              <span>{submitting ? 'Creating Event...' : 'Publish Event'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -578,5 +665,3 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
     </div>
   );
 };
-
-export default CreateEventView;
