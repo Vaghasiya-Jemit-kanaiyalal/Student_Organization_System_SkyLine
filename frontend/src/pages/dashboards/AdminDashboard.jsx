@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import MemberManagementPage from '../admin/MemberManagementPage';
 import { useAuth } from '../../context/AuthContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
+import { EventsManagementModule } from '../../components/events/EventsManagementModule';
+import { AnnouncementsManagementModule } from '../../components/announcements/AnnouncementsManagementModule';
 import {
   CLUB_MEMBERS_ADMIN,
   CAMPUS_EVENTS,
   ANNOUNCEMENTS,
-  MERCHANDISE_ITEMS,
-  TREASURY_DATA
+  MERCHANDISE_ITEMS
 } from '../../data/mockData';
 import {
   LayoutDashboard,
@@ -28,17 +29,25 @@ import {
   Clock,
   Sparkles,
   Download,
-  AlertCircle
+  AlertCircle,
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  Award,
+  Check,
+  ChevronRight
 } from 'lucide-react';
 
 export const AdminDashboard = () => {
-  const { user, users } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
   const initialTab = queryParams.get('tab') || 'overview';
 
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [eventsSubTab, setEventsSubTab] = useState('all');
+  const [announcementsSubTab, setAnnouncementsSubTab] = useState('all');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -47,19 +56,70 @@ export const AdminDashboard = () => {
       setActiveTab(tab);
     }
   }, [location.search]);
+
+  // Master Data State
   const [memberRoster, setMemberRoster] = useState(CLUB_MEMBERS_ADMIN);
   const [events, setEvents] = useState(CAMPUS_EVENTS);
   const [announcements, setAnnouncements] = useState(ANNOUNCEMENTS);
 
-  // Search & Filter
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDues, setFilterDues] = useState('ALL');
-
   // Modals state
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isCreateTreasurerModalOpen, setIsCreateTreasurerModalOpen] = useState(false);
-  const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
-  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+
+  // Overview Governance Log Filter
+  const [governanceFilter, setGovernanceFilter] = useState('ALL');
+
+  // Merchandise State
+  const [merchSearch, setMerchSearch] = useState('');
+  const [merchCategoryFilter, setMerchCategoryFilter] = useState('ALL');
+
+  // Volunteers State
+  const [volunteerHours, setVolunteerHours] = useState([
+    {
+      id: 'vol-1',
+      studentName: 'Julian Vance',
+      studentId: 'STU-2026-1049',
+      role: 'Hardware Lab Volunteer',
+      event: 'Autonomous Quadcopter Workshop',
+      hours: 8,
+      date: 'Oct 01, 2026',
+      status: 'VERIFIED',
+      supervisor: 'Dr. Alexander Vance'
+    },
+    {
+      id: 'vol-2',
+      studentName: 'Elena Rostova',
+      studentId: 'STU-2026-3021',
+      role: 'Guest Speaker Coordinator',
+      event: 'AI Ethics Symposium 2026',
+      hours: 6,
+      date: 'Sep 28, 2026',
+      status: 'VERIFIED',
+      supervisor: 'Dr. Alexander Vance'
+    },
+    {
+      id: 'vol-3',
+      studentName: 'Marcus Sterling',
+      studentId: 'STU-2026-4419',
+      role: 'Check-in Desk Lead',
+      event: 'Annual Robotics Showcase 2026',
+      hours: 10,
+      date: 'Sep 25, 2026',
+      status: 'VERIFIED',
+      supervisor: 'Prof. Alistair Finch'
+    },
+    {
+      id: 'vol-4',
+      studentName: 'Devon Martinez',
+      studentId: 'STU-2026-7890',
+      role: 'Stage & Audio Tech',
+      event: 'Freshman Orientation Hackathon',
+      hours: 4,
+      date: 'Oct 02, 2026',
+      status: 'PENDING',
+      supervisor: 'Student Council Rep'
+    }
+  ]);
 
   // New Treasurer Form State
   const [newTreasurer, setNewTreasurer] = useState({
@@ -67,7 +127,7 @@ export const AdminDashboard = () => {
     email: '',
     studentId: '',
     password: 'password123',
-    department: 'School of Business & Finance'
+    department: 'School of Engineering & Applied Sciences'
   });
   const [treasurerCreatedSuccess, setTreasurerCreatedSuccess] = useState(false);
 
@@ -79,21 +139,16 @@ export const AdminDashboard = () => {
     role: 'Member'
   });
 
-  // New Announcement Form State
-  const [newAnnouncementForm, setNewAnnouncementForm] = useState({
-    title: '',
-    content: '',
-    priority: 'GENERAL'
-  });
+  // Navigation Helpers
+  const navigateToEvents = (subTab = 'all') => {
+    setEventsSubTab(subTab);
+    setActiveTab('events');
+  };
 
-  // New Event Form State
-  const [newEventForm, setNewEventForm] = useState({
-    title: '',
-    date: '',
-    location: '',
-    capacity: 100,
-    price: 'Free for Members'
-  });
+  const navigateToAnnouncements = (subTab = 'all') => {
+    setAnnouncementsSubTab(subTab);
+    setActiveTab('announcements');
+  };
 
   const handleCreateTreasurer = (e) => {
     e.preventDefault();
@@ -120,7 +175,7 @@ export const AdminDashboard = () => {
         email: '',
         studentId: '',
         password: 'password123',
-        department: 'School of Business & Finance'
+        department: 'School of Engineering & Applied Sciences'
       });
     }, 2000);
   };
@@ -146,136 +201,166 @@ export const AdminDashboard = () => {
     setNewMemberForm({ name: '', email: '', studentId: '', role: 'Member' });
   };
 
-  const handleCreateAnnouncement = (e) => {
-    e.preventDefault();
-    if (!newAnnouncementForm.title || !newAnnouncementForm.content) return;
-
-    setAnnouncements([
-      {
-        id: `anc-${Date.now()}`,
-        title: newAnnouncementForm.title,
-        author: user?.name || 'Dr. Alexander Vance (Organizer)',
-        date: 'Today',
-        priority: newAnnouncementForm.priority,
-        content: newAnnouncementForm.content
-      },
-      ...announcements
-    ]);
-    setIsAnnouncementModalOpen(false);
-    setNewAnnouncementForm({ title: '', content: '', priority: 'GENERAL' });
+  const handleToggleVolunteerApproval = (id) => {
+    setVolunteerHours((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const nextStatus = item.status === 'VERIFIED' ? 'PENDING' : 'VERIFIED';
+          return { ...item, status: nextStatus };
+        }
+        return item;
+      })
+    );
   };
 
-  const handleCreateEvent = (e) => {
-    e.preventDefault();
-    if (!newEventForm.title || !newEventForm.date) return;
-
-    setEvents([
-      {
-        id: `evt-${Date.now()}`,
-        title: newEventForm.title,
-        date: newEventForm.date,
-        location: newEventForm.location || 'Engineering Commons',
-        category: 'Campus Event',
-        organizer: user?.clubName || 'Robotics & AI Society',
-        attendees: 0,
-        capacity: Number(newEventForm.capacity),
-        price: newEventForm.price,
-        badge: 'New Event',
-        description: 'Newly created official club event.',
-        userRsvp: false
-      },
-      ...events
-    ]);
-    setIsCreateEventModalOpen(false);
-    setNewEventForm({ title: '', date: '', location: '', capacity: 100, price: 'Free for Members' });
-  };
-
-  // Filtered roster
-  const filteredRoster = memberRoster.filter((mem) => {
-    const matchesSearch =
-      mem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mem.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      mem.studentId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDues = filterDues === 'ALL' || mem.duesStatus === filterDues;
-    return matchesSearch && matchesDues;
-  });
+  const scheduledAnnouncementsCount = announcements.filter((a) => a.status === 'Scheduled').length;
 
   const tabs = [
     { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'members', label: 'Member Management', icon: Users },
+    { id: 'members', label: 'Member Management', icon: Users, badge: memberRoster.length },
     { id: 'events', label: 'Events Management', icon: Calendar, badge: events.length },
-    { id: 'announcements', label: 'Broadcasts', icon: Megaphone },
-    { id: 'merchandise', label: 'Merchandise Stock', icon: ShoppingBag },
-    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign },
-    { id: 'volunteers', label: 'Volunteer Control', icon: HeartHandshake },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone, badge: scheduledAnnouncementsCount },
+    { id: 'merchandise', label: 'Merchandise Stock', icon: ShoppingBag, badge: MERCHANDISE_ITEMS.length },
+    { id: 'fundraisers', label: 'Fundraisers', icon: DollarSign, badge: '3 Active' },
+    { id: 'volunteers', label: 'Volunteer Control', icon: HeartHandshake, badge: '28 hrs' },
     { id: 'reports', label: 'Council Reports', icon: FileText }
   ];
+
+  // Governance Log Mock Data
+  const governanceLogs = [
+    {
+      id: 'gov-1',
+      category: 'GRANTS',
+      title: 'Dean Student Activity Grant Credited ($4,500.00)',
+      description: 'Official semester funding verified and deposited into treasury balance by Dean of Student Affairs.',
+      date: 'Oct 01, 2026 • 11:30 AM',
+      refCode: 'GRT-2026-99',
+      badge: 'Dean Ratified',
+      badgeClass: 'bg-status-success-bg text-status-success border-status-success/30'
+    },
+    {
+      id: 'gov-2',
+      category: 'APPOINTMENTS',
+      title: 'Marcus Sterling Appointed as Treasurer',
+      description: 'Cryptographic fiscal ledger signing credentials issued under authority of Dr. Alexander Vance.',
+      date: 'Aug 20, 2026 • 02:15 PM',
+      refCode: 'AUTH-TREAS-01',
+      badge: 'Role Ratified',
+      badgeClass: 'bg-accent-light text-accent-700 border-accent-300'
+    },
+    {
+      id: 'gov-3',
+      category: 'EVENTS',
+      title: 'Annual Robotics Showcase 2026 Published',
+      description: 'Venue confirmed at Grand Hall, Turing Science Quad. 142 student tickets reserved within first 4 hours.',
+      date: 'Sep 15, 2026 • 09:40 AM',
+      refCode: 'EVT-101-PUB',
+      badge: 'Live on Campus',
+      badgeClass: 'bg-primary/10 text-primary border-primary/30'
+    },
+    {
+      id: 'gov-4',
+      category: 'NOTICES',
+      title: 'Fall General Assembly Schedule Dispatched',
+      description: 'Official academic broadcast transmitted to 184 active club members across Engineering & Computing.',
+      date: 'Oct 02, 2026 • 04:00 PM',
+      refCode: 'ANC-2026-44',
+      badge: 'Transmitted',
+      badgeClass: 'bg-status-info-bg text-status-info border-status-info/30'
+    }
+  ];
+
+  const filteredGovernanceLogs = governanceLogs.filter((log) => {
+    if (governanceFilter === 'ALL') return true;
+    return log.category === governanceFilter;
+  });
+
+  // Filtered Merchandise
+  const filteredMerchandise = MERCHANDISE_ITEMS.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(merchSearch.toLowerCase()) ||
+      item.category.toLowerCase().includes(merchSearch.toLowerCase());
+    const matchesCategory = merchCategoryFilter === 'ALL' || item.category === merchCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-ivory py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Admin Header Card */}
-        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-          <div className="flex items-center space-x-4 z-10">
-            <div className="relative">
+        {/* Executive Admin Header Card */}
+        <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+          <div className="flex items-center space-x-5 z-10">
+            <div className="relative flex-shrink-0">
               <img
                 src={user?.avatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80"}
-                alt={user?.name}
-                className="w-16 h-16 rounded-full border-2 border-primary object-cover shadow-sm"
+                alt={user?.name || "Advisor"}
+                className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-primary object-cover shadow-sm"
               />
-              <span className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border border-surface">
+              <span className="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-surface shadow-xs">
                 <UniversityCrest className="w-4 h-4" variant="gold" />
               </span>
             </div>
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold text-text-primary">
                   {user?.name || 'Dr. Alexander Vance'}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-primary text-white">
+                <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-primary text-white tracking-wide shadow-xs">
                   Lead Organizer & Faculty Advisor
                 </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Accredited Chapter
+                </span>
               </div>
-              <p className="text-xs text-text-secondary mt-0.5 flex items-center gap-2">
+              <p className="text-xs text-text-secondary mt-1 flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-primary">Robotics & AI Society</span>
                 <span>•</span>
                 <span>Council Chapter #SOC-2026-ENG</span>
                 <span>•</span>
                 <span className="font-mono text-accent">ID: {user?.studentId || 'FAC-2026-1049'}</span>
+                <span>•</span>
+                <span className="text-text-muted">Term: Fall 2026 Academic Year</span>
               </p>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 z-10">
+          {/* Quick Action Header Bar */}
+          <div className="flex flex-wrap items-center gap-2.5 z-10 w-full md:w-auto">
             <button
               onClick={() => setIsCreateTreasurerModalOpen(true)}
-              className="px-3 py-2 rounded bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
+              title="Grant fiscal authority and credentials"
             >
               <ShieldPlus className="w-3.5 h-3.5" />
               <span>Appoint Treasurer</span>
             </button>
             <button
               onClick={() => setIsAddMemberModalOpen(true)}
-              className="px-3 py-2 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center gap-1.5"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Enroll Member</span>
             </button>
             <button
-              onClick={() => setIsCreateEventModalOpen(true)}
-              className="px-3 py-2 rounded bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
+              onClick={() => navigateToEvents('create')}
+              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5 text-primary" />
               <span>New Event</span>
+            </button>
+            <button
+              onClick={() => navigateToAnnouncements('create')}
+              className="px-3.5 py-2 rounded-lg bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-semibold border border-border transition-campus flex items-center gap-1.5"
+            >
+              <Megaphone className="w-3.5 h-3.5 text-accent" />
+              <span>Broadcast</span>
             </button>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="border-b border-border bg-surface rounded-lg p-1.5 shadow-subtle overflow-x-auto">
-          <nav className="flex space-x-1 min-w-max">
+        <div className="border-b border-border bg-surface rounded-xl p-1.5 shadow-subtle overflow-x-auto">
+          <nav className="flex space-x-1.5 min-w-max">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -283,7 +368,7 @@ export const AdminDashboard = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-2 rounded text-xs font-semibold transition-campus ${isActive
+                  className={`flex items-center space-x-2 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-campus ${isActive
                       ? 'bg-primary text-white shadow-sm'
                       : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
                     }`}
@@ -292,7 +377,7 @@ export const AdminDashboard = () => {
                   <span>{tab.label}</span>
                   {tab.badge !== undefined && (
                     <span
-                      className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
+                      className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-primary-hover text-accent' : 'bg-ivory-200 text-text-secondary'
                         }`}
                     >
                       {tab.badge}
@@ -304,253 +389,455 @@ export const AdminDashboard = () => {
           </nav>
         </div>
 
-        {/* Tab 1: OVERVIEW */}
+        {/* ========================================================= */}
+        {/* TAB 1: DASHBOARD OVERVIEW */}
+        {/* ========================================================= */}
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Metric KPI cards */}
+          <div className="space-y-6 animate-fadeIn">
+            {/* Top 4 KPI Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-text-secondary">Enrolled Members</span>
-                  <Users className="w-4 h-4 text-primary" />
+              {/* Card 1: Members */}
+              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-primary/40 transition flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                      Enrolled Members
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Users className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                    {memberRoster.length}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
+                    <TrendingUp className="w-3 h-3" />
+                    <span>+14 joined this term</span>
+                    <span className="text-text-muted">• 94.2% retention</span>
+                  </div>
                 </div>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-2">184</p>
-                <span className="text-[10px] text-status-success font-medium">↑ +14 new this semester</span>
+                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-text-muted">Quorum Reached</span>
+                  <button
+                    onClick={() => setActiveTab('members')}
+                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                  >
+                    <span>View Roster</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-text-secondary">Active Campus Events</span>
-                  <Calendar className="w-4 h-4 text-accent" />
+              {/* Card 2: Events */}
+              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-accent/40 transition flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                      Campus Events
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-accent-light flex items-center justify-center text-accent">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                    {events.length}
+                  </p>
+                  <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1">
+                    <span className="font-semibold text-primary">450+ Attendees</span>
+                    <span className="text-text-muted">registered this semester</span>
+                  </p>
                 </div>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-2">{events.length}</p>
-                <span className="text-[10px] text-text-muted">450+ attendees registered</span>
+                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-text-muted">Ticketing Active</span>
+                  <button
+                    onClick={() => navigateToEvents('all')}
+                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                  >
+                    <span>Manage Events</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-text-secondary">Treasury Vault</span>
-                  <DollarSign className="w-4 h-4 text-status-success" />
+              {/* Card 3: Treasury */}
+              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-status-success/40 transition flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                      Treasury Balance
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-status-success-bg flex items-center justify-center text-status-success">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                    $8,345.50
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Dean Audited & Balanced</span>
+                  </div>
                 </div>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-2">$8,345.50</p>
-                <span className="text-[10px] text-status-success font-medium">Audited & Verified</span>
+                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-text-muted">Dues 92% Collected</span>
+                  <button
+                    onClick={() => setActiveTab('fundraisers')}
+                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                  >
+                    <span>View Funds</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
 
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-text-secondary">Pending Action Queue</span>
-                  <Clock className="w-4 h-4 text-status-warning" />
+              {/* Card 4: Announcements & Scheduled */}
+              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-status-warning/40 transition flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                      Broadcast Center
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-ivory-200 flex items-center justify-center text-text-secondary">
+                      <Megaphone className="w-4 h-4 text-primary" />
+                    </div>
+                  </div>
+                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                    {announcements.length}
+                  </p>
+                  <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold text-[10px]">
+                      {scheduledAnnouncementsCount} Scheduled
+                    </span>
+                    <span className="text-text-muted">Ready to dispatch</span>
+                  </p>
                 </div>
-                <p className="font-serif-academic text-2xl font-bold text-status-warning mt-2">3 Requests</p>
-                <span className="text-[10px] text-text-muted">2 reimbursements, 1 guest pass</span>
+                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-text-muted">Channel: Official</span>
+                  <button
+                    onClick={() => navigateToAnnouncements('all')}
+                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                  >
+                    <span>Open Center</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Quick Actions & Recent Activity Log */}
+            {/* Main Overview Split: Society Governance Log + Executive Command Panel */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Left Column: Society Governance Activity Ledger (2 Cols) */}
               <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-border">
-                  <h2 className="font-serif-academic text-lg font-bold text-text-primary">
-                    Recent Society Governance Log
-                  </h2>
-                  <span className="text-xs text-text-muted">Cryptographic Ledger</span>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
+                  <div>
+                    <h2 className="font-serif-academic text-xl font-bold text-text-primary flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                      <span>Society Governance & Ledger Log</span>
+                    </h2>
+                    <p className="text-xs text-text-secondary mt-0.5">
+                      Immutable record of officer ratifications, council grants, and official broadcasts
+                    </p>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1 bg-ivory-100 p-1 rounded-lg border border-border text-xs">
+                    {['ALL', 'GRANTS', 'APPOINTMENTS', 'EVENTS', 'NOTICES'].map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => setGovernanceFilter(category)}
+                        className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${governanceFilter === category
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'text-text-secondary hover:text-text-primary'
+                          }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="divide-y divide-border text-xs space-y-3 pt-1">
-                  <div className="pt-2 flex items-start space-x-3">
-                    <CheckCircle2 className="w-4 h-4 text-status-success flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-text-primary">Council Grant Approved ($4,500.00)</p>
-                      <p className="text-text-muted text-[11px]">Official funding credited to club balance by Dean of Student Affairs.</p>
-                      <span className="text-[10px] font-mono text-accent">Oct 01, 2026 • Ref: GRT-2026-99</span>
+                {/* Ledger Items */}
+                <div className="divide-y divide-border space-y-3 pt-1">
+                  {filteredGovernanceLogs.map((log) => (
+                    <div key={log.id} className="pt-3 flex items-start justify-between gap-4">
+                      <div className="flex items-start space-x-3">
+                        <div className="mt-1 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-text-primary text-xs sm:text-sm">
+                            {log.title}
+                          </p>
+                          <p className="text-text-secondary text-xs leading-relaxed max-w-xl">
+                            {log.description}
+                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[10px] text-text-muted font-medium">
+                              {log.date}
+                            </span>
+                            <span className="text-[10px] text-text-muted">•</span>
+                            <span className="text-[10px] font-mono text-accent">
+                              REF: {log.refCode}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border flex-shrink-0 ${log.badgeClass}`}>
+                        {log.badge}
+                      </span>
                     </div>
-                  </div>
+                  ))}
+                </div>
 
-                  <div className="pt-3 flex items-start space-x-3">
-                    <Users className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-text-primary">Marcus Sterling Appointed as Treasurer</p>
-                      <p className="text-text-muted text-[11px]">Financial authority credentials issued by Dr. Alexander Vance.</p>
-                      <span className="text-[10px] font-mono text-accent">Aug 20, 2023 • Ref: AUTH-TREAS-01</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 flex items-start space-x-3">
-                    <Calendar className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold text-text-primary">Annual Robotics Showcase 2026 Published</p>
-                      <p className="text-text-muted text-[11px]">Venue booked at Grand Hall, Turing Science Quad. 142 tickets reserved.</p>
-                      <span className="text-[10px] font-mono text-accent">Sep 15, 2026 • Ref: EVT-101-PUB</span>
-                    </div>
-                  </div>
+                <div className="pt-3 border-t border-border flex justify-between items-center text-xs text-text-muted">
+                  <span>Cryptographic Checksum: SHA-256 Verified by University Council</span>
+                  <span className="text-status-success font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> All Records Ratified
+                  </span>
                 </div>
               </div>
 
-              {/* Fast Broadcast Card */}
-              <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4 flex flex-col justify-between">
-                <div>
+              {/* Right Column: Executive Command Center & University Compliance */}
+              <div className="space-y-6">
+
+                {/* Quick Launch Card */}
+                <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                   <div className="flex items-center space-x-2 pb-3 border-b border-border">
-                    <Megaphone className="w-4 h-4 text-primary" />
-                    <h2 className="font-serif-academic text-lg font-bold text-text-primary">
-                      Society Broadcast
-                    </h2>
+                    <Sparkles className="w-4 h-4 text-accent" />
+                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                      Executive Launcher
+                    </h3>
                   </div>
-                  <p className="text-xs text-text-secondary mt-2">
-                    Transmit an immediate notification or academic notice to all 184 registered members.
+
+                  <p className="text-xs text-text-secondary">
+                    Immediate administrative triggers for society leadership and faculty coordination.
                   </p>
+
+                  <div className="space-y-2.5">
+                    <button
+                      onClick={() => navigateToAnnouncements('create')}
+                      className="w-full py-2.5 px-3 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Megaphone className="w-3.5 h-3.5 text-accent" />
+                        <span>Schedule Announcement</span>
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+
+                    <button
+                      onClick={() => navigateToEvents('create')}
+                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <span>Publish Campus Event</span>
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+
+                    <button
+                      onClick={() => setIsCreateTreasurerModalOpen(true)}
+                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ShieldPlus className="w-3.5 h-3.5 text-accent" />
+                        <span>Provision Treasurer</span>
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab('reports')}
+                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Download className="w-3.5 h-3.5 text-text-muted" />
+                        <span>Export Council Audit Pack</span>
+                      </span>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <button
-                    onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="w-full py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center justify-center gap-1.5"
-                  >
-                    <Megaphone className="w-3.5 h-3.5" />
-                    <span>Post Official Announcement</span>
-                  </button>
-                  <button
-                    onClick={() => setIsCreateTreasurerModalOpen(true)}
-                    className="w-full py-2 rounded bg-ivory-200 hover:bg-ivory-300 text-text-primary text-xs font-medium border border-border transition flex items-center justify-center gap-1.5"
-                  >
-                    <ShieldPlus className="w-3.5 h-3.5 text-accent" />
-                    <span>Provision Treasurer Credentials</span>
-                  </button>
+                {/* University Senate Standing Checklist */}
+                <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
+                  <div className="flex items-center space-x-2 pb-3 border-b border-border">
+                    <Award className="w-4 h-4 text-primary" />
+                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                      Council Accreditation
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Faculty Endorsement:</span>
+                      <span className="font-semibold text-status-success flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Certified
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Roster Quorum (min 50):</span>
+                      <span className="font-semibold text-text-primary">184 Members (368%)</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Fiscal Audit Standing:</span>
+                      <span className="font-semibold text-status-success">Dean Approved</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Next Senate Review:</span>
+                      <span className="font-mono text-accent">Nov 14, 2026</span>
+                    </div>
+                  </div>
                 </div>
+
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 2: MEMBERS MANAGEMENT */}
+        {/* ========================================================= */}
+        {/* TAB 2: MEMBERS MANAGEMENT */}
+        {/* ========================================================= */}
         {activeTab === 'members' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fadeIn">
             <MemberManagementPage />
           </div>
         )}
 
-        {/* Tab 3: EVENTS MANAGEMENT */}
+        {/* ========================================================= */}
+        {/* TAB 3: EVENTS MANAGEMENT */}
+        {/* ========================================================= */}
         {activeTab === 'events' && (
-          <div className="space-y-4">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Campus Events Administration
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Schedule lectures, hackathons, and exhibitions with venue reservations
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsCreateEventModalOpen(true)}
-                  className="px-3 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create New Event</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {events.map((evt) => (
-                  <div key={evt.id} className="p-4 rounded-lg bg-ivory-50 border border-border space-y-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-primary-light text-primary">
-                        {evt.category}
-                      </span>
-                      <span className="text-xs font-semibold text-accent">{evt.price}</span>
-                    </div>
-                    <h3 className="font-serif-academic text-base font-bold text-text-primary">{evt.title}</h3>
-                    <p className="text-xs text-text-secondary">{evt.date} • {evt.location}</p>
-                    <div className="pt-2 text-xs flex justify-between items-center text-text-muted">
-                      <span>RSVPs: <strong className="text-text-primary">{evt.attendees}</strong> / {evt.capacity}</span>
-                      <span className="text-status-success font-medium">Published & Active</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <EventsManagementModule
+            events={events}
+            setEvents={setEvents}
+            initialSubTab={eventsSubTab}
+          />
         )}
 
-        {/* Tab 4: ANNOUNCEMENTS */}
+        {/* ========================================================= */}
+        {/* TAB 4: ANNOUNCEMENTS MANAGEMENT */}
+        {/* ========================================================= */}
         {activeTab === 'announcements' && (
-          <div className="space-y-4">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-border">
-                <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Broadcast Announcements Feed
-                  </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
-                    Official communications displayed to all registered students
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsAnnouncementModalOpen(true)}
-                  className="px-3 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5"
-                >
-                  <Megaphone className="w-3.5 h-3.5" />
-                  <span>New Broadcast</span>
-                </button>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {announcements.map((anc) => (
-                  <div key={anc.id} className="p-4 rounded-lg bg-ivory-100 border border-border space-y-2">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-serif-academic text-base font-bold text-primary">{anc.title}</h3>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-surface border border-border font-mono">
-                        {anc.priority}
-                      </span>
-                    </div>
-                    <p className="text-xs text-text-secondary leading-relaxed">{anc.content}</p>
-                    <p className="text-[11px] text-text-muted pt-1">
-                      Author: <strong className="text-text-primary">{anc.author}</strong> • {anc.date}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <AnnouncementsManagementModule
+            announcements={announcements}
+            setAnnouncements={setAnnouncements}
+            initialSubTab={announcementsSubTab}
+          />
         )}
 
-        {/* Tab 5: MERCHANDISE */}
+        {/* ========================================================= */}
+        {/* TAB 5: MERCHANDISE STOCK */}
+        {/* ========================================================= */}
         {activeTab === 'merchandise' && (
-          <div className="space-y-4">
+          <div className="space-y-6 animate-fadeIn">
+            {/* Top Inventory Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Total Catalog SKUs
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
+                  {MERCHANDISE_ITEMS.length} Unique Items
+                </p>
+                <span className="text-[11px] text-text-muted">Hoodies, Tech Kits, Accessories</span>
+              </div>
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Total Units In Stock
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                  {MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.inStock, 0)} Units
+                </p>
+                <span className="text-[11px] text-status-success font-medium">All Warehoused at Student Center</span>
+              </div>
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Estimated Inventory Value
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
+                  ${MERCHANDISE_ITEMS.reduce((acc, curr) => acc + curr.price * curr.inStock, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+                <span className="text-[11px] text-text-muted">Net retail value toward club treasury</span>
+              </div>
+            </div>
+
+            {/* Inventory Table Container */}
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-border">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
                 <div>
                   <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                    Society Merchandise Inventory & Sales
+                    Society Merchandise Inventory & Distribution
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
-                    Track stock levels, sales proceeds, and campus distribution
+                    Official society branded apparel, engineering hardware kits, and student gear
                   </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search merchandise..."
+                      value={merchSearch}
+                      onChange={(e) => setMerchSearch(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <select
+                    value={merchCategoryFilter}
+                    onChange={(e) => setMerchCategoryFilter(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-surface text-xs text-text-primary"
+                  >
+                    <option value="ALL">All Categories</option>
+                    <option value="Apparel">Apparel</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded border border-border">
+              <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
                     <tr>
-                      <th className="py-2.5 px-3">Item Description</th>
-                      <th className="py-2.5 px-3">Category</th>
-                      <th className="py-2.5 px-3">Unit Price</th>
-                      <th className="py-2.5 px-3">Current Stock</th>
-                      <th className="py-2.5 px-3">Stock Status</th>
+                      <th className="py-3 px-4">Item Name</th>
+                      <th className="py-3 px-4">Category</th>
+                      <th className="py-3 px-4">Unit Price</th>
+                      <th className="py-3 px-4">Current Stock</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {MERCHANDISE_ITEMS.map((item) => (
+                    {filteredMerchandise.map((item) => (
                       <tr key={item.id} className="hover:bg-ivory-50 transition">
-                        <td className="py-2.5 px-3 font-semibold text-text-primary">{item.name}</td>
-                        <td className="py-2.5 px-3 text-text-secondary">{item.category}</td>
-                        <td className="py-2.5 px-3 font-bold text-primary">${item.price.toFixed(2)}</td>
-                        <td className="py-2.5 px-3 font-mono">{item.inStock} units</td>
-                        <td className="py-2.5 px-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
-                            Available for Order
-                          </span>
+                        <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
+                          <ShoppingBag className="w-3.5 h-3.5 text-primary" />
+                          <span>{item.name}</span>
+                        </td>
+                        <td className="py-3 px-4 text-text-secondary">{item.category}</td>
+                        <td className="py-3 px-4 font-bold text-primary">${item.price.toFixed(2)}</td>
+                        <td className="py-3 px-4 font-mono font-medium">{item.inStock} units</td>
+                        <td className="py-3 px-4">
+                          {item.inStock > 15 ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
+                              Well Stocked
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                              Low Stock Alert
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => alert(`Initiating replenishment order for: ${item.name}`)}
+                            className="px-2.5 py-1 rounded bg-ivory-200 hover:bg-ivory-300 text-text-primary text-[11px] font-semibold border border-border transition"
+                          >
+                            Restock Order
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -561,100 +848,334 @@ export const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Tab 6: FUNDRAISERS */}
+        {/* ========================================================= */}
+        {/* TAB 6: FUNDRAISERS */}
+        {/* ========================================================= */}
         {activeTab === 'fundraisers' && (
-          <div className="space-y-4">
+          <div className="space-y-6 animate-fadeIn">
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="pb-3 border-b border-border">
-                <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                  Society Endowments & Fundraisers
-                </h2>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Crowdfunded campaigns for student hardware labs, research travel, and guest symposia
-                </p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
+                <div>
+                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                    Society Endowments & Fundraisers
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Official crowdfunding campaigns for robotic competition chassis, symposium travel, and hardware lab gear
+                  </p>
+                </div>
+                <button
+                  onClick={() => alert('Opening Council Initiative Proposal Submission...')}
+                  className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Launch Fundraiser</span>
+                </button>
               </div>
 
-              <div className="p-5 rounded-lg bg-ivory-100 border border-border space-y-3">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-serif-academic text-base font-bold text-primary">
-                    Robotics Regional Championship Travel Fund
-                  </h3>
-                  <span className="text-xs font-semibold text-status-success">Active Campaign</span>
+              {/* 3 Active Campaigns */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+                {/* Campaign 1 */}
+                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
+                        72% Funded
+                      </span>
+                      <span className="text-[11px] text-text-muted">14 Days Remaining</span>
+                    </div>
+                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                      Robotics Regional Championship Travel
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      Funding flights, competition registration dues, and transport crates for national competition in Chicago.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full" style={{ width: '72%' }} />
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>Raised: <strong className="text-primary">$4,320.00</strong></span>
+                      <span className="text-text-muted">Goal: $6,000.00</span>
+                    </div>
+                    <span className="text-[10px] text-text-muted block">48 Alumni & Faculty Donors</span>
+                  </div>
                 </div>
-                <p className="text-xs text-text-secondary">
-                  Goal: $6,000 for team flights, robotic chassis crating, and competition entry dues in Chicago.
-                </p>
-                <div className="w-full bg-ivory-300 h-2.5 rounded-full overflow-hidden">
-                  <div className="bg-primary h-full rounded-full" style={{ width: '72%' }} />
+
+                {/* Campaign 2 */}
+                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
+                        85% Funded
+                      </span>
+                      <span className="text-[11px] text-text-muted">22 Days Remaining</span>
+                    </div>
+                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                      Autonomous Sensor & AI Hardware Lab
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      Procuring NVIDIA Jetson Orin compute units and LiDAR sensory kits for student machine learning projects.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
+                      <div className="bg-accent h-full rounded-full" style={{ width: '85%' }} />
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>Raised: <strong className="text-accent">$8,500.00</strong></span>
+                      <span className="text-text-muted">Goal: $10,000.00</span>
+                    </div>
+                    <span className="text-[10px] text-text-muted block">92 Corporate & Student Donors</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-xs text-text-muted">
-                  <span>Raised: <strong className="text-primary">$4,320.00</strong></span>
-                  <span>Target: $6,000.00 (72%)</span>
+
+                {/* Campaign 3 */}
+                <div className="p-5 rounded-xl bg-ivory-100 border border-border flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-success-bg text-status-success border border-status-success/30">
+                        70% Funded
+                      </span>
+                      <span className="text-[11px] text-text-muted">30 Days Remaining</span>
+                    </div>
+                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                      Undergraduate STEM Diversity Grant
+                    </h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      Scholarships and conference stipends for underrepresented undergraduate students presenting research.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <div className="w-full bg-ivory-300 h-2 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full" style={{ width: '70%' }} />
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span>Raised: <strong className="text-primary">$2,100.00</strong></span>
+                      <span className="text-text-muted">Goal: $3,000.00</span>
+                    </div>
+                    <span className="text-[10px] text-text-muted block">31 Contributing Donors</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 7: VOLUNTEERS */}
+        {/* ========================================================= */}
+        {/* TAB 7: VOLUNTEER CONTROL */}
+        {/* ========================================================= */}
         {activeTab === 'volunteers' && (
-          <div className="space-y-4">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="pb-3 border-b border-border">
-                <h2 className="font-serif-academic text-xl font-bold text-text-primary">
-                  Volunteer Verification & Hour Allocation
-                </h2>
-                <p className="text-xs text-text-secondary mt-0.5">
-                  Review student service submissions and certify official transcript credits
+          <div className="space-y-6 animate-fadeIn">
+            {/* Top Volunteer Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Total Certified Hours
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                  420 Hours
                 </p>
+                <span className="text-[11px] text-status-success font-medium">Ratified under Dean Honor Program</span>
               </div>
-
-              <div className="p-4 bg-status-success-bg/50 border border-status-success/30 rounded text-xs text-status-success">
-                All 28 student volunteer hours for this quarter have been verified and submitted to the Registrar.
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Pending Verification
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
+                  {volunteerHours.filter(v => v.status === 'PENDING').reduce((acc, curr) => acc + curr.hours, 0)} Hours
+                </p>
+                <span className="text-[11px] text-text-muted">Awaiting Advisor Signature</span>
+              </div>
+              <div className="bg-surface rounded-xl border border-border p-5 shadow-subtle">
+                <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                  Registrar Credits
+                </span>
+                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
+                  28 Students Awarded
+                </p>
+                <span className="text-[11px] text-text-muted">Official academic transcript notation</span>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Tab 8: REPORTS */}
-        {activeTab === 'reports' && (
-          <div className="space-y-4">
+            {/* Volunteer Control Table */}
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
+                <div>
+                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                    Volunteer Verification & Hour Allocation
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Review student community service submissions and certify official transcript credits
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-ivory-100 text-text-secondary font-semibold border-b border-border">
+                    <tr>
+                      <th className="py-3 px-4">Student Volunteer</th>
+                      <th className="py-3 px-4">Initiative / Event</th>
+                      <th className="py-3 px-4">Hours Logged</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {volunteerHours.map((vol) => (
+                      <tr key={vol.id} className="hover:bg-ivory-50 transition">
+                        <td className="py-3 px-4">
+                          <p className="font-semibold text-text-primary">{vol.studentName}</p>
+                          <p className="text-[10px] font-mono text-text-muted">{vol.studentId}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-medium text-text-primary">{vol.event}</p>
+                          <p className="text-[10px] text-text-secondary">{vol.role}</p>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold text-primary">
+                          {vol.hours} hrs
+                        </td>
+                        <td className="py-3 px-4 text-text-muted">{vol.date}</td>
+                        <td className="py-3 px-4">
+                          {vol.status === 'VERIFIED' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-status-success-bg text-status-success border border-status-success/30">
+                              Dean Verified
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                              Pending Review
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => handleToggleVolunteerApproval(vol.id)}
+                            className={`px-3 py-1 rounded text-xs font-semibold transition ${vol.status === 'VERIFIED'
+                                ? 'bg-ivory-200 hover:bg-ivory-300 text-text-secondary border border-border'
+                                : 'bg-primary hover:bg-primary-hover text-white shadow-xs'
+                              }`}
+                          >
+                            {vol.status === 'VERIFIED' ? 'Revoke Credit' : 'Certify Credit'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 8: COUNCIL REPORTS */}
+        {/* ========================================================= */}
+        {activeTab === 'reports' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
                 <div>
                   <h2 className="font-serif-academic text-xl font-bold text-text-primary">
                     Administrative Reports & Audit Exports
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
-                    Generate compliance reports for the University Council Office of Student Life
+                    Generate compliance dossiers for the University Council Office of Student Life
                   </p>
                 </div>
                 <button
-                  onClick={() => alert('Exporting Roster CSV and Financial Summary for University Council...')}
-                  className="px-3 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5"
+                  onClick={() => alert('Exporting Official Council Compliance Pack (CSV)...')}
+                  className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Annual Report (CSV)</span>
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
-                <div className="p-4 rounded bg-ivory-100 border border-border">
+              {/* Report Metric Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 text-xs">
+                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Membership Retention Rate</span>
                   <p className="font-serif-academic text-2xl font-bold text-primary mt-1">94.2%</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Top 5% among engineering campus societies.</p>
                 </div>
-                <div className="p-4 rounded bg-ivory-100 border border-border">
+
+                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Total Verified Service Hours</span>
                   <p className="font-serif-academic text-2xl font-bold text-accent mt-1">420 Hours</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Ratified under University Dean Honor Program.</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
+                  <span className="font-semibold text-text-primary">Fiscal Ledger Balance</span>
+                  <p className="font-serif-academic text-2xl font-bold text-status-success mt-1">$8,345.50</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">Zero outstanding auditor reconciliation flags.</p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
+                  <span className="font-semibold text-text-primary">Total Campus Events Hosted</span>
+                  <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">100% safety & room reservation clearance.</p>
+                </div>
+              </div>
+
+              {/* Downloadable Dossiers */}
+              <div className="pt-4 border-t border-border space-y-3">
+                <h3 className="font-serif-academic text-base font-bold text-text-primary">
+                  Official Dossier Exports
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-lg border border-border bg-surface hover:bg-ivory-50 transition flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-xs text-text-primary">Council Quorum Roster</p>
+                      <p className="text-[11px] text-text-muted">184 Verified Student IDs</p>
+                    </div>
+                    <button
+                      onClick={() => alert('Downloading Council Quorum Roster (CSV)...')}
+                      className="p-1.5 rounded-md hover:bg-ivory-200 text-primary"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg border border-border bg-surface hover:bg-ivory-50 transition flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-xs text-text-primary">Treasury Audit Ledger</p>
+                      <p className="text-[11px] text-text-muted">Reconciled Cash & Card Flows</p>
+                    </div>
+                    <button
+                      onClick={() => alert('Downloading Treasury Audit Ledger (CSV)...')}
+                      className="p-1.5 rounded-md hover:bg-ivory-200 text-primary"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="p-3.5 rounded-lg border border-border bg-surface hover:bg-ivory-50 transition flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-xs text-text-primary">Volunteer Registrar Credits</p>
+                      <p className="text-[11px] text-text-muted">Signed by Dr. Vance</p>
+                    </div>
+                    <button
+                      onClick={() => alert('Downloading Volunteer Transcript Credits (PDF)...')}
+                      className="p-1.5 rounded-md hover:bg-ivory-200 text-primary"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* MODAL 1: APPOINT / CREATE TREASURER CREDENTIALS (Strict prompt rule!) */}
+        {/* ========================================================= */}
+        {/* MODAL 1: APPOINT / CREATE TREASURER CREDENTIALS */}
+        {/* ========================================================= */}
         {isCreateTreasurerModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
             <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
@@ -673,12 +1194,12 @@ export const AdminDashboard = () => {
                 </button>
               </div>
 
-              <div className="p-3 bg-accent-light border border-accent-300 rounded text-[11px] text-text-secondary">
+              <div className="p-3 bg-accent-light border border-accent-300 rounded-lg text-[11px] text-text-secondary leading-relaxed">
                 <strong>System Security Policy:</strong> Treasurer accounts cannot be self-registered by students. Club Administrators appoint and generate fiscal credentials here.
               </div>
 
               {treasurerCreatedSuccess ? (
-                <div className="p-4 rounded bg-status-success-bg border border-status-success/30 text-status-success text-center space-y-2">
+                <div className="p-4 rounded-lg bg-status-success-bg border border-status-success/30 text-status-success text-center space-y-2">
                   <CheckCircle2 className="w-8 h-8 mx-auto" />
                   <p className="font-bold text-sm">Treasurer Appointed & Credentials Generated!</p>
                   <p className="text-xs text-text-secondary">
@@ -697,7 +1218,7 @@ export const AdminDashboard = () => {
                       value={newTreasurer.name}
                       onChange={(e) => setNewTreasurer({ ...newTreasurer, name: e.target.value })}
                       placeholder="e.g. Marcus Sterling"
-                      className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                     />
                   </div>
 
@@ -711,7 +1232,7 @@ export const AdminDashboard = () => {
                       value={newTreasurer.studentId}
                       onChange={(e) => setNewTreasurer({ ...newTreasurer, studentId: e.target.value })}
                       placeholder="e.g. STU-2026-4419"
-                      className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary font-mono focus:outline-none focus:border-primary"
                     />
                   </div>
 
@@ -725,7 +1246,7 @@ export const AdminDashboard = () => {
                       value={newTreasurer.email}
                       onChange={(e) => setNewTreasurer({ ...newTreasurer, email: e.target.value })}
                       placeholder="treasurer@university.edu"
-                      className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                     />
                   </div>
 
@@ -737,7 +1258,7 @@ export const AdminDashboard = () => {
                       type="text"
                       value={newTreasurer.password}
                       readOnly
-                      className="w-full px-3 py-2 rounded border border-border bg-ivory-100 text-text-secondary font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-ivory-100 text-text-secondary font-mono"
                     />
                     <span className="text-[10px] text-text-muted mt-0.5 block">
                       Default initial password: password123 (Changeable upon first login)
@@ -748,13 +1269,13 @@ export const AdminDashboard = () => {
                     <button
                       type="button"
                       onClick={() => setIsCreateTreasurerModalOpen(false)}
-                      className="px-3 py-2 rounded border border-border bg-surface hover:bg-ivory-100 text-text-secondary font-semibold"
+                      className="px-3 py-2 rounded-lg border border-border bg-surface hover:bg-ivory-100 text-text-secondary font-semibold"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-white font-semibold shadow-sm transition"
+                      className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-sm transition"
                     >
                       Grant Treasurer Authority
                     </button>
@@ -765,7 +1286,9 @@ export const AdminDashboard = () => {
           </div>
         )}
 
-        {/* MODAL 2: ADD MEMBER */}
+        {/* ========================================================= */}
+        {/* MODAL 2: ADD / ENROLL MEMBER */}
+        {/* ========================================================= */}
         {isAddMemberModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
             <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
@@ -790,7 +1313,7 @@ export const AdminDashboard = () => {
                     value={newMemberForm.name}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, name: e.target.value })}
                     placeholder="Student Name"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div>
@@ -801,7 +1324,7 @@ export const AdminDashboard = () => {
                     value={newMemberForm.email}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, email: e.target.value })}
                     placeholder="student@university.edu"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div>
@@ -809,7 +1332,7 @@ export const AdminDashboard = () => {
                   <select
                     value={newMemberForm.role}
                     onChange={(e) => setNewMemberForm({ ...newMemberForm, role: e.target.value })}
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                   >
                     <option value="Member">Regular Member</option>
                     <option value="Hardware Team Lead">Committee Officer</option>
@@ -820,175 +1343,15 @@ export const AdminDashboard = () => {
                   <button
                     type="button"
                     onClick={() => setIsAddMemberModalOpen(false)}
-                    className="px-3 py-2 rounded border border-border bg-surface text-text-secondary font-semibold"
+                    className="px-3 py-2 rounded-lg border border-border bg-surface text-text-secondary font-semibold"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-white font-semibold transition"
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold transition"
                   >
                     Enroll to Roster
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL 3: CREATE EVENT */}
-        {isCreateEventModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
-            <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-start border-b border-border pb-3">
-                <h3 className="font-serif-academic text-lg font-bold text-text-primary">
-                  Publish Campus Event
-                </h3>
-                <button
-                  onClick={() => setIsCreateEventModalOpen(false)}
-                  className="text-text-muted hover:text-text-primary font-bold text-lg"
-                >
-                  ×
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateEvent} className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Event Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEventForm.title}
-                    onChange={(e) => setNewEventForm({ ...newEventForm, title: e.target.value })}
-                    placeholder="e.g. AI Symposium 2026"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Date & Time</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEventForm.date}
-                    onChange={(e) => setNewEventForm({ ...newEventForm, date: e.target.value })}
-                    placeholder="e.g. Nov 24, 2026 • 3:00 PM"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Location / Venue</label>
-                  <input
-                    type="text"
-                    value={newEventForm.location}
-                    onChange={(e) => setNewEventForm({ ...newEventForm, location: e.target.value })}
-                    placeholder="Grand Hall or Auditorium"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-semibold text-text-primary mb-1">Capacity</label>
-                    <input
-                      type="number"
-                      value={newEventForm.capacity}
-                      onChange={(e) => setNewEventForm({ ...newEventForm, capacity: e.target.value })}
-                      className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-text-primary mb-1">Pricing / Ticket</label>
-                    <input
-                      type="text"
-                      value={newEventForm.price}
-                      onChange={(e) => setNewEventForm({ ...newEventForm, price: e.target.value })}
-                      className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                    />
-                  </div>
-                </div>
-                <div className="pt-2 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateEventModalOpen(false)}
-                    className="px-3 py-2 rounded border border-border bg-surface text-text-secondary font-semibold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-white font-semibold transition"
-                  >
-                    Publish Event
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL 4: POST ANNOUNCEMENT */}
-        {isAnnouncementModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
-            <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-start border-b border-border pb-3">
-                <h3 className="font-serif-academic text-lg font-bold text-text-primary">
-                  Transmit Society Broadcast
-                </h3>
-                <button
-                  onClick={() => setIsAnnouncementModalOpen(false)}
-                  className="text-text-muted hover:text-text-primary font-bold text-lg"
-                >
-                  ×
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateAnnouncement} className="space-y-3 text-xs">
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Headline</label>
-                  <input
-                    type="text"
-                    required
-                    value={newAnnouncementForm.title}
-                    onChange={(e) => setNewAnnouncementForm({ ...newAnnouncementForm, title: e.target.value })}
-                    placeholder="Broadcast Subject"
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Priority</label>
-                  <select
-                    value={newAnnouncementForm.priority}
-                    onChange={(e) => setNewAnnouncementForm({ ...newAnnouncementForm, priority: e.target.value })}
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  >
-                    <option value="GENERAL">General Society News</option>
-                    <option value="URGENT">Urgent Action Required</option>
-                    <option value="OFFICIAL">Official Dean Ratification</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-text-primary mb-1">Content</label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={newAnnouncementForm.content}
-                    onChange={(e) => setNewAnnouncementForm({ ...newAnnouncementForm, content: e.target.value })}
-                    placeholder="Write your campus communication..."
-                    className="w-full px-3 py-2 rounded border border-border bg-surface text-text-primary"
-                  />
-                </div>
-                <div className="pt-2 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAnnouncementModalOpen(false)}
-                    className="px-3 py-2 rounded border border-border bg-surface text-text-secondary font-semibold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded bg-primary hover:bg-primary-hover text-white font-semibold transition"
-                  >
-                    Broadcast to Members
                   </button>
                 </div>
               </form>
