@@ -164,7 +164,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
       {/* Top Header Card */}
       <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h2 className="text-2xl font-bold text-text-primary">
             Create Event
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
@@ -207,7 +207,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
       <form className="space-y-6">
         {/* SECTION A — Basic Information */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">A</span>
             Basic Information
           </h3>
@@ -318,7 +318,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
         {/* SECTION B — Date & Venue */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">B</span>
             Date & Venue
           </h3>
@@ -397,7 +397,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
 
         {/* SECTION C — Registration */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-          <h3 className="font-serif-academic text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-text-primary border-b border-border pb-2 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">C</span>
             Registration Controls
           </h3>
@@ -448,7 +448,7 @@ export const CreateEventView = ({ onSaveEvent, onCancel }) => {
         {/* SECTION D — Ticket Configuration */}
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
           <div className="flex justify-between items-center border-b border-border pb-2">
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary flex items-center gap-2">
+            <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-sans font-bold">D</span>
               Ticket Configuration
             </h3>

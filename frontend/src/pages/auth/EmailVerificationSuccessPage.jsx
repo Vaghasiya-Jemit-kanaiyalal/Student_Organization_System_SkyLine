@@ -40,7 +40,7 @@ export const EmailVerificationSuccessPage = () => {
             Registration & Identity Verified
           </span>
 
-          <h1 className="font-serif-academic text-2xl sm:text-3xl font-bold text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
             Welcome to ConnectU
           </h1>
 

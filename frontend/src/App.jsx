@@ -40,7 +40,7 @@ const UniversityFooter = () => {
         <div className="flex items-center space-x-3">
           <UniversityCrest className="w-8 h-8" variant="navy" />
           <div>
-            <p className="font-serif-academic font-bold text-text-primary text-sm">
+            <p className="font-bold text-text-primary text-sm">
               ConnectU Student Organization System
             </p>
             <p className="text-[11px] text-text-muted">

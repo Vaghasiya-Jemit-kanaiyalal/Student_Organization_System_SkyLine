@@ -313,7 +313,7 @@ export const AdminDashboard = () => {
                       <Users className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {memberRoster.length}
                   </p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
@@ -345,7 +345,7 @@ export const AdminDashboard = () => {
                       <Calendar className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {events.length}
                   </p>
                   <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1">
@@ -376,7 +376,7 @@ export const AdminDashboard = () => {
                       <DollarSign className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     $8,345.50
                   </p>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
@@ -407,7 +407,7 @@ export const AdminDashboard = () => {
                       <Megaphone className="w-4 h-4 text-primary" />
                     </div>
                   </div>
-                  <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-3xl font-bold text-text-primary mt-2">
                     {announcements.length}
                   </p>
                   <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1.5">
@@ -437,7 +437,7 @@ export const AdminDashboard = () => {
               <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
                   <div>
-                    <h2 className="font-serif-academic text-xl font-bold text-text-primary flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-primary" />
                       <span>Society Governance & Ledger Log</span>
                     </h2>
@@ -509,7 +509,7 @@ export const AdminDashboard = () => {
                 <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                   <div className="flex items-center space-x-2 pb-3 border-b border-border">
                     <Sparkles className="w-4 h-4 text-accent" />
-                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                    <h3 className="text-lg font-bold text-text-primary">
                       Executive Launcher
                     </h3>
                   </div>
@@ -569,7 +569,7 @@ export const AdminDashboard = () => {
                 <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
                   <div className="flex items-center space-x-2 pb-3 border-b border-border">
                     <Award className="w-4 h-4 text-primary" />
-                    <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                    <h3 className="text-lg font-bold text-text-primary">
                       Council Accreditation
                     </h3>
                   </div>
@@ -647,7 +647,7 @@ export const AdminDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Society Endowments & Fundraisers
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -674,7 +674,7 @@ export const AdminDashboard = () => {
                       </span>
                       <span className="text-[11px] text-text-muted">14 Days Remaining</span>
                     </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                    <h3 className="text-base font-bold text-primary">
                       Robotics Regional Championship Travel
                     </h3>
                     <p className="text-xs text-text-secondary leading-relaxed">
@@ -703,7 +703,7 @@ export const AdminDashboard = () => {
                       </span>
                       <span className="text-[11px] text-text-muted">22 Days Remaining</span>
                     </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                    <h3 className="text-base font-bold text-primary">
                       Autonomous Sensor & AI Hardware Lab
                     </h3>
                     <p className="text-xs text-text-secondary leading-relaxed">
@@ -732,7 +732,7 @@ export const AdminDashboard = () => {
                       </span>
                       <span className="text-[11px] text-text-muted">30 Days Remaining</span>
                     </div>
-                    <h3 className="font-serif-academic text-base font-bold text-primary">
+                    <h3 className="text-base font-bold text-primary">
                       Undergraduate STEM Diversity Grant
                     </h3>
                     <p className="text-xs text-text-secondary leading-relaxed">
@@ -767,7 +767,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Total Certified Hours
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                <p className="text-2xl font-bold text-primary mt-1">
                   420 Hours
                 </p>
                 <span className="text-[11px] text-status-success font-medium">Ratified under Dean Honor Program</span>
@@ -776,7 +776,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Pending Verification
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-accent mt-1">
+                <p className="text-2xl font-bold text-accent mt-1">
                   {volunteerHours.filter(v => v.status === 'PENDING').reduce((acc, curr) => acc + curr.hours, 0)} Hours
                 </p>
                 <span className="text-[11px] text-text-muted">Awaiting Advisor Signature</span>
@@ -785,7 +785,7 @@ export const AdminDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Registrar Credits
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
+                <p className="text-2xl font-bold text-text-primary mt-1">
                   28 Students Awarded
                 </p>
                 <span className="text-[11px] text-text-muted">Official academic transcript notation</span>
@@ -796,7 +796,7 @@ export const AdminDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Volunteer Verification & Hour Allocation
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -871,7 +871,7 @@ export const AdminDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Administrative Reports & Audit Exports
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -891,32 +891,32 @@ export const AdminDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 text-xs">
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Membership Retention Rate</span>
-                  <p className="font-serif-academic text-2xl font-bold text-primary mt-1">94.2%</p>
+                  <p className="text-2xl font-bold text-primary mt-1">94.2%</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Top 5% among engineering campus societies.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Total Verified Service Hours</span>
-                  <p className="font-serif-academic text-2xl font-bold text-accent mt-1">420 Hours</p>
+                  <p className="text-2xl font-bold text-accent mt-1">420 Hours</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Ratified under University Dean Honor Program.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Fiscal Ledger Balance</span>
-                  <p className="font-serif-academic text-2xl font-bold text-status-success mt-1">$8,345.50</p>
+                  <p className="text-2xl font-bold text-status-success mt-1">$8,345.50</p>
                   <p className="text-[11px] text-text-muted mt-0.5">Zero outstanding auditor reconciliation flags.</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-ivory-100 border border-border">
                   <span className="font-semibold text-text-primary">Total Campus Events Hosted</span>
-                  <p className="font-serif-academic text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
+                  <p className="text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
                   <p className="text-[11px] text-text-muted mt-0.5">100% safety & room reservation clearance.</p>
                 </div>
               </div>
 
               {/* Downloadable Dossiers */}
               <div className="pt-4 border-t border-border space-y-3">
-                <h3 className="font-serif-academic text-base font-bold text-text-primary">
+                <h3 className="text-base font-bold text-text-primary">
                   Official Dossier Exports
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -973,7 +973,7 @@ export const AdminDashboard = () => {
               <div className="flex justify-between items-start border-b border-border pb-3">
                 <div className="flex items-center space-x-2">
                   <UniversityCrest className="w-6 h-6" variant="burgundy" />
-                  <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                  <h3 className="text-lg font-bold text-text-primary">
                     Appoint Society Treasurer
                   </h3>
                 </div>
@@ -1084,7 +1084,7 @@ export const AdminDashboard = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
             <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
               <div className="flex justify-between items-start border-b border-border pb-3">
-                <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+                <h3 className="text-lg font-bold text-text-primary">
                   Enroll Student Member
                 </h3>
                 <button

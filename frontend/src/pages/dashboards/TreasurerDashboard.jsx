@@ -99,7 +99,7 @@ export const TreasurerDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
                 <span className="text-xs font-medium text-text-secondary">Total Allocated Budget</span>
-                <p className="font-serif-academic text-2xl font-bold text-text-primary mt-2">
+                <p className="text-2xl font-bold text-text-primary mt-2">
                   ${TREASURY_DATA.totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-text-muted">Ratified by Student Affairs</span>
@@ -107,7 +107,7 @@ export const TreasurerDashboard = () => {
 
               <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
                 <span className="text-xs font-medium text-text-secondary">Current Operating Balance</span>
-                <p className="font-serif-academic text-2xl font-bold text-status-success mt-2">
+                <p className="text-2xl font-bold text-status-success mt-2">
                   ${TREASURY_DATA.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-status-success font-medium">Available for Disbursement</span>
@@ -115,7 +115,7 @@ export const TreasurerDashboard = () => {
 
               <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
                 <span className="text-xs font-medium text-text-secondary">Total Expenses Disbursed</span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-2">
+                <p className="text-2xl font-bold text-primary mt-2">
                   ${TREASURY_DATA.totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
                 <span className="text-[10px] text-text-muted">4 verified invoices</span>
@@ -123,7 +123,7 @@ export const TreasurerDashboard = () => {
 
               <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle">
                 <span className="text-xs font-medium text-text-secondary">Pending Reimbursements</span>
-                <p className="font-serif-academic text-2xl font-bold text-status-warning mt-2">
+                <p className="text-2xl font-bold text-status-warning mt-2">
                   ${reimbursements.filter(r => r.status === 'PENDING').reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}
                 </p>
                 <span className="text-[10px] text-status-warning font-medium">
@@ -154,7 +154,7 @@ export const TreasurerDashboard = () => {
                 <div className="flex justify-between items-center pb-3 border-b border-border">
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="w-4 h-4 text-status-success" />
-                    <h2 className="font-serif-academic text-base font-bold text-text-primary">
+                    <h2 className="text-base font-bold text-text-primary">
                       Recent Inflow (Revenue & Grants)
                     </h2>
                   </div>
@@ -179,7 +179,7 @@ export const TreasurerDashboard = () => {
                 <div className="flex justify-between items-center pb-3 border-b border-border">
                   <div className="flex items-center space-x-2">
                     <TrendingDown className="w-4 h-4 text-primary" />
-                    <h2 className="font-serif-academic text-base font-bold text-text-primary">
+                    <h2 className="text-base font-bold text-text-primary">
                       Recent Outflow (Disbursements)
                     </h2>
                   </div>
@@ -209,7 +209,7 @@ export const TreasurerDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Income & Grant Inflows Ledger
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -261,7 +261,7 @@ export const TreasurerDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Disbursements & Operational Expenses
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -317,7 +317,7 @@ export const TreasurerDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Student & Officer Reimbursement Queue
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -408,7 +408,7 @@ export const TreasurerDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Total Merch Revenue Collected
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-status-success mt-1">
+                <p className="text-2xl font-bold text-status-success mt-1">
                   ${paidMerchRevenue.toFixed(2)}
                 </p>
                 <span className="text-[11px] text-text-muted">Cleared & recorded in Bursar account</span>
@@ -417,7 +417,7 @@ export const TreasurerDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Pending Order Collections
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-amber-700 mt-1">
+                <p className="text-2xl font-bold text-amber-700 mt-1">
                   ${pendingMerchRevenue.toFixed(2)}
                 </p>
                 <span className="text-[11px] text-amber-700 font-medium">To be collected upon counter pickup</span>
@@ -426,7 +426,7 @@ export const TreasurerDashboard = () => {
                 <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
                   Total Orders Audited
                 </span>
-                <p className="font-serif-academic text-2xl font-bold text-primary mt-1">
+                <p className="text-2xl font-bold text-primary mt-1">
                   {orders.length} Orders
                 </p>
                 <span className="text-[11px] text-text-muted">Direct digital order logs</span>
@@ -436,7 +436,7 @@ export const TreasurerDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border flex justify-between items-center">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Merchandise Sales & Payment Audit Ledger
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">
@@ -473,7 +473,7 @@ export const TreasurerDashboard = () => {
                           <span className="font-medium text-text-primary block">{ord.productName}</span>
                           <span className="text-[11px] text-text-secondary">Size: <strong>{ord.size}</strong> • Qty: {ord.quantity}</span>
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-primary font-serif-academic text-sm">
+                        <td className="py-3.5 px-4 font-bold text-primary text-sm">
                           ${ord.totalPrice.toFixed(2)}
                         </td>
                         <td className="py-3.5 px-4 text-text-secondary">
@@ -520,7 +520,7 @@ export const TreasurerDashboard = () => {
           <div className="space-y-4">
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="pb-3 border-b border-border">
-                <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                <h2 className="text-xl font-bold text-text-primary">
                   Cryptographic Transaction Ledger
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
@@ -542,7 +542,7 @@ export const TreasurerDashboard = () => {
             <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border">
                 <div>
-                  <h2 className="font-serif-academic text-xl font-bold text-text-primary">
+                  <h2 className="text-xl font-bold text-text-primary">
                     Bursar & Audit Compliance Exports
                   </h2>
                   <p className="text-xs text-text-secondary mt-0.5">

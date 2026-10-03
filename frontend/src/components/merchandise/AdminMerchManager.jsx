@@ -262,7 +262,7 @@ export const AdminMerchManager = () => {
             </span>
             <span className="text-xs font-semibold text-text-muted">Merchandise Inventory & Order Control</span>
           </div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary mt-1">
+          <h2 className="text-2xl font-bold text-text-primary mt-1">
             Hoodies & T-Shirts Management
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
@@ -302,7 +302,7 @@ export const AdminMerchManager = () => {
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <p className="font-serif-academic text-3xl font-bold text-primary mt-2">
+          <p className="text-3xl font-bold text-primary mt-2">
             ${totalRevenue.toFixed(2)}
           </p>
           <span className="text-[11px] text-status-success font-medium mt-1">
@@ -320,7 +320,7 @@ export const AdminMerchManager = () => {
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+          <p className="text-3xl font-bold text-text-primary mt-2">
             {totalUnitsInStock} Units
           </p>
           <span className="text-[11px] text-text-muted mt-1">
@@ -338,7 +338,7 @@ export const AdminMerchManager = () => {
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
-          <p className="font-serif-academic text-3xl font-bold text-text-primary mt-2">
+          <p className="text-3xl font-bold text-text-primary mt-2">
             {orders.length} Orders
           </p>
           <span className="text-[11px] text-text-secondary mt-1">
@@ -356,7 +356,7 @@ export const AdminMerchManager = () => {
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <p className="font-serif-academic text-3xl font-bold text-amber-700 mt-2">
+          <p className="text-3xl font-bold text-amber-700 mt-2">
             ${pendingPaymentsTotal.toFixed(2)}
           </p>
           <span className="text-[11px] text-amber-700 font-medium mt-1">
@@ -417,7 +417,7 @@ export const AdminMerchManager = () => {
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
             <div>
-              <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+              <h3 className="text-lg font-bold text-text-primary">
                 Apparel Inventory & Real-Time Stock per Size
               </h3>
               <p className="text-xs text-text-secondary mt-0.5">
@@ -484,7 +484,7 @@ export const AdminMerchManager = () => {
                       </td>
 
                       {/* Price */}
-                      <td className="py-3.5 px-4 font-bold text-primary font-serif-academic text-sm">
+                      <td className="py-3.5 px-4 font-bold text-primary text-sm">
                         ${item.price.toFixed(2)}
                       </td>
 
@@ -579,7 +579,7 @@ export const AdminMerchManager = () => {
         <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
             <div>
-              <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+              <h3 className="text-lg font-bold text-text-primary">
                 Online Orders & Payment Ledger
               </h3>
               <p className="text-xs text-text-secondary mt-0.5">
@@ -659,7 +659,7 @@ export const AdminMerchManager = () => {
                       {/* Qty and Total */}
                       <td className="py-3.5 px-4">
                         <span className="text-text-secondary block">Qty: {ord.quantity}</span>
-                        <span className="font-bold text-primary font-serif-academic text-sm">
+                        <span className="font-bold text-primary text-sm">
                           ${ord.totalPrice.toFixed(2)}
                         </span>
                       </td>
@@ -742,7 +742,7 @@ export const AdminMerchManager = () => {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface rounded-2xl border border-border max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4 animate-scaleUp">
             <div className="flex justify-between items-center pb-3 border-b border-border">
-              <h3 className="font-serif-academic text-xl font-bold text-text-primary">
+              <h3 className="text-xl font-bold text-text-primary">
                 {editingProductId ? 'Edit Garment Product' : 'Add New Hoodie or T-Shirt'}
               </h3>
               <button
@@ -931,7 +931,7 @@ export const AdminMerchManager = () => {
           <div className="bg-surface rounded-2xl border border-border max-w-lg w-full shadow-2xl p-6 space-y-4 animate-scaleUp">
             <div className="flex justify-between items-center pb-3 border-b border-border">
               <div>
-                <h3 className="font-serif-academic text-xl font-bold text-text-primary">
+                <h3 className="text-xl font-bold text-text-primary">
                   Record Paperless Club Desk Order
                 </h3>
                 <p className="text-xs text-text-secondary">

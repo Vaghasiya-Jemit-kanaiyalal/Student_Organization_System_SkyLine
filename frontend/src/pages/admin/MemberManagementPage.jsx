@@ -269,7 +269,7 @@ export const MemberManagementPage = () => {
                 <Users className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight font-serif-academic">
+                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                   Member Management
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -341,31 +341,31 @@ export const MemberManagementPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Members</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1 font-serif-academic">{allMembersStats.total}</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.total}</p>
                 <span className="text-[11px] text-blue-600 font-medium">100% Student Roster</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Members</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1 font-serif-academic">{allMembersStats.active}</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{allMembersStats.active}</p>
                 <span className="text-[11px] text-emerald-600 font-medium">Good Standing</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Expired Members</p>
-                <p className="text-2xl font-bold text-rose-600 mt-1 font-serif-academic">{allMembersStats.expired}</p>
+                <p className="text-2xl font-bold text-rose-600 mt-1">{allMembersStats.expired}</p>
                 <span className="text-[11px] text-rose-600 font-medium">Lapsed Dues</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Annual Memberships</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1 font-serif-academic">{allMembersStats.annual}</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.annual}</p>
                 <span className="text-[11px] text-slate-500 font-medium">Full Collegiate Term</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Semester Memberships</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1 font-serif-academic">{allMembersStats.semester}</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{allMembersStats.semester}</p>
                 <span className="text-[11px] text-slate-500 font-medium">Single Semester Term</span>
               </div>
             </div>
@@ -587,25 +587,25 @@ export const MemberManagementPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Renewals</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1 font-serif-academic">{renewalsStats.totalRenewals}</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{renewalsStats.totalRenewals}</p>
                 <span className="text-[11px] text-blue-600 font-medium">Cumulative Historical Renewals</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Due for Renewal</p>
-                <p className="text-2xl font-bold text-amber-600 mt-1 font-serif-academic">{renewalsStats.dueForRenewal}</p>
+                <p className="text-2xl font-bold text-amber-600 mt-1">{renewalsStats.dueForRenewal}</p>
                 <span className="text-[11px] text-amber-600 font-medium">Expiring within 30 days</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Expired Memberships</p>
-                <p className="text-2xl font-bold text-rose-600 mt-1 font-serif-academic">{renewalsStats.expired}</p>
+                <p className="text-2xl font-bold text-rose-600 mt-1">{renewalsStats.expired}</p>
                 <span className="text-[11px] text-rose-600 font-medium">Lapsed & Awaiting Renewal</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-xs">
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Renewed This Semester</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1 font-serif-academic">{renewalsStats.renewedThisSemester}</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{renewalsStats.renewedThisSemester}</p>
                 <span className="text-[11px] text-emerald-600 font-medium">Academic Term 2026</span>
               </div>
             </div>
@@ -797,7 +797,7 @@ export const MemberManagementPage = () => {
             <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-start justify-between">
               <div>
                 <div className="flex items-center space-x-2.5">
-                  <h2 className="text-xl font-bold text-slate-900 font-serif-academic">
+                  <h2 className="text-xl font-bold text-slate-900">
                     {selectedMemberDetails.name}
                   </h2>
                   <span
@@ -971,7 +971,7 @@ export const MemberManagementPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-2xs">
           <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-fadeIn">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 font-serif-academic">
+              <h3 className="text-base font-bold text-slate-900">
                 Edit Member: {editingMember.name}
               </h3>
               <button
@@ -1082,7 +1082,7 @@ export const MemberManagementPage = () => {
               <div className="p-2.5 bg-blue-50 rounded-full">
                 <RotateCw className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 font-serif-academic">
+              <h3 className="text-base font-bold text-slate-900">
                 Renew Membership
               </h3>
             </div>
@@ -1125,7 +1125,7 @@ export const MemberManagementPage = () => {
           <div className="max-w-xl w-full bg-white rounded-xl shadow-2xl border border-slate-200 p-6 space-y-4 animate-fadeIn">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900 font-serif-academic">
+                <h3 className="text-base font-bold text-slate-900">
                   Renewal History: {renewalHistoryMember.name}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">

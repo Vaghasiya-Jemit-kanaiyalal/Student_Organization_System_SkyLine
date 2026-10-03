@@ -49,7 +49,7 @@ export const ForgotPasswordPage = () => {
           <div className="flex justify-center mb-3">
             <UniversityCrest className="w-12 h-12" variant="navy" />
           </div>
-          <h1 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold text-text-primary">
             Account Credential Recovery
           </h1>
           <p className="text-xs text-text-secondary mt-1">
