@@ -122,6 +122,8 @@ class CreateTreasurerSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         value = value.strip().lower()
+        if not value.endswith('@treasurer.gmail.com'):
+            raise serializers.ValidationError("Treasurer email must end with @treasurer.gmail.com (e.g. xyz@treasurer.gmail.com).")
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("An account with this email address already exists.")
         return value
@@ -146,7 +148,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     Custom JWT Login serializer that:
     1. Authenticates user by email & password.
     2. Validates user is active.
-    3. Returns access token, refresh token, role, and user profile data.
+    3. Validates that Treasurer accounts use @treasurer.gmail.com.
+    4. Returns access token, refresh token, role, and user profile data.
     """
     username_field = 'email'
 
@@ -167,6 +170,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Check if user account is active
         if not self.user.is_active:
             raise serializers.ValidationError({"detail": "User account is disabled."})
+
+        # Treasurer role email domain restriction
+        if self.user.role == User.Role.TREASURER:
+            if not self.user.email.lower().endswith('@treasurer.gmail.com'):
+                raise serializers.ValidationError({
+                    "detail": "Treasurer can only login with an email ending in @treasurer.gmail.com."
+                })
 
         # Append custom payload to response
         data['role'] = self.user.role

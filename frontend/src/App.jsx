@@ -92,7 +92,7 @@ export const App = () => {
                 <Route
                   path="/member/dashboard"
                   element={
-                    <ProtectedRoute allowedRoles={['MEMBER', 'ADMIN', 'TREASURER']}>
+                    <ProtectedRoute allowedRoles={['MEMBER']}>
                       <MemberDashboard />
                     </ProtectedRoute>
                   }

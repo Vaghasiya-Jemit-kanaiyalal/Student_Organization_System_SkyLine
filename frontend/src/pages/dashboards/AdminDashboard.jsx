@@ -1036,9 +1036,10 @@ export const AdminDashboard = () => {
                       required
                       value={newTreasurer.email}
                       onChange={(e) => setNewTreasurer({ ...newTreasurer, email: e.target.value })}
-                      placeholder="treasurer@university.edu"
+                      placeholder="xyz@treasurer.gmail.com"
                       className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:border-primary"
                     />
+                    <p className="text-[11px] text-text-muted mt-1">Must end with @treasurer.gmail.com</p>
                   </div>
 
                   <div>

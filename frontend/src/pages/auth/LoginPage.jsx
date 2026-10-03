@@ -41,11 +41,24 @@ export const LoginPage = () => {
 
   const redirectByRole = (role) => {
     const destination = location.state?.from?.pathname;
+
+    // Validate that destination belongs to the user's role
     if (destination && !destination.includes('/login')) {
-      navigate(destination, { replace: true });
-      return;
+      if (role === 'TREASURER' && destination.startsWith('/treasurer')) {
+        navigate(destination, { replace: true });
+        return;
+      }
+      if (role === 'ADMIN' && destination.startsWith('/admin')) {
+        navigate(destination, { replace: true });
+        return;
+      }
+      if (role === 'MEMBER' && destination.startsWith('/member')) {
+        navigate(destination, { replace: true });
+        return;
+      }
     }
 
+    // Role-specific primary destinations
     switch (role) {
       case 'ADMIN':
         navigate('/admin/dashboard', { replace: true });
@@ -211,14 +224,14 @@ export const LoginPage = () => {
 
               <button
                 type="button"
-                onClick={() => handleAutoFill('treasurer@university.edu', 'password123')}
+                onClick={() => handleAutoFill('treasurer@treasurer.gmail.com', 'TreasurerPassword123!')}
                 className="text-left px-2.5 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-[11px] transition-campus group"
               >
                 <div className="font-semibold text-primary group-hover:text-primary-hover flex items-center justify-between">
                   <span>Club Treasurer</span>
                   <span className="text-[10px] text-text-muted">Fill</span>
                 </div>
-                <div className="text-[10px] text-text-muted truncate">treasurer@university.edu</div>
+                <div className="text-[10px] text-text-muted truncate">treasurer@treasurer.gmail.com</div>
               </button>
             </div>
           </div>

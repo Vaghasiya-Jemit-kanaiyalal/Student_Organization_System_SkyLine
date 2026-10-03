@@ -16,7 +16,9 @@ import {
   HeartHandshake,
   FileText,
   CreditCard,
-  Building2
+  Building2,
+  Ticket,
+  Award
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -98,10 +100,14 @@ export const Navbar = () => {
   ];
 
   const memberNavTabs = [
-    { id: 'overview', label: 'Member Hub', icon: LayoutDashboard },
-    { id: 'events', label: 'Events & Tickets', badge: 2, icon: Calendar },
-    { id: 'store', label: 'Merchandise', icon: ShoppingBag },
-    { id: 'volunteer', label: 'Volunteers', icon: HeartHandshake },
+    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'membership', label: 'Membership', icon: Users },
+    { id: 'events', label: 'Events', badge: 3, icon: Calendar },
+    { id: 'tickets', label: 'My Tickets', badge: 2, icon: Ticket },
+    { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
+    { id: 'certificates', label: 'Certificates', icon: Award },
+    { id: 'announcements', label: 'Announcements', badge: 1, icon: Megaphone },
+    { id: 'profile', label: 'Profile', icon: User },
   ];
 
   const currentTabs =

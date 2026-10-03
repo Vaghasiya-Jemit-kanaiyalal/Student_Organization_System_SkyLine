@@ -19,7 +19,7 @@ class AuthTests(APITestCase):
 
         # Create Treasurer
         self.treasurer = User.objects.create_user(
-            email='treasurer_test@studentorg.edu',
+            email='treasurer_test@treasurer.gmail.com',
             password='TreasurerPassword123!',
             full_name='Test Treasurer',
             role=User.Role.TREASURER
@@ -100,12 +100,28 @@ class AuthTests(APITestCase):
     def test_treasurer_login_success(self):
         url = reverse('auth-login')
         data = {
-            'email': 'treasurer_test@studentorg.edu',
+            'email': 'treasurer_test@treasurer.gmail.com',
             'password': 'TreasurerPassword123!'
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['role'], 'TREASURER')
+
+    def test_treasurer_login_invalid_email_domain_fails(self):
+        # Create a treasurer with an invalid email domain directly in DB
+        invalid_treasurer = User.objects.create_user(
+            email='illegal_treasurer@gmail.com',
+            password='TreasurerPassword123!',
+            full_name='Illegal Treasurer',
+            role=User.Role.TREASURER
+        )
+        url = reverse('auth-login')
+        data = {
+            'email': 'illegal_treasurer@gmail.com',
+            'password': 'TreasurerPassword123!'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_login_invalid_password(self):
         url = reverse('auth-login')
@@ -154,12 +170,24 @@ class AuthTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
         data = {
             'full_name': 'New Finance Head',
-            'email': 'finance_new@studentorg.edu',
+            'email': 'finance_new@treasurer.gmail.com',
             'password': 'FinancePassword123!'
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['data']['role'], 'TREASURER')
+
+    def test_admin_create_treasurer_invalid_domain_fails(self):
+        refresh = RefreshToken.for_user(self.admin)
+        url = reverse('admin-create-treasurer')
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        data = {
+            'full_name': 'Invalid Domain Treasurer',
+            'email': 'finance_new@gmail.com',  # Does not end with @treasurer.gmail.com
+            'password': 'FinancePassword123!'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_member_cannot_create_treasurer(self):
         refresh = RefreshToken.for_user(self.member)
@@ -167,7 +195,7 @@ class AuthTests(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
         data = {
             'full_name': 'Malicious Treasurer',
-            'email': 'bad_treasurer@studentorg.edu',
+            'email': 'bad_treasurer@treasurer.gmail.com',
             'password': 'FinancePassword123!'
         }
         response = self.client.post(url, data, format='json')

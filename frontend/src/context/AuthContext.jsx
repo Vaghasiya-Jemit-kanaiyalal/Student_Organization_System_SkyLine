@@ -289,7 +289,7 @@ export const AuthProvider = ({ children }) => {
       demoEmail = 'admin@studentorg.edu';
       demoPass = 'AdminPassword123!';
     } else if (targetRole === 'TREASURER') {
-      demoEmail = 'treasurer@studentorg.edu';
+      demoEmail = 'treasurer@treasurer.gmail.com';
       demoPass = 'TreasurerPassword123!';
     } else {
       demoEmail = 'alex.rivera@studentorg.edu';

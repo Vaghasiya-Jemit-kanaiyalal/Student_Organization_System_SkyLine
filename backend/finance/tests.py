@@ -18,7 +18,7 @@ class FinanceFlowTests(APITestCase):
             role=User.Role.ADMIN
         )
         self.treasurer = User.objects.create_user(
-            email='treasurer_fin@studentorg.edu',
+            email='treasurer_fin@treasurer.gmail.com',
             password='TreasurerPassword123!',
             full_name='Head Treasurer',
             role=User.Role.TREASURER
