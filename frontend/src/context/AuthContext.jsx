@@ -1,26 +1,41 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { INITIAL_USERS } from '../data/mockData';
 
 const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  // Initialize users from localStorage or fallback to INITIAL_USERS
-  const [users, setUsers] = useState(() => {
-    try {
-      const stored = localStorage.getItem('connectu_users');
-      return stored ? JSON.parse(stored) : INITIAL_USERS;
-    } catch {
-      return INITIAL_USERS;
-    }
-  });
+const API_BASE = 'http://127.0.0.1:8000/api';
 
+const normalizeUser = (u) => {
+  if (!u) return null;
+  return {
+    ...u,
+    id: u.id,
+    name: u.full_name || u.name || 'Member',
+    fullName: u.full_name || u.name || 'Member',
+    studentId: u.student_id || u.studentId || '',
+    student_id: u.student_id || u.studentId || '',
+    role: u.role || 'MEMBER',
+    email: u.email,
+    department: u.department || 'General Undergraduate Studies',
+    semester: u.semester || 'Academic Year 2026',
+    avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+    joinedDate: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 2026',
+    status: u.is_active !== false ? 'ACTIVE' : 'INACTIVE',
+    memberships: u.memberships || [
+      { clubId: 'club-1', clubName: 'Student Organization Society', role: 'Registered Member', duesPaid: true }
+    ],
+    volunteerHours: u.volunteerHours || 0,
+    ticketsCount: u.ticketsCount || 0
+  };
+};
+
+export const AuthProvider = ({ children }) => {
   // Current authenticated user state
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('connectu_active_user');
-      const token = localStorage.getItem('connectu_jwt_token');
-      if (savedUser && token) {
-        return JSON.parse(savedUser);
+      const savedToken = localStorage.getItem('connectu_jwt_token');
+      if (savedUser && savedToken) {
+        return normalizeUser(JSON.parse(savedUser));
       }
       return null;
     } catch {
@@ -38,164 +53,221 @@ export const AuthProvider = ({ children }) => {
 
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
 
-  // Sync users to localStorage
+  // Sync active user to /api/auth/me/ upon initial load if token exists
   useEffect(() => {
-    try {
-      localStorage.setItem('connectu_users', JSON.stringify(users));
-    } catch (e) {
-      console.error('Failed to sync users to localStorage', e);
-    }
-  }, [users]);
+    const fetchCurrentUser = async () => {
+      const savedToken = localStorage.getItem('connectu_jwt_token');
+      if (!savedToken) return;
 
-  // Generate simulated JWT token
-  const generateJWT = (userData) => {
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const payload = btoa(
-      JSON.stringify({
-        id: userData.id,
-        email: userData.email,
-        role: userData.role,
-        name: userData.name,
-        studentId: userData.studentId,
-        exp: Math.floor(Date.now() / 1000) + 3600 * 8, // 8 hour token
-        iat: Math.floor(Date.now() / 1000),
-        iss: 'connectu.university.edu'
-      })
-    );
-    const signature = btoa('CONNECTU_ACADEMIC_SIGNATURE_' + userData.role);
-    return `${header}.${payload}.${signature}`;
-  };
+      try {
+        const response = await fetch(`${API_BASE}/auth/me/`, {
+          headers: {
+            'Authorization': `Bearer ${savedToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          const normalized = normalizeUser(userData);
+          setUser(normalized);
+          localStorage.setItem('connectu_active_user', JSON.stringify(normalized));
+        } else if (response.status === 401) {
+          // Token expired
+          logout();
+        }
+      } catch (err) {
+        console.warn('Backend reach check failed:', err);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   /**
    * Universal Login Handler
-   * Role-based validation & JWT generation
+   * Connects to Django SimpleJWT backend: POST /api/auth/login/
    */
   const login = async (email, password, rememberMe = true) => {
-    // Artificial small delay for realistic SaaS feedback
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      const response = await fetch(`${API_BASE}/auth/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password
+        })
+      });
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const foundUser = users.find(
-      (u) => u.email.toLowerCase() === trimmedEmail
-    );
+      const data = await response.json();
 
-    if (!foundUser) {
+      if (!response.ok) {
+        let errorMsg = 'Authentication failed. Please verify your credentials.';
+        if (data.details) {
+          if (typeof data.details === 'string') {
+            errorMsg = data.details;
+          } else if (data.details.detail) {
+            errorMsg = data.details.detail;
+          } else if (data.details.non_field_errors) {
+            errorMsg = data.details.non_field_errors.join(' ');
+          }
+        }
+        return {
+          success: false,
+          error: errorMsg
+        };
+      }
+
+      const normalized = normalizeUser(data.user || { email, role: data.role });
+      const accessToken = data.access;
+      const refreshToken = data.refresh;
+
+      setUser(normalized);
+      setToken(accessToken);
+      setSessionExpiredNotice(false);
+
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('connectu_active_user', JSON.stringify(normalized));
+      storage.setItem('connectu_jwt_token', accessToken);
+      if (refreshToken) {
+        storage.setItem('connectu_refresh_token', refreshToken);
+      }
+
+      return {
+        success: true,
+        user: normalized,
+        role: data.role
+      };
+    } catch (err) {
+      console.error('Login network error:', err);
       return {
         success: false,
-        error: 'University account not found. Please verify your student email address or register below.'
+        error: 'Unable to connect to the backend authentication server. Ensure Django server is running.'
       };
     }
-
-    if (foundUser.password !== password) {
-      return {
-        success: false,
-        error: 'Invalid password. Please ensure correct capitalization or use the password recovery tool.'
-      };
-    }
-
-    const jwtToken = generateJWT(foundUser);
-    setUser(foundUser);
-    setToken(jwtToken);
-    setSessionExpiredNotice(false);
-
-    if (rememberMe) {
-      localStorage.setItem('connectu_active_user', JSON.stringify(foundUser));
-      localStorage.setItem('connectu_jwt_token', jwtToken);
-    } else {
-      sessionStorage.setItem('connectu_active_user', JSON.stringify(foundUser));
-      sessionStorage.setItem('connectu_jwt_token', jwtToken);
-    }
-
-    return {
-      success: true,
-      user: foundUser,
-      role: foundUser.role
-    };
   };
 
   /**
    * Member Self-Registration
-   * Allowed ONLY for Member role
+   * Connects to Django DRF backend: POST /api/auth/register/
    */
   const registerMember = async ({ name, studentId, email, password }) => {
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    try {
+      const response = await fetch(`${API_BASE}/auth/register/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          full_name: name.trim(),
+          student_id: studentId.trim().toUpperCase(),
+          email: email.trim().toLowerCase(),
+          password: password,
+          password_confirm: password
+        })
+      });
 
-    const trimmedEmail = email.trim().toLowerCase();
-    const cleanStudentId = studentId.trim().toUpperCase();
+      const data = await response.json();
 
-    // Check if email already registered
-    const emailExists = users.some((u) => u.email.toLowerCase() === trimmedEmail);
-    if (emailExists) {
+      if (!response.ok) {
+        let errorMsg = 'Registration failed. Please check the provided information.';
+        if (data.details) {
+          if (typeof data.details === 'string') {
+            errorMsg = data.details;
+          } else if (typeof data.details === 'object') {
+            const firstKey = Object.keys(data.details)[0];
+            const val = data.details[firstKey];
+            if (Array.isArray(val)) {
+              errorMsg = val[0];
+            } else if (typeof val === 'string') {
+              errorMsg = val;
+            }
+          }
+        }
+        return {
+          success: false,
+          error: errorMsg
+        };
+      }
+
+      const normalized = normalizeUser(data.user);
+      const accessToken = data.access;
+      const refreshToken = data.refresh;
+
+      // Save tokens so user is immediately authenticated
+      if (accessToken) {
+        setUser(normalized);
+        setToken(accessToken);
+        localStorage.setItem('connectu_active_user', JSON.stringify(normalized));
+        localStorage.setItem('connectu_jwt_token', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('connectu_refresh_token', refreshToken);
+        }
+      }
+
+      return {
+        success: true,
+        user: normalized
+      };
+    } catch (err) {
+      console.error('Registration network error:', err);
       return {
         success: false,
-        error: 'This email is already associated with an existing university account.'
+        error: 'Network error: could not connect to backend server.'
       };
     }
-
-    // Check if Student ID already exists
-    const idExists = users.some((u) => u.studentId.toUpperCase() === cleanStudentId);
-    if (idExists) {
-      return {
-        success: false,
-        error: 'This Student ID is already linked to a registered profile.'
-      };
-    }
-
-    const newMember = {
-      id: `usr-member-${Date.now().toString().slice(-4)}`,
-      name: name.trim(),
-      studentId: cleanStudentId,
-      email: trimmedEmail,
-      password: password,
-      role: 'MEMBER',
-      department: 'General Undergraduate Studies',
-      semester: 'Freshman (Year 1)',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
-      joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      status: 'ACTIVE',
-      memberships: [
-        { clubId: 'club-1', clubName: 'Robotics & AI Society', role: 'Registered Member', duesPaid: false }
-      ],
-      volunteerHours: 0,
-      ticketsCount: 0
-    };
-
-    setUsers((prev) => [...prev, newMember]);
-    return {
-      success: true,
-      user: newMember
-    };
   };
 
   /**
    * Password Reset
    */
   const resetPassword = async (email, newPassword) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const trimmedEmail = email.trim().toLowerCase();
-    const index = users.findIndex((u) => u.email.toLowerCase() === trimmedEmail);
-
-    if (index === -1) {
-      return { success: false, error: 'No account associated with that email.' };
+    try {
+      const response = await fetch(`${API_BASE}/auth/forgot-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
+      });
+      return { success: response.ok };
+    } catch {
+      return { success: false, error: 'Could not contact server.' };
     }
-
-    const updatedUsers = [...users];
-    updatedUsers[index] = { ...updatedUsers[index], password: newPassword };
-    setUsers(updatedUsers);
-
-    return { success: true };
   };
 
   /**
    * Logout
    */
-  const logout = () => {
+  const logout = async () => {
+    const refreshToken = localStorage.getItem('connectu_refresh_token') || sessionStorage.getItem('connectu_refresh_token');
+    const savedToken = token || localStorage.getItem('connectu_jwt_token');
+
+    if (refreshToken && savedToken) {
+      try {
+        await fetch(`${API_BASE}/auth/logout/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${savedToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ refresh: refreshToken })
+        });
+      } catch (err) {
+        console.warn('Backend logout call failed:', err);
+      }
+    }
+
     setUser(null);
     setToken(null);
     localStorage.removeItem('connectu_active_user');
     localStorage.removeItem('connectu_jwt_token');
+    localStorage.removeItem('connectu_refresh_token');
     sessionStorage.removeItem('connectu_active_user');
     sessionStorage.removeItem('connectu_jwt_token');
+    sessionStorage.removeItem('connectu_refresh_token');
   };
 
   /**
@@ -207,17 +279,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   /**
-   * Switch Active Role for easy hackathon testing
+   * Quick demo credentials login
    */
-  const quickSwitchRole = (targetRole) => {
-    const demoUser = users.find((u) => u.role === targetRole);
-    if (demoUser) {
-      const jwtToken = generateJWT(demoUser);
-      setUser(demoUser);
-      setToken(jwtToken);
-      localStorage.setItem('connectu_active_user', JSON.stringify(demoUser));
-      localStorage.setItem('connectu_jwt_token', jwtToken);
-      return demoUser;
+  const quickSwitchRole = async (targetRole) => {
+    let demoEmail = '';
+    let demoPass = '';
+
+    if (targetRole === 'ADMIN') {
+      demoEmail = 'admin@studentorg.edu';
+      demoPass = 'AdminPassword123!';
+    } else if (targetRole === 'TREASURER') {
+      demoEmail = 'treasurer@studentorg.edu';
+      demoPass = 'TreasurerPassword123!';
+    } else {
+      demoEmail = 'alex.rivera@studentorg.edu';
+      demoPass = 'MemberPassword123!';
+    }
+
+    const res = await login(demoEmail, demoPass, true);
+    if (res.success) {
+      return res.user;
     }
     return null;
   };
@@ -235,7 +316,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         triggerSessionExpired,
         quickSwitchRole,
-        users
+        users: []
       }}
     >
       {children}
