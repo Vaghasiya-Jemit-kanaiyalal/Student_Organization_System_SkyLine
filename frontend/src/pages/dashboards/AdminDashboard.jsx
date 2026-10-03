@@ -251,7 +251,7 @@ export const AdminDashboard = () => {
       date: 'Oct 01, 2026 • 11:30 AM',
       refCode: 'GRT-2026-99',
       badge: 'Dean Ratified',
-      badgeClass: 'bg-status-success-bg text-status-success border-status-success/30'
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200'
     },
     {
       id: 'gov-2',
@@ -261,7 +261,7 @@ export const AdminDashboard = () => {
       date: 'Aug 20, 2026 • 02:15 PM',
       refCode: 'AUTH-TREAS-01',
       badge: 'Role Ratified',
-      badgeClass: 'bg-accent-light text-accent-700 border-accent-300'
+      badgeClass: 'bg-zinc-100 text-zinc-800 border-zinc-200'
     },
     {
       id: 'gov-3',
@@ -271,7 +271,7 @@ export const AdminDashboard = () => {
       date: 'Sep 15, 2026 • 09:40 AM',
       refCode: 'EVT-101-PUB',
       badge: 'Live on Campus',
-      badgeClass: 'bg-primary/10 text-primary border-primary/30'
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200'
     },
     {
       id: 'gov-4',
@@ -281,7 +281,7 @@ export const AdminDashboard = () => {
       date: 'Oct 02, 2026 • 04:00 PM',
       refCode: 'ANC-2026-44',
       badge: 'Transmitted',
-      badgeClass: 'bg-status-info-bg text-status-info border-status-info/30'
+      badgeClass: 'bg-zinc-100 text-zinc-800 border-zinc-200'
     }
   ];
 
@@ -299,21 +299,21 @@ export const AdminDashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-ivory py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-4">
 
         {/* Top Header Card with Appointed Treasurer Button */}
-        <div className="bg-surface rounded-xl border border-border p-4 sm:p-5 shadow-subtle flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
                 SkyLine Admin Panel
               </h1>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-900 text-white font-mono uppercase tracking-wider">
                 Official Governance
               </span>
             </div>
-            <p className="text-xs text-text-secondary mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Society administration, member quorum, events, merchandise, and fundraising oversight
             </p>
           </div>
@@ -323,27 +323,27 @@ export const AdminDashboard = () => {
             <button
               type="button"
               onClick={() => setIsTreasurerModalOpen(true)}
-              className="inline-flex items-center space-x-2.5 px-3.5 py-2 rounded-lg bg-ivory-100 hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition shadow-xs group"
+              className="inline-flex items-center space-x-2.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-zinc-900 transition shadow-2xs group"
               title="Click to view appointed treasurer details or assign a new treasurer"
             >
-              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
               </div>
               <div className="text-left leading-tight">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase font-bold text-text-muted">Treasurer:</span>
-                  <span className="text-xs font-bold text-text-primary group-hover:text-primary transition">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Treasurer:</span>
+                  <span className="text-xs font-bold text-zinc-900 group-hover:text-emerald-700 transition">
                     {currentTreasurer?.name || 'Marcus Sterling'}
                   </span>
-                  <span className="font-mono text-[10px] text-primary bg-primary/10 px-1 py-0.2 rounded font-semibold">
+                  <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded font-semibold">
                     {currentTreasurer?.studentId || 'STU-2026-4419'}
                   </span>
                 </div>
-                <div className="text-[10px] text-text-muted mt-0.5">
-                  Serving since: <strong className="text-text-secondary font-mono">{currentTreasurer?.startDate || 'Aug 20, 2026'}</strong>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  Serving since: <strong className="text-zinc-700 font-mono">{currentTreasurer?.startDate || 'Aug 20, 2026'}</strong>
                 </div>
               </div>
-              <span className="ml-1 text-[11px] px-2 py-0.5 rounded bg-primary text-white font-semibold">
+              <span className="ml-1 text-[11px] px-2 py-0.5 rounded bg-zinc-900 text-white font-semibold">
                 Manage
               </span>
             </button>
@@ -354,34 +354,34 @@ export const AdminDashboard = () => {
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {/* ========================================================= */}
         {activeTab === 'overview' && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-4 animate-fadeIn">
             {/* Top 4 KPI Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Card 1: Members */}
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-primary/40 transition flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Enrolled Members
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-7 h-7 rounded-md bg-zinc-100 flex items-center justify-center text-zinc-800">
                       <Users className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1.5">
                     {memberRoster.length}
                   </p>
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
                     <TrendingUp className="w-3 h-3" />
                     <span>+14 joined this term</span>
-                    <span className="text-text-muted">• 94.2% retention</span>
+                    <span className="text-slate-400">• 94.2% retention</span>
                   </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-text-muted">Quorum Reached</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">Quorum Reached</span>
                   <button
                     onClick={() => handleTabSelect('members')}
-                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
                   >
                     <span>Member Management</span>
                     <ArrowRight className="w-3 h-3" />
@@ -390,29 +390,29 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Card 2: Events */}
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-accent/40 transition flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Campus Events
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-accent-light flex items-center justify-center text-accent">
+                    <div className="w-7 h-7 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-700">
                       <Calendar className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1.5">
                     {events.length}
                   </p>
-                  <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1">
-                    <span className="font-semibold text-primary">450+ Attendees</span>
-                    <span className="text-text-muted">registered this semester</span>
+                  <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                    <span className="font-semibold text-zinc-800">450+ Attendees</span>
+                    <span className="text-slate-400">registered</span>
                   </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-text-muted">Ticketing Active</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">Ticketing Active</span>
                   <button
                     onClick={() => navigateToEvents('all')}
-                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
                   >
                     <span>Manage Events</span>
                     <ArrowRight className="w-3 h-3" />
@@ -421,29 +421,29 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Card 3: Treasury */}
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-status-success/40 transition flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Treasury Balance
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-status-success-bg flex items-center justify-center text-status-success">
+                    <div className="w-7 h-7 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-700">
                       <DollarSign className="w-4 h-4" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1.5">
                     $8,345.50
                   </p>
-                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-status-success font-medium">
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
                     <CheckCircle2 className="w-3 h-3" />
                     <span>Dean Audited & Balanced</span>
                   </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-text-muted">Dues 92% Collected</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">Dues 92% Collected</span>
                   <button
                     onClick={() => handleTabSelect('fundraisers')}
-                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
                   >
                     <span>View Funds</span>
                     <ArrowRight className="w-3 h-3" />
@@ -452,31 +452,31 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Card 4: Announcements & Scheduled */}
-              <div className="p-5 rounded-xl bg-surface border border-border shadow-subtle hover:border-status-warning/40 transition flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                       Announcements Center
                     </span>
-                    <div className="w-8 h-8 rounded-lg bg-ivory-200 flex items-center justify-center text-text-secondary">
-                      <Megaphone className="w-4 h-4 text-primary" />
+                    <div className="w-7 h-7 rounded-md bg-zinc-100 flex items-center justify-center text-zinc-800">
+                      <Megaphone className="w-4 h-4 text-zinc-800" />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-text-primary mt-2">
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1.5">
                     {announcements.length}
                   </p>
-                  <p className="text-[11px] text-text-secondary mt-1 flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold text-[10px]">
+                  <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-semibold text-[10px]">
                       {scheduledAnnouncementsCount} Scheduled
                     </span>
-                    <span className="text-text-muted">Ready to dispatch</span>
+                    <span className="text-slate-400">Ready</span>
                   </p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-text-muted">Channel: Official</span>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">Channel: Official</span>
                   <button
                     onClick={() => navigateToAnnouncements('all')}
-                    className="text-xs font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition"
+                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
                   >
                     <span>Announcement</span>
                     <ArrowRight className="w-3 h-3" />
@@ -486,30 +486,30 @@ export const AdminDashboard = () => {
             </div>
 
             {/* Main Overview Split: Society Governance Log + Executive Command Panel */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
               {/* Left Column: Society Governance Activity Ledger (2 Cols) */}
-              <div className="lg:col-span-2 bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-border">
+              <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3.5">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-200">
                   <div>
-                    <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-primary" />
+                    <h2 className="text-base sm:text-lg font-bold text-zinc-900 flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-emerald-700" />
                       <span>Society Governance & Ledger Log</span>
                     </h2>
-                    <p className="text-xs text-text-secondary mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Immutable record of officer ratifications, council grants, and official broadcasts
                     </p>
                   </div>
 
                   {/* Filter Pills */}
-                  <div className="flex items-center gap-1 bg-ivory-100 p-1 rounded-lg border border-border text-xs">
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-md border border-slate-200 text-xs">
                     {['ALL', 'GRANTS', 'APPOINTMENTS', 'EVENTS', 'NOTICES'].map((category) => (
                       <button
                         key={category}
                         onClick={() => setGovernanceFilter(category)}
-                        className={`px-2.5 py-1 rounded text-[11px] font-semibold transition ${governanceFilter === category
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'text-text-secondary hover:text-text-primary'
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${governanceFilter === category
+                          ? 'bg-zinc-900 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-zinc-900'
                           }`}
                       >
                         {category}
@@ -519,24 +519,24 @@ export const AdminDashboard = () => {
                 </div>
 
                 {/* Ledger Items */}
-                <div className="divide-y divide-border space-y-3 pt-1">
+                <div className="divide-y divide-slate-100 space-y-2.5 pt-1">
                   {filteredGovernanceLogs.map((log) => (
-                    <div key={log.id} className="pt-3 flex items-start justify-between gap-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="mt-1 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
+                    <div key={log.id} className="pt-2.5 flex items-start justify-between gap-4">
+                      <div className="flex items-start space-x-2.5">
+                        <div className="mt-1.5 w-2 h-2 rounded-full bg-emerald-600 flex-shrink-0" />
                         <div className="space-y-0.5">
-                          <p className="font-semibold text-text-primary text-xs sm:text-sm">
+                          <p className="font-semibold text-zinc-900 text-xs sm:text-sm">
                             {log.title}
                           </p>
-                          <p className="text-text-secondary text-xs leading-relaxed max-w-xl">
+                          <p className="text-slate-500 text-xs leading-relaxed max-w-xl">
                             {log.description}
                           </p>
-                          <div className="flex items-center gap-2 pt-1">
-                            <span className="text-[10px] text-text-muted font-medium">
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="text-[10px] text-slate-400 font-medium">
                               {log.date}
                             </span>
-                            <span className="text-[10px] text-text-muted">•</span>
-                            <span className="text-[10px] font-mono text-accent">
+                            <span className="text-[10px] text-slate-300">•</span>
+                            <span className="text-[10px] font-mono text-zinc-700 font-semibold">
                               REF: {log.refCode}
                             </span>
                           </div>
@@ -549,37 +549,37 @@ export const AdminDashboard = () => {
                   ))}
                 </div>
 
-                <div className="pt-3 border-t border-border flex justify-between items-center text-xs text-text-muted">
+                <div className="pt-3 border-t border-slate-200 flex justify-between items-center text-xs text-slate-400">
                   <span>Cryptographic Checksum: SHA-256 Verified by University Council</span>
-                  <span className="text-status-success font-semibold flex items-center gap-1">
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> All Records Ratified
                   </span>
                 </div>
               </div>
 
               {/* Right Column: Executive Command Center & University Compliance */}
-              <div className="space-y-6">
+              <div className="space-y-4">
 
                 {/* Quick Launch Card */}
-                <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-                  <div className="flex items-center space-x-2 pb-3 border-b border-border">
-                    <Sparkles className="w-4 h-4 text-accent" />
-                    <h3 className="text-lg font-bold text-text-primary">
+                <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3">
+                  <div className="flex items-center space-x-2 pb-2.5 border-b border-slate-200">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900">
                       Executive Launcher
                     </h3>
                   </div>
 
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-xs text-slate-500">
                     Immediate administrative triggers for society leadership and faculty coordination.
                   </p>
 
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     <button
                       onClick={() => navigateToAnnouncements('create')}
-                      className="w-full py-2.5 px-3 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition flex items-center justify-between"
+                      className="w-full h-9 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-2xs transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
-                        <Megaphone className="w-3.5 h-3.5 text-accent" />
+                        <Megaphone className="w-3.5 h-3.5" />
                         <span>Schedule Announcement</span>
                       </span>
                       <ChevronRight className="w-3.5 h-3.5 opacity-70" />
@@ -587,66 +587,66 @@ export const AdminDashboard = () => {
 
                     <button
                       onClick={() => navigateToEvents('create')}
-                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                      className="w-full h-9 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-zinc-900 text-xs font-semibold border border-slate-200 transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        <Calendar className="w-3.5 h-3.5 text-zinc-700" />
                         <span>Publish Campus Event</span>
                       </span>
-                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                      <ChevronRight className="w-3.5 h-3.5 opacity-50" />
                     </button>
 
                     <button
                       onClick={() => setIsTreasurerModalOpen(true)}
-                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                      className="w-full h-9 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-zinc-900 text-xs font-semibold border border-slate-200 transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
-                        <ShieldPlus className="w-3.5 h-3.5 text-accent" />
+                        <ShieldPlus className="w-3.5 h-3.5 text-zinc-700" />
                         <span>Provision Treasurer</span>
                       </span>
-                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                      <ChevronRight className="w-3.5 h-3.5 opacity-50" />
                     </button>
 
                     <button
                       onClick={() => setActiveTab('reports')}
-                      className="w-full py-2.5 px-3 rounded-lg bg-ivory-100 hover:bg-ivory-200 text-text-primary text-xs font-semibold border border-border transition flex items-center justify-between"
+                      className="w-full h-9 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 text-zinc-900 text-xs font-semibold border border-slate-200 transition flex items-center justify-between"
                     >
                       <span className="flex items-center gap-2">
-                        <Download className="w-3.5 h-3.5 text-text-muted" />
+                        <Download className="w-3.5 h-3.5 text-slate-500" />
                         <span>Export Council Audit Pack</span>
                       </span>
-                      <ChevronRight className="w-3.5 h-3.5 opacity-70" />
+                      <ChevronRight className="w-3.5 h-3.5 opacity-50" />
                     </button>
                   </div>
                 </div>
 
                 {/* University Senate Standing Checklist */}
-                <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-                  <div className="flex items-center space-x-2 pb-3 border-b border-border">
-                    <Award className="w-4 h-4 text-primary" />
-                    <h3 className="text-lg font-bold text-text-primary">
+                <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3">
+                  <div className="flex items-center space-x-2 pb-2.5 border-b border-slate-200">
+                    <Award className="w-4 h-4 text-emerald-600" />
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900">
                       Council Accreditation
                     </h3>
                   </div>
 
-                  <div className="space-y-2.5 text-xs">
+                  <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Faculty Endorsement:</span>
-                      <span className="font-semibold text-status-success flex items-center gap-1">
+                      <span className="text-slate-500">Faculty Endorsement:</span>
+                      <span className="font-semibold text-emerald-700 flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" /> Certified
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Roster Quorum (min 50):</span>
-                      <span className="font-semibold text-text-primary">184 Members (368%)</span>
+                      <span className="text-slate-500">Roster Quorum (min 50):</span>
+                      <span className="font-semibold text-zinc-900">184 Members (368%)</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Fiscal Audit Standing:</span>
-                      <span className="font-semibold text-status-success">Dean Approved</span>
+                      <span className="text-slate-500">Fiscal Audit Standing:</span>
+                      <span className="font-semibold text-emerald-700">Dean Approved</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Next Senate Review:</span>
-                      <span className="font-mono text-accent">Nov 14, 2026</span>
+                      <span className="text-slate-500">Next Senate Review:</span>
+                      <span className="font-mono text-zinc-900 font-semibold">Nov 14, 2026</span>
                     </div>
                   </div>
                 </div>
@@ -714,20 +714,20 @@ export const AdminDashboard = () => {
         {/* TAB 8: COUNCIL REPORTS */}
         {/* ========================================================= */}
         {activeTab === 'reports' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-border">
+          <div className="space-y-4 animate-fadeIn">
+            <div className="bg-white rounded-lg border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3.5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-200">
                 <div>
-                  <h2 className="text-xl font-bold text-text-primary">
+                  <h2 className="text-base sm:text-lg font-bold text-zinc-900">
                     Administrative Reports & Audit Exports
                   </h2>
-                  <p className="text-xs text-text-secondary mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Generate compliance dossiers for the University Council Office of Student Life
                   </p>
                 </div>
                 <button
                   onClick={() => alert('Exporting Official Council Compliance Pack (CSV)...')}
-                  className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
+                  className="h-9 px-3.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download Annual Report (CSV)</span>
@@ -735,29 +735,29 @@ export const AdminDashboard = () => {
               </div>
 
               {/* Report Metric Highlights */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 text-xs">
-                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
-                  <span className="font-semibold text-text-primary">Membership Retention Rate</span>
-                  <p className="text-2xl font-bold text-primary mt-1">94.2%</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">Top 5% among engineering campus societies.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1 text-xs">
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="font-semibold text-zinc-900">Membership Retention Rate</span>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">94.2%</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Top 5% among campus societies.</p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
-                  <span className="font-semibold text-text-primary">Total Verified Service Hours</span>
-                  <p className="text-2xl font-bold text-accent mt-1">420 Hours</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">Ratified under University Dean Honor Program.</p>
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="font-semibold text-zinc-900">Total Verified Service Hours</span>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">420 Hours</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Ratified under Dean Honor Program.</p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
-                  <span className="font-semibold text-text-primary">Fiscal Ledger Balance</span>
-                  <p className="text-2xl font-bold text-status-success mt-1">$8,345.50</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">Zero outstanding auditor reconciliation flags.</p>
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="font-semibold text-zinc-900">Fiscal Ledger Balance</span>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-700 mt-1">$8,345.50</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Zero outstanding auditor flags.</p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-ivory-100 border border-border">
-                  <span className="font-semibold text-text-primary">Total Campus Events Hosted</span>
-                  <p className="text-2xl font-bold text-text-primary mt-1">{events.length} Events</p>
-                  <p className="text-[11px] text-text-muted mt-0.5">100% safety & room reservation clearance.</p>
+                <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="font-semibold text-zinc-900">Campus Events Hosted</span>
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-zinc-900 mt-1">{events.length} Events</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">100% safety & room clearance.</p>
                 </div>
               </div>
 

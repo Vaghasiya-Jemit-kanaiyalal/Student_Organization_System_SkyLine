@@ -240,7 +240,8 @@ export const MerchandiseProvider = ({ children }) => {
     member,
     paymentMethod,
     paymentStatus = 'PAID',
-    notes = ''
+    notes = '',
+    unitPrice: customUnitPrice
   }) => {
     const product = products.find((p) => p.id === productId);
     if (!product) {
@@ -270,7 +271,7 @@ export const MerchandiseProvider = ({ children }) => {
       })
     );
 
-    const unitPrice = product.price;
+    const unitPrice = customUnitPrice !== undefined ? parseFloat(customUnitPrice) : product.price;
     const totalPrice = unitPrice * quantity;
     const newOrderId = `ORD-${Date.now().toString().slice(-4)}`;
     const formattedDate = new Date().toLocaleDateString('en-US', {

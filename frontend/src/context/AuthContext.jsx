@@ -9,8 +9,8 @@ const normalizeUser = (u) => {
   return {
     ...u,
     id: u.id,
-    name: u.full_name || u.name || 'Member',
-    fullName: u.full_name || u.name || 'Member',
+    name: u.full_name || u.name || 'Student',
+    fullName: u.full_name || u.name || 'Student',
     studentId: u.student_id || u.studentId || '',
     student_id: u.student_id || u.studentId || '',
     role: u.role || 'MEMBER',
@@ -20,9 +20,7 @@ const normalizeUser = (u) => {
     avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
     joinedDate: u.created_at ? new Date(u.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 2026',
     status: u.is_active !== false ? 'ACTIVE' : 'INACTIVE',
-    memberships: u.memberships || [
-      { clubId: 'club-1', clubName: 'Student Organization Society', role: 'Registered Member', duesPaid: true }
-    ],
+    memberships: u.memberships || [],
     volunteerHours: u.volunteerHours || 0,
     ticketsCount: u.ticketsCount || 0
   };
@@ -303,6 +301,59 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
+  /**
+   * Purchase / Join a Club Membership
+   */
+  const buyClubMembership = (club, plan = 'Annual', amount = 35.00, paymentMethod = 'Student Account (Bursar)') => {
+    if (!user) return { success: false, error: 'User is not logged in.' };
+
+    const todayStr = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+    const receiptCode = `RCP-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const newMembership = {
+      clubId: club.id,
+      clubName: club.name,
+      plan: `${plan} Membership`,
+      amount: typeof amount === 'number' ? `$${amount.toFixed(2)}` : amount,
+      rawAmount: typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.]/g, '')),
+      role: 'Active Member',
+      duesPaid: true,
+      paymentMethod: paymentMethod,
+      paymentDate: todayStr,
+      receiptId: receiptCode,
+      status: 'Paid & Active',
+      expiryDate: plan === 'Annual' ? 'June 30, 2027' : 'Dec 31, 2026'
+    };
+
+    const existingMemberships = (user.memberships || []).filter(m => m.clubId !== club.id);
+    const updatedMemberships = [newMembership, ...existingMemberships];
+
+    const updatedUser = {
+      ...user,
+      memberships: updatedMemberships,
+      membershipStatus: 'Active',
+      membershipType: `${club.shortName || club.name} (${plan})`
+    };
+
+    setUser(updatedUser);
+    localStorage.setItem('connectu_active_user', JSON.stringify(updatedUser));
+    return { success: true, membership: newMembership, user: updatedUser };
+  };
+
+  /**
+   * Update User Profile (e.g. avatar, name, department)
+   */
+  const updateUserProfile = (updatedFields) => {
+    if (!user) return;
+    const updated = {
+      ...user,
+      ...updatedFields
+    };
+    setUser(updated);
+    localStorage.setItem('connectu_active_user', JSON.stringify(updated));
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -316,6 +367,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         triggerSessionExpired,
         quickSwitchRole,
+        buyClubMembership,
+        updateUserProfile,
         users: []
       }}
     >

@@ -164,7 +164,7 @@ export const AllEventsView = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search and Filters Controls Bar */}
       <div className="bg-surface rounded-xl border border-border p-4 shadow-subtle grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-center">
         {/* Search Input */}
@@ -239,7 +239,7 @@ export const AllEventsView = ({
 
       {/* SQUARE BOX EVENTS GRID */}
       {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredEvents.map((evt) => {
             const hasVolunteers = evt.volunteers_required || evt.volunteersRequired;
             const isCompleted = evt.status === 'Completed';
@@ -247,7 +247,7 @@ export const AllEventsView = ({
             return (
               <div
                 key={evt.id}
-                className="bg-surface rounded-xl border border-border shadow-subtle hover:shadow-card transition-campus overflow-hidden flex flex-col justify-between group"
+                className="bg-surface rounded-xl border border-border shadow-subtle hover:shadow-card hover:border-primary/40 transition-campus overflow-hidden flex flex-col justify-between group"
               >
                 <div>
                   {/* Square Box Cover Image Container */}
@@ -292,7 +292,7 @@ export const AllEventsView = ({
                     </div>
                   </div>
 
-                  {/* Square Card Body Content */}
+                  {/* Card Body Content */}
                   <div className="p-5 space-y-3">
                     <div className="space-y-1">
                       <h3 className="text-lg font-bold text-text-primary group-hover:text-primary transition leading-snug">
@@ -349,7 +349,7 @@ export const AllEventsView = ({
                       onClick={() => setViewingEvent(evt)}
                       className="px-2.5 py-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-xs font-semibold text-text-primary transition-campus flex items-center gap-1"
                     >
-                      <Eye className="w-3.5 h-3.5 text-text-muted" />
+                      <Eye className="w-3.5 h-3.5 text-slate-400" />
                       <span>View</span>
                     </button>
 
@@ -381,7 +381,7 @@ export const AllEventsView = ({
                       type="button"
                       onClick={() => setViewingAttendeesEvent(evt)}
                       title="View Attendees Roster"
-                      className="p-1.5 rounded bg-surface hover:bg-ivory-200 border border-border text-status-success transition"
+                      className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-emerald-700 flex items-center justify-center transition"
                     >
                       <Users className="w-3.5 h-3.5" />
                     </button>
@@ -391,7 +391,7 @@ export const AllEventsView = ({
                         type="button"
                         onClick={() => handleCancelEvent(evt.id)}
                         title="Cancel Event"
-                        className="p-1.5 rounded bg-surface hover:bg-status-error-bg border border-border text-status-error transition"
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 text-rose-600 flex items-center justify-center transition"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                       </button>
@@ -403,7 +403,7 @@ export const AllEventsView = ({
           })}
         </div>
       ) : (
-        <div className="p-12 text-center text-text-muted text-xs bg-surface rounded-xl border border-border">
+        <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-lg border border-slate-200">
           No events match your current search or filter parameters.
         </div>
       )}

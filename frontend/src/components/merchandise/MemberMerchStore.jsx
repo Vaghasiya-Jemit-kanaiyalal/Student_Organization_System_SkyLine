@@ -26,6 +26,10 @@ export const MemberMerchStore = () => {
   const { user } = useAuth();
   const { products, orders, placeOrder, getProductTotalStock } = useMerchandise();
 
+  // Active membership check
+  const isClubMember = (user?.memberships && user.memberships.length > 0) || user?.role === 'ADMIN' || user?.role === 'TREASURER';
+  const getProductPrice = (item) => isClubMember ? item.price : item.price + 10;
+
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,13 +101,15 @@ export const MemberMerchStore = () => {
     const initialPaymentStatus = isInstantPay ? 'PAID' : 'PENDING';
 
     setTimeout(() => {
+      const effectiveUnitPrice = getProductPrice(selectedProduct);
       const result = placeOrder({
         productId: selectedProduct.id,
         size: selectedSize,
         quantity: quantity,
+        unitPrice: effectiveUnitPrice,
         member: {
           id: user?.id || 'usr-student',
-          name: user?.name || 'Student Member',
+          name: user?.name || user?.fullName || 'Student Member',
           studentId: user?.studentId || 'STU-2026',
           email: user?.email || 'student@university.edu'
         },
@@ -315,10 +321,29 @@ export const MemberMerchStore = () => {
                   {/* Price & Action Button */}
                   <div className="p-4 pt-2 border-t border-border flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-text-muted uppercase block">Club Price</span>
-                      <span className="text-lg font-bold text-primary">
-                        ${item.price.toFixed(2)}
-                      </span>
+                      {isClubMember ? (
+                        <div>
+                          <span className="text-[10px] text-emerald-700 font-bold uppercase block">Club Member Price</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-lg font-bold text-emerald-700">
+                              ${item.price.toFixed(2)}
+                            </span>
+                            <span className="text-xs text-text-muted line-through">
+                              ${(item.price + 10).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-[10px] text-text-muted uppercase block">Standard Student Price</span>
+                          <span className="text-lg font-bold text-text-primary">
+                            ${(item.price + 10).toFixed(2)}
+                          </span>
+                          <span className="block text-[10px] text-amber-700 font-semibold">
+                            Member Price: ${item.price.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -716,9 +741,16 @@ export const MemberMerchStore = () => {
               <div className="pt-3 border-t border-border flex items-center justify-between">
                 <div>
                   <span className="text-[11px] text-text-muted uppercase block">Total Due</span>
-                  <span className="text-xl font-bold text-primary">
-                    ${(selectedProduct.price * quantity).toFixed(2)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold text-primary">
+                      ${(getProductPrice(selectedProduct) * quantity).toFixed(2)}
+                    </span>
+                    {isClubMember && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Member Rate
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center space-x-2">
