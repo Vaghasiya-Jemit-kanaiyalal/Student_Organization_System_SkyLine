@@ -344,3 +344,71 @@ class ClubMembership(models.Model):
 
     def __str__(self):
         return f"{self.student.full_name} - {self.club_name_snapshot} ({self.membership_type}) [{self.status}]"
+
+
+class MembershipNotificationLog(models.Model):
+    """
+    Tracks membership-related email notifications (expiry reminders & expired notices)
+    to prevent duplicate dispatches and provide a full audit trail.
+    """
+    class NotificationType(models.TextChoices):
+        REMINDER_30_DAYS = 'REMINDER_30_DAYS', _('30 Days Expiry Reminder')
+        REMINDER_7_DAYS = 'REMINDER_7_DAYS', _('7 Days Expiry Reminder')
+        REMINDER_1_DAY = 'REMINDER_1_DAY', _('1 Day Expiry Reminder')
+        REMINDER_CUSTOM = 'REMINDER_CUSTOM', _('Custom Expiry Reminder')
+        MEMBERSHIP_EXPIRED = 'MEMBERSHIP_EXPIRED', _('Membership Expired / Due Notice')
+        PAYMENT_EVENT_TICKET = 'PAYMENT_EVENT_TICKET', _('Event Ticket Payment Success')
+        PAYMENT_MERCHANDISE = 'PAYMENT_MERCHANDISE', _('Merchandise Payment Success')
+
+    class DeliveryStatus(models.TextChoices):
+        SENT = 'SENT', _('Sent Successfully')
+        FAILED = 'FAILED', _('Failed')
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='membership_notification_logs'
+    )
+    notification_type = models.CharField(
+        _('notification type'),
+        max_length=50,
+        choices=NotificationType.choices
+    )
+    target_expiry_date = models.DateField(
+        _('target expiry date'),
+        null=True,
+        blank=True,
+        help_text=_('Expiry date for which the reminder/notice was dispatched.')
+    )
+    reference_id = models.CharField(
+        _('payment or item reference ID'),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text=_('Unique reference such as ticket_id, order_id, or payment_id to prevent duplicates.')
+    )
+    recipient_email = models.EmailField(_('recipient email address'))
+    status = models.CharField(
+        _('delivery status'),
+        max_length=20,
+        choices=DeliveryStatus.choices,
+        default=DeliveryStatus.SENT
+    )
+    error_message = models.TextField(_('error message'), blank=True, default='')
+    sent_at = models.DateTimeField(_('sent at'), auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = _('Membership Notification Log')
+        verbose_name_plural = _('Membership Notification Logs')
+        indexes = [
+            models.Index(fields=['user', 'notification_type', 'target_expiry_date']),
+            models.Index(fields=['user', 'notification_type', 'reference_id']),
+            models.Index(fields=['sent_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.notification_type} [{self.status}] on {self.sent_at.strftime('%Y-%m-%d %H:%M')}"
+
+

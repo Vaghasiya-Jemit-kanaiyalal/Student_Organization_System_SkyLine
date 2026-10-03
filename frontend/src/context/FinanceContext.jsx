@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { INITIAL_FINANCE_DATA } from '../data/financeData';
+import { financeApi } from '../services/api';
 
 const FinanceContext = createContext(null);
 
@@ -12,13 +13,84 @@ export const FinanceProvider = ({ children }) => {
   const [budgets, setBudgets] = useState(INITIAL_FINANCE_DATA.budgets);
   const [alerts, setAlerts] = useState(INITIAL_FINANCE_DATA.alerts);
   const [openingBalance, setOpeningBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Filter state for navigation drill-downs
   const [incomeCategoryFilter, setIncomeCategoryFilter] = useState('ALL');
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('ALL');
 
+  // Fetch live finance ledger and reimbursements from Django API
+  const refreshFinance = useCallback(async () => {
+    const token = localStorage.getItem('connectu_jwt_token') || sessionStorage.getItem('connectu_jwt_token');
+    if (!token) return;
+
+    try {
+      setIsLoading(true);
+      const [incomeRes, expenseRes, rmbRes] = await Promise.allSettled([
+        financeApi.getIncome(),
+        financeApi.getExpenses(),
+        financeApi.getReimbursements(),
+      ]);
+
+      if (incomeRes.status === 'fulfilled' && incomeRes.value?.data?.length > 0) {
+        const liveIncomes = incomeRes.value.data.map((item) => ({
+          id: item.transaction_id || `TXN-INC-${item.id}`,
+          title: item.title,
+          amount: Number(item.amount),
+          category: item.category_label || item.category,
+          source: item.party_name || item.recorded_by_name || 'Society Treasury',
+          displayDate: item.display_date || (item.date ? new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''),
+          date: item.date,
+          status: item.status === 'PAID' ? 'Cleared' : item.status,
+          rawId: item.id,
+        }));
+        setIncomes(liveIncomes);
+      }
+
+      if (expenseRes.status === 'fulfilled' && expenseRes.value?.data?.length > 0) {
+        const liveExpenses = expenseRes.value.data.map((item) => ({
+          id: item.transaction_id || `TXN-EXP-${item.id}`,
+          title: item.title,
+          amount: Number(item.amount),
+          category: item.category_label || item.category,
+          vendor: item.party_name || item.recorded_by_name || 'Vendor',
+          displayDate: item.display_date || (item.date ? new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''),
+          date: item.date,
+          status: item.status === 'PAID' ? 'Audited' : item.status,
+          rawId: item.id,
+        }));
+        setExpenses(liveExpenses);
+      }
+
+      if (rmbRes.status === 'fulfilled' && rmbRes.value?.data?.length > 0) {
+        const liveRmbs = rmbRes.value.data.map((r) => ({
+          id: `RMB-${r.id}`,
+          rawId: r.id,
+          title: r.title,
+          amount: Number(r.amount),
+          claimant: r.requested_by_details?.full_name || 'Member',
+          purpose: r.description || r.title,
+          event: r.event_title || r.related_activity || 'General Operation',
+          status: r.status === 'PAID' ? 'Paid' : r.status === 'APPROVED' ? 'Approved' : r.status === 'REJECTED' ? 'Rejected' : 'Pending',
+          submittedDate: r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '',
+          receiptReference: r.receipt_reference || '',
+          receiptUrl: r.receipt_url || null,
+        }));
+        setReimbursements(liveRmbs);
+      }
+    } catch {
+      // Graceful fallback to initial or localStorage data
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshFinance();
+  }, [refreshFinance]);
+
   // Add Income Action
-  const addIncome = (newIncome) => {
+  const addIncome = async (newIncome) => {
     const entry = {
       ...newIncome,
       id: `TXN-INC-${Date.now().toString().slice(-4)}`,
@@ -26,10 +98,24 @@ export const FinanceProvider = ({ children }) => {
       status: 'Cleared'
     };
     setIncomes((prev) => [entry, ...prev]);
+
+    try {
+      await financeApi.createIncome({
+        title: newIncome.title,
+        amount: Number(newIncome.amount),
+        category: newIncome.category,
+        party_name: newIncome.source || '',
+        description: newIncome.description || '',
+        date: newIncome.date || new Date().toISOString().slice(0, 10),
+      });
+      refreshFinance();
+    } catch {
+      // Handled silently with local state preserved
+    }
   };
 
   // Add Expense Action
-  const addExpense = (newExpense) => {
+  const addExpense = async (newExpense) => {
     const entry = {
       ...newExpense,
       id: `TXN-EXP-${Date.now().toString().slice(-4)}`,
@@ -37,20 +123,93 @@ export const FinanceProvider = ({ children }) => {
       status: 'Audited'
     };
     setExpenses((prev) => [entry, ...prev]);
+
+    try {
+      await financeApi.createExpense({
+        title: newExpense.title,
+        amount: Number(newExpense.amount),
+        category: newExpense.category,
+        party_name: newExpense.vendor || '',
+        description: newExpense.description || '',
+        date: newExpense.date || new Date().toISOString().slice(0, 10),
+      });
+      refreshFinance();
+    } catch {
+      // Handled silently with local state preserved
+    }
+  };
+
+  // Record Online Payment (Membership dues, event ticket, merch order, fundraiser donation)
+  const recordPayment = async ({
+    title,
+    amount,
+    reference_type,
+    reference_id,
+    party_name = '',
+    description = '',
+    category = null,
+  }) => {
+    const entry = {
+      id: reference_id ? `TXN-${reference_id}` : `TXN-INC-${Date.now().toString().slice(-4)}`,
+      title,
+      amount: Number(amount),
+      category: category || (reference_type === 'MERCHANDISE' ? 'Merchandise Sales' : reference_type === 'EVENT_TICKET' ? 'Event Ticket Sales' : 'Membership Fees'),
+      source: party_name || 'Online Checkout',
+      displayDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      date: new Date().toISOString().slice(0, 10),
+      status: 'Cleared'
+    };
+    setIncomes((prev) => [entry, ...prev]);
+
+    try {
+      await financeApi.recordPayment({
+        title,
+        amount: Number(amount),
+        reference_type,
+        reference_id: String(reference_id),
+        party_name,
+        description,
+        category,
+        date: new Date().toISOString().slice(0, 10),
+      });
+      refreshFinance();
+    } catch {
+      // Handled silently with local state preserved
+    }
   };
 
   // Approve Reimbursement
-  const approveReimbursement = (id) => {
+  const approveReimbursement = async (id) => {
     setReimbursements((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: 'Approved' } : r))
     );
+
+    const numericId = String(id).replace(/\D/g, '');
+    if (numericId) {
+      try {
+        await financeApi.approveReimbursement(numericId);
+        refreshFinance();
+      } catch {
+        // Fallback retained
+      }
+    }
   };
 
   // Reject Reimbursement
-  const rejectReimbursement = (id) => {
+  const rejectReimbursement = async (id, reason = '') => {
     setReimbursements((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: 'Rejected' } : r))
     );
+
+    const numericId = String(id).replace(/\D/g, '');
+    if (numericId) {
+      try {
+        await financeApi.rejectReimbursement(numericId, reason);
+        refreshFinance();
+      } catch {
+        // Fallback retained
+      }
+    }
   };
 
   // Dismiss Alert
@@ -187,9 +346,12 @@ export const FinanceProvider = ({ children }) => {
         setExpenseCategoryFilter,
         addIncome,
         addExpense,
+        recordPayment,
         approveReimbursement,
         rejectReimbursement,
-        dismissAlert
+        dismissAlert,
+        refreshFinance,
+        isLoading
       }}
     >
       {children}

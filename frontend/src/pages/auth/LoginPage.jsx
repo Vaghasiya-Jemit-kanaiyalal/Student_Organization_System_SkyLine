@@ -168,11 +168,11 @@ export const LoginPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => handleAutoFill('treasurer@treasurer.gmail.com', 'TreasurerPassword123!')}
-              className="px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-zinc-800 text-[11px] font-medium transition text-left flex items-center gap-1.5 cursor-pointer"
+              onClick={() => handleAutoFill('amit@treasurer.gmail.com', 'Treas@123')}
+              className="px-2.5 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-medium transition text-left flex items-center gap-1.5 cursor-pointer"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-              <span>Club Treasurer</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span>Treasurer (Amit)</span>
             </button>
           </div>
         )}

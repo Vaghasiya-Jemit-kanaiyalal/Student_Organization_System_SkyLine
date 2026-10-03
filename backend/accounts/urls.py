@@ -7,6 +7,7 @@ from .views import (
     UserProfileView,
     ChangePasswordView,
     ForgotPasswordView,
+    ValidateResetTokenView,
     ResetPasswordView,
     ClubListCreateView,
     ClubDetailView,
@@ -19,6 +20,8 @@ from .views import (
     AdminRenewMemberView,
     AdminDiscardMemberMembershipView,
     AdminTreasurerList,
+    AdminMembershipNotificationLogView,
+    AdminTriggerMembershipCheckView,
 )
 
 # Authentication endpoints: /api/auth/...
@@ -30,6 +33,8 @@ auth_urlpatterns = [
     path('me/', UserProfileView.as_view(), name='auth-me'),
     path('change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='auth-forgot-password'),
+    path('validate-reset-token/', ValidateResetTokenView.as_view(), name='auth-validate-reset-token'),
+    path('password-reset/validate-token/', ValidateResetTokenView.as_view(), name='auth-validate-reset-token-alt'),
     path('reset-password/', ResetPasswordView.as_view(), name='auth-reset-password'),
 ]
 
@@ -41,6 +46,8 @@ admin_urlpatterns = [
     path('members/<int:pk>/renew/', AdminRenewMemberView.as_view(), name='admin-member-renew'),
     path('members/<int:pk>/discard/', AdminDiscardMemberMembershipView.as_view(), name='admin-member-discard'),
     path('treasurers/', AdminTreasurerList.as_view(), name='admin-treasurers-list'),
+    path('membership-notifications/', AdminMembershipNotificationLogView.as_view(), name='admin-membership-notifications'),
+    path('check-memberships/', AdminTriggerMembershipCheckView.as_view(), name='admin-check-memberships'),
 ]
 
 # Membership & Club endpoints: /api/...
@@ -53,3 +60,4 @@ membership_urlpatterns = [
 ]
 
 urlpatterns = auth_urlpatterns
+

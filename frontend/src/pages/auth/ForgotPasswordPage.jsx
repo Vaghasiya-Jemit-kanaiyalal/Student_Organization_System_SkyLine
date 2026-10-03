@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
+import { authApi } from '../../services/api';
 import {
   Mail,
   ArrowRight,
   ArrowLeft,
   AlertCircle,
   CheckCircle2,
-  KeyRound
+  ShieldCheck
 } from 'lucide-react';
 
 export const ForgotPasswordPage = () => {
-  const navigate = useNavigate();
-
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -33,10 +32,17 @@ export const ForgotPasswordPage = () => {
     }
 
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setIsLoading(false);
-    setIsSubmitted(true);
+    try {
+      await authApi.forgotPassword(email.trim().toLowerCase());
+      setIsSubmitted(true);
+    } catch {
+      // Still show the generic success to prevent email enumeration and network leak
+      setIsSubmitted(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center py-10 px-4 sm:px-6 relative bg-slate-50 overflow-x-hidden font-sans">
@@ -67,33 +73,24 @@ export const ForgotPasswordPage = () => {
 
         {isSubmitted ? (
           <div className="space-y-4 animate-fadeIn">
-            <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-              <div className="flex items-center gap-2 font-semibold text-sm mb-1 text-emerald-800">
+            <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs">
+              <div className="flex items-center gap-2 font-semibold text-sm mb-1.5 text-emerald-800">
                 <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
-                <span>Reset Instructions Dispatched</span>
+                <span>Password Reset Link Dispatched</span>
               </div>
-              <p className="text-emerald-700 text-[11.5px] leading-relaxed">
-                A secure password recovery link has been sent to <strong>{email}</strong>.
+              <p className="text-emerald-800 text-xs leading-relaxed">
+                If an account exists with <strong>{email}</strong>, you will receive an email with instructions to reset your password shortly.
               </p>
             </div>
 
-            {/* Demo interactive shortcut for testing */}
-            <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-700">
-              <div className="flex items-center gap-1.5 font-semibold text-emerald-700 mb-1">
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>Interactive Demo Shortcut</span>
+            <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5">
+              <div className="flex items-center gap-1.5 font-semibold text-zinc-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Security Notice</span>
               </div>
-              <p className="text-[11px] text-slate-500 mb-3">
-                In this preview environment, proceed directly to the reset password page:
+              <p className="text-[11.5px] leading-relaxed text-slate-500">
+                The reset link is time-sensitive. If you do not see the email within a few minutes, check your spam or junk folder.
               </p>
-              <button
-                type="button"
-                onClick={() => navigate('/reset-password', { state: { email } })}
-                className="w-full h-9 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <span>Proceed to Set New Password</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
             </div>
 
             <div className="pt-2 text-center">
@@ -102,7 +99,7 @@ export const ForgotPasswordPage = () => {
                 className="inline-flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-                <span>Back to Sign In</span>
+                <span>Return to Sign In</span>
               </Link>
             </div>
           </div>

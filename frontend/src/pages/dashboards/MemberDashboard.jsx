@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMerchandise } from '../../context/MerchandiseContext';
 import { UniversityCrest } from '../../components/common/UniversityCrest';
-import { eventsApi, volunteerApi, certificateApi, announcementsApi, clubsApi, membershipApi, ticketsApi, paymentsApi, merchandiseApi } from '../../services/api';
+import { eventsApi, volunteerApi, certificateApi, announcementsApi, clubsApi, membershipApi, financeApi, ticketsApi, paymentsApi, merchandiseApi } from '../../services/api';
 import { openRazorpayCheckout } from '../../utils/razorpay';
 import { EventQrScannerModal } from '../../components/scanner/EventQrScannerModal';
 import { MerchandiseQrScannerModal } from '../../components/scanner/MerchandiseQrScannerModal';
@@ -47,7 +47,8 @@ import {
   Share2,
   ExternalLink,
   Trash2,
-  Package
+  Package,
+  GraduationCap
 } from 'lucide-react';
 import { StudentMerchStore } from '../../components/merchandise/StudentMerchStore';
 
@@ -201,183 +202,24 @@ export const MemberDashboard = () => {
     }
   }, [user]);
 
-  // Campus Clubs Master State
-  const [clubsList, setClubsList] = useState(CAMPUS_CLUBS);
+  // Campus Clubs State
+  const [clubsList, setClubsList] = useState([]);
 
-  // Events Master State
-  const [eventsList, setEventsList] = useState([
-    {
-      id: 'evt-1',
-      clubId: 'club-robotics',
-      clubName: 'Skyline Robotics & AI Society',
-      title: 'SkyLine Annual Robotics Showcase 2026',
-      month: 'OCT',
-      day: '14',
-      date: 'Oct 14, 2026 • 2:00 PM – 6:00 PM',
-      time: '2:00 PM – 6:00 PM',
-      venue: 'Grand Hall, Turing Science Quad',
-      availableSeats: 48,
-      totalSeats: 200,
-      memberPrice: '$0.00 (Free for Members)',
-      memberPriceNum: 0,
-      nonMemberPrice: '$15.00',
-      nonMemberPriceNum: 15,
-      savingsText: 'Save $15.00 (100% OFF)',
-      status: 'Upcoming',
-      category: 'Flagship Event',
-      badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      description: 'Demonstrations of student-built autonomous rovers, drone swarms, and AI vision systems with industry evaluators.'
-    },
-    {
-      id: 'evt-2',
-      clubId: 'club-coding',
-      clubName: 'Skyline Coding & Hackathon Guild',
-      title: 'Full-Stack Web3 & Cloud Hackathon',
-      month: 'OCT',
-      day: '28',
-      date: 'Oct 28, 2026 • 9:00 AM – 8:00 PM',
-      time: '9:00 AM – 8:00 PM',
-      venue: 'Innovation Center, Room 402',
-      availableSeats: 22,
-      totalSeats: 120,
-      memberPrice: '$5.00 (75% Member Discount)',
-      memberPriceNum: 5,
-      nonMemberPrice: '$20.00',
-      nonMemberPriceNum: 20,
-      savingsText: 'Save $15.00 (75% OFF)',
-      status: 'Registration Open',
-      category: 'Hackathon',
-      badgeColor: 'bg-zinc-900 text-white border-zinc-800',
-      description: '11-hour intensive team hackathon building microservices, AI pipelines, and cloud web architectures with cash prizes.'
-    },
-    {
-      id: 'evt-3',
-      clubId: 'club-finance',
-      clubName: 'Skyline Business & Investment League',
-      title: 'Career & Industry Networking Night',
-      month: 'NOV',
-      day: '05',
-      date: 'Nov 05, 2026 • 5:30 PM – 8:30 PM',
-      time: '5:30 PM – 8:30 PM',
-      venue: 'Student Union Ballroom',
-      availableSeats: 65,
-      totalSeats: 250,
-      memberPrice: '$0.00 (Free for Members)',
-      memberPriceNum: 0,
-      nonMemberPrice: '$10.00',
-      nonMemberPriceNum: 10,
-      savingsText: 'Save $10.00 (100% OFF)',
-      status: 'Registration Open',
-      category: 'Career Networking',
-      badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      description: 'Connect directly with hiring managers, software architects, and engineering directors from top regional tech employers.'
-    },
-    {
-      id: 'evt-4',
-      clubId: 'club-robotics',
-      clubName: 'Skyline Robotics & AI Society',
-      title: 'Hands-on Microcontroller & IoT Workshop',
-      month: 'NOV',
-      day: '18',
-      date: 'Nov 18, 2026 • 1:00 PM – 4:00 PM',
-      time: '1:00 PM – 4:00 PM',
-      venue: 'Makerspace Lab 108',
-      availableSeats: 12,
-      totalSeats: 40,
-      memberPrice: '$10.00 (Kit included)',
-      memberPriceNum: 10,
-      nonMemberPrice: '$35.00',
-      nonMemberPriceNum: 35,
-      savingsText: 'Save $25.00 (71% OFF)',
-      status: 'Limited Seats',
-      category: 'Technical Workshop',
-      badgeColor: 'bg-zinc-100 text-zinc-800 border-zinc-300',
-      description: 'Build connected sensor nodes using ESP32, MQTT protocols, and telemetry dashboards. Hardware kits provided.'
-    },
-    {
-      id: 'evt-5',
-      clubId: 'club-arts',
-      clubName: 'Campus Cultural & Creative Arts Society',
-      title: 'Campus Cultural Gala & Music Festival',
-      month: 'NOV',
-      day: '26',
-      date: 'Nov 26, 2026 • 6:30 PM – 10:00 PM',
-      time: '6:30 PM – 10:00 PM',
-      venue: 'Fine Arts Amphitheater',
-      availableSeats: 90,
-      totalSeats: 350,
-      memberPrice: '$0.00 (Free for Members)',
-      memberPriceNum: 0,
-      nonMemberPrice: '$18.00',
-      nonMemberPriceNum: 18,
-      savingsText: 'Save $18.00 (100% OFF)',
-      status: 'Registration Open',
-      category: 'Cultural Gala',
-      badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      description: 'Live musical performances, theatrical recitals, dance troupes, and culinary showcases celebrating campus student diversity.'
-    }
-  ]);
+  // Events State
+  const [eventsList, setEventsList] = useState([]);
 
-  // Tickets Master State with localStorage persistence
-  const DEFAULT_INITIAL_TICKETS = [
-    {
-      id: 'TCK-2026-8812',
-      eventTitle: 'SkyLine Annual Robotics Showcase 2026',
-      date: 'Oct 14, 2026 • 2:00 PM – 6:00 PM',
-      venue: 'Grand Hall, Turing Science Quad',
-      seat: 'Member Pass • Section B-14',
-      gate: 'Gate 2 (North)',
-      pricePaid: '₹0.00 (Member Pass)',
-      purchaseDate: 'Oct 02, 2026',
-      status: 'Confirmed',
-      tier: 'VIP Member',
-      category: 'Robotics & Tech',
-      qrCodeData: 'CONNECTU-ROBOTICS-8812',
-      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=700&q=80'
-    },
-    {
-      id: 'TCK-2026-9043',
-      eventTitle: 'Full-Stack Web3 & Cloud Hackathon',
-      date: 'Oct 28, 2026 • 9:00 AM – 8:00 PM',
-      venue: 'Innovation Center, Room 402',
-      seat: 'Hacker Pass • Team Table #06',
-      gate: 'Gate 4 (Innovation Wing)',
-      pricePaid: '₹100 (Member Discount)',
-      purchaseDate: 'Oct 03, 2026',
-      status: 'Confirmed',
-      tier: 'Competitor Pass',
-      category: 'Computer Science',
-      qrCodeData: 'CONNECTU-HACK-9043',
-      image: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=700&q=80'
-    },
-    {
-      id: 'TCK-2026-7219',
-      eventTitle: 'Youth Fest: Technology & Innovation Summit',
-      date: 'Nov 20, 2026 • 10:00 AM – 4:00 PM',
-      venue: 'Charusat University Convention Auditorium',
-      seat: 'Delegate Pass • Row A, Seat #12',
-      gate: 'Main Auditorium Foyer',
-      pricePaid: '₹200',
-      purchaseDate: 'Sep 25, 2026',
-      status: 'Confirmed',
-      tier: 'Standard Pass',
-      category: 'Social & Culture',
-      qrCodeData: 'CONNECTU-YOUTH-7219',
-      image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80'
-    }
-  ];
-
+  // Tickets State with localStorage persistence (empty by default until reserved)
   const [ticketsList, setTicketsList] = useState(() => {
     try {
       const saved = localStorage.getItem('skyline_my_tickets_v1');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.warn('Failed reading saved tickets:', e);
     }
-    return DEFAULT_INITIAL_TICKETS;
+    return [];
   });
 
   // Sync ticketsList to localStorage
@@ -389,127 +231,15 @@ export const MemberDashboard = () => {
     }
   }, [ticketsList]);
 
-  // Volunteer Opportunities State
-  const [volunteerOpportunities] = useState([
-    {
-      id: 'vol-opp-1',
-      eventName: 'SkyLine Annual Robotics Showcase 2026',
-      roleNeeded: 'Hardware Demo Assistant & Stage Proctor',
-      duration: '4 Hours (2:00 PM – 6:00 PM)',
-      credits: '4 Certified Service Hours',
-      deadline: 'Oct 10, 2026',
-      slotsAvailable: 3
-    },
-    {
-      id: 'vol-opp-2',
-      eventName: 'Full-Stack Web3 & Cloud Hackathon',
-      roleNeeded: 'Registration Desk & Logistics Coordinator',
-      duration: '6 Hours (8:30 AM – 2:30 PM)',
-      credits: '6 Certified Service Hours + Free Meal',
-      deadline: 'Oct 20, 2026',
-      slotsAvailable: 4
-    },
-    {
-      id: 'vol-opp-3',
-      eventName: 'Career & Industry Networking Night',
-      roleNeeded: 'Speaker Usher & Audio/Visual Handler',
-      duration: '3.5 Hours (5:00 PM – 8:30 PM)',
-      credits: '3.5 Certified Service Hours',
-      deadline: 'Oct 30, 2026',
-      slotsAvailable: 2
-    }
-  ]);
-
-  // Volunteer Applications State
-  const [volunteerApplications, setVolunteerApplications] = useState([
-    {
-      id: 'app-101',
-      eventName: 'SkyLine Annual Robotics Showcase 2026',
-      roleApplied: 'Hardware Demo Assistant',
-      appliedDate: 'Oct 02, 2026',
-      status: 'Approved',
-      feedback: 'Approved by Dr. Vance. Please attend the pre-event briefing at 1:30 PM.'
-    },
-    {
-      id: 'app-102',
-      eventName: 'Campus Tech Orientation Workshop',
-      roleApplied: 'Freshman Guide',
-      appliedDate: 'Sep 24, 2026',
-      status: 'Approved',
-      feedback: 'Successfully completed on Sep 28. Service hours verified.'
-    },
-    {
-      id: 'app-103',
-      eventName: 'Full-Stack Web3 & Cloud Hackathon',
-      roleApplied: 'Registration Desk & Logistics',
-      appliedDate: 'Oct 03, 2026',
-      status: 'Pending',
-      feedback: 'Application received and currently under executive committee review.'
-    }
-  ]);
-
-  // Active Volunteer Assignments State
-  const [activeVolunteerWork, setActiveVolunteerWork] = useState([
-    {
-      id: 'vol-act-1',
-      event: 'SkyLine Annual Robotics Showcase 2026',
-      assignedRole: 'Hardware Demo Assistant',
-      duration: '4 Hours',
-      status: 'Active',
-      notes: 'Please check in at Booth #3 at 1:30 PM.'
-    }
-  ]);
+  // Volunteer Applications & Assignments State
+  const [volunteerApplications, setVolunteerApplications] = useState([]);
+  const [activeVolunteerWork, setActiveVolunteerWork] = useState([]);
 
   // Certificates State
-  const [certificatesList, setCertificatesList] = useState([
-    {
-      id: 'CERT-2026-ROB-104',
-      title: 'Outstanding Technical Service & Showcase Marshal',
-      eventName: 'SkyLine Annual Robotics Showcase 2026',
-      issueDate: 'Oct 02, 2026',
-      authorizedSigner: 'Dr. Alexander Vance',
-      credentialHash: 'sha256-8a71d990bc02e12f'
-    },
-    {
-      id: 'CERT-2026-VOL-048',
-      title: 'Verified Civic Volunteer Service: 28 Hours',
-      eventName: 'Office of Campus Student Affairs',
-      issueDate: 'Sep 28, 2026',
-      authorizedSigner: 'Dean of Student Affairs',
-      credentialHash: 'sha256-11b93f77ea94c031'
-    }
-  ]);
+  const [certificatesList, setCertificatesList] = useState([]);
 
   // Announcements State
-  const [announcementsList, setAnnouncementsList] = useState([
-    {
-      id: 'anc-1',
-      title: 'Annual Budget Grant Ratified: $4,500 Allocated for Robotics Components',
-      category: 'Finance & Grants',
-      publishedDate: 'Oct 01, 2026 • 11:30 AM',
-      author: 'Office of Student Affairs',
-      summary: 'The University Student Council has officially approved our student organization semester grant. High-power batteries, brushless motors, and test equipment orders are underway.',
-      fullContent: 'We are thrilled to announce that the Office of Student Affairs has officially ratified our $4,500 semester grant allocation. Funds will be deployed directly towards hardware inventory, subsidizing hackathon refreshments, and acquiring digital lab oscilloscopes.\n\nAll active organization members in good standing may request component loans starting next Monday through the Makerspace desk.'
-    },
-    {
-      id: 'anc-2',
-      title: 'Call for Volunteer Marshals: Annual Robotics Showcase 2026',
-      category: 'Volunteer',
-      publishedDate: 'Sep 28, 2026 • 02:15 PM',
-      author: 'Executive Committee',
-      summary: 'We are recruiting 8 additional student volunteers to coordinate guest speakers, check in attendees, and assist demonstration teams. Verified service hours awarded.',
-      fullContent: 'The Annual Robotics Showcase is our flagship academic event featuring over 300 student and faculty attendees. Volunteers receive certified academic service hours, an exclusive organization technical polo shirt, and priority registration for spring hackathons.\n\nPlease submit your application under the Volunteer tab.'
-    },
-    {
-      id: 'anc-3',
-      title: 'Fall General Assembly & Project Demo Night Schedule',
-      category: 'General Assembly',
-      publishedDate: 'Oct 02, 2026 • 09:00 AM',
-      author: 'Academic Council Rep',
-      summary: 'Mark your calendars for November 12th. All active members will review club treasury reports, vote on constitution amendments, and preview senior capstone projects.',
-      fullContent: 'Our Fall General Assembly will convene at the Student Union Auditorium on November 12 at 6:00 PM. In compliance with student council bylaws, annual members will cast votes on constitutional amendments and review the treasurer fiscal audit.\n\nRefreshments and networking will follow the formal meeting.'
-    }
-  ]);
+  const [announcementsList, setAnnouncementsList] = useState([]);
 
   // Membership Payment History State
   const [membershipHistory, setMembershipHistory] = useState(() => {
@@ -517,7 +247,7 @@ export const MemberDashboard = () => {
       return user.memberships.map((m, idx) => ({
         term: m.plan || 'Academic Year 2026–2027',
         plan: `${m.clubName} (${m.plan || 'Annual Membership'})`,
-        amount: m.amount || '$35.00',
+        amount: m.amount || '₹499.00',
         paymentDate: m.paymentDate || 'Oct 01, 2026',
         receiptId: m.receiptId || `RCP-2026-${98100 + idx}`,
         status: m.status || 'Paid & Active'
@@ -526,12 +256,47 @@ export const MemberDashboard = () => {
     return [];
   });
 
-  // Recent Student Activity
-  const recentActivities = [
-    { id: 'act-1', text: 'Admitted to Annual Robotics Showcase 2026', time: 'Oct 02 • 11:30 AM', icon: Ticket, color: 'text-emerald-700 bg-emerald-50' },
-    { id: 'act-2', text: 'Hardware Demo Volunteer Role Approved', time: 'Oct 02 • 03:45 PM', icon: HeartHandshake, color: 'text-zinc-900 bg-zinc-100' },
-    { id: 'act-3', text: 'Registered for Web3 & Cloud Hackathon', time: 'Oct 03 • 09:15 AM', icon: Calendar, color: 'text-emerald-700 bg-emerald-50' }
-  ];
+  // Recent Student Activity dynamically derived from real user state
+  const recentActivities = useMemo(() => {
+    const list = [];
+    ticketsList.slice(0, 2).forEach((tck) => {
+      list.push({
+        id: `tck-${tck.id}`,
+        text: `Reserved pass for "${tck.eventTitle}"`,
+        time: tck.purchaseDate || 'Recent',
+        icon: Ticket,
+        color: 'text-emerald-700 bg-emerald-50'
+      });
+    });
+    volunteerApplications.slice(0, 2).forEach((app) => {
+      list.push({
+        id: `app-${app.id}`,
+        text: `Applied for ${app.roleApplied || 'Volunteer'} @ ${app.eventName}`,
+        time: app.appliedDate || 'Recent',
+        icon: HeartHandshake,
+        color: 'text-zinc-900 bg-zinc-100'
+      });
+    });
+    certificatesList.slice(0, 1).forEach((cert) => {
+      list.push({
+        id: `cert-${cert.id}`,
+        text: `Earned Certificate for "${cert.eventName}"`,
+        time: cert.issueDate || 'Recent',
+        icon: Award,
+        color: 'text-amber-700 bg-amber-50'
+      });
+    });
+    if (list.length === 0) {
+      list.push({
+        id: 'welcome',
+        text: 'Welcome to SkyLine Student Organization Portal',
+        time: 'Active Term',
+        icon: GraduationCap,
+        color: 'text-emerald-700 bg-emerald-50'
+      });
+    }
+    return list;
+  }, [ticketsList, volunteerApplications, certificatesList]);
 
   // Filters & Search State
   const [eventSearchQuery, setEventSearchQuery] = useState('');
@@ -830,6 +595,26 @@ export const MemberDashboard = () => {
         setTicketsList((prev) => [issuedTicket, ...prev.filter(t => t.id !== issuedTicket.id)]);
         setBuyTicketModalEvent(null);
 
+        // Synchronize ticket payment into finance ledger
+        const isMemberEligible = isEligibleForMemberPrice();
+        const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
+        const numericPrice = parseFloat(String(rawTicket.pricePaid || finalPricePaid || 0).replace(/[^0-9.]/g, '')) || 0;
+        if (numericPrice > 0) {
+          try {
+            financeApi.recordPayment({
+              title: `Event Ticket - ${issuedTicket.eventTitle}`,
+              amount: numericPrice,
+              reference_type: 'EVENT_TICKET',
+              reference_id: issuedTicket.id,
+              party_name: studentProfile.name || 'Student Member',
+              description: `Event Admission Ticket ${issuedTicket.id} (${issuedTicket.seat}). Event: ${issuedTicket.eventTitle}`,
+              category: 'EVENT_TICKET',
+            }).catch(() => {});
+          } catch {
+            // Handled silently
+          }
+        }
+
         // Open Success Booking Confirmation Modal with QR and Download PDF button
         setSuccessPaymentData({
           type: 'EVENT_TICKET',
@@ -869,6 +654,27 @@ export const MemberDashboard = () => {
           };
           setTicketsList((prev) => [issuedTicket, ...prev.filter(t => t.id !== issuedTicket.id)]);
           setBuyTicketModalEvent(null);
+
+          // Synchronize fallback ticket payment into finance ledger
+          const isMemberEligible = isEligibleForMemberPrice();
+          const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
+          const numericPrice = parseFloat(String(finalPricePaid || 0).replace(/[^0-9.]/g, '')) || 0;
+          if (numericPrice > 0) {
+            try {
+              financeApi.recordPayment({
+                title: `Event Ticket - ${issuedTicket.eventTitle}`,
+                amount: numericPrice,
+                reference_type: 'EVENT_TICKET',
+                reference_id: issuedTicket.id,
+                party_name: studentProfile.name || 'Student Member',
+                description: `Event Admission Ticket ${issuedTicket.id} (${issuedTicket.seat}). Event: ${issuedTicket.eventTitle}`,
+                category: 'EVENT_TICKET',
+              }).catch(() => {});
+            } catch {
+              // Handled silently
+            }
+          }
+
           showToast(`🎉 Registration Confirmed! Ticket #${issuedTicket.id} issued.`);
           handleTabSelect('tickets');
           return;
@@ -1093,6 +899,23 @@ export const MemberDashboard = () => {
         };
         setMembershipHistory((prev) => [newHistoryItem, ...prev]);
 
+        // Synchronize membership fee into finance ledger
+        if (duesAmount > 0) {
+          try {
+            financeApi.recordPayment({
+              title: `Membership - ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+              amount: duesAmount,
+              reference_type: 'MEMBERSHIP',
+              reference_id: result.membership?.transaction_id || result.membership?.receiptId || `MBR-${Date.now()}`,
+              party_name: studentProfile.name || user?.full_name || 'Student Member',
+              description: `Club membership fee for ${selectedClubForPurchase.name} (${selectedPlanForPurchase})`,
+              category: 'MEMBERSHIP_FEE',
+            }).catch(() => {});
+          } catch {
+            // Handled silently
+          }
+        }
+
         setStudentProfile((prev) => ({
           ...prev,
           membershipStatus: 'Active',
@@ -1224,172 +1047,49 @@ export const MemberDashboard = () => {
             {/* Header Greeting */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
               <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                  Student Dashboard
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <span>Student Dashboard</span>
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Welcome back, <strong className="text-slate-700">{studentProfile.name}</strong>. Here is your campus activity overview.
+                  Welcome back, <strong className="text-slate-800">{studentProfile.name}</strong> • ID: <span className="font-mono text-slate-600 font-semibold">{studentProfile.studentId}</span>
                 </p>
               </div>
 
-              {/* Status Indicator Badge */}
-              <div>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
-                  isMember
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-2xs'
-                    : membershipStatus === 'EXPIRED'
-                    ? 'bg-amber-50 text-amber-800 border-amber-300'
-                    : 'bg-slate-100 text-slate-700 border-slate-300'
-                }`}>
-                  {isMember ? (
-                    <BadgeCheck className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                  ) : (
-                    <User className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
-                  )}
-                  {membershipBadge}
+              {/* Clean Student Indicators */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{studentProfile.department || 'Computer Science & Software Engineering'}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  <Clock className="w-3 h-3 text-slate-500" />
+                  <span>Academic Year 2026–2027</span>
                 </span>
               </div>
             </div>
 
-            {/* ===================================================== */}
-            {/* DEDICATED MEMBERSHIP CARD                             */}
-            {/* ===================================================== */}
-            <div className={`rounded-xl border p-5 shadow-xs transition-all ${
-              isMember
-                ? 'bg-gradient-to-r from-[#0B1A14] via-[#0F291E] to-[#0A1610] text-white border-emerald-500/40'
-                : 'bg-white border-slate-200 text-slate-900'
-            }`}>
-              {isMember ? (
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        {membershipType === 'SEMESTER' ? 'Semester Member' : 'Annual Member'}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-800/60">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Benefits Active</span>
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-zinc-300 space-y-0.5">
-                      <p>
-                        Valid Until: <strong className="text-white font-semibold">{studentProfile.membershipEndDate}</strong>
-                      </p>
-                      <p className="text-[11px] text-zinc-400">
-                        Enrolled Society: <span className="text-zinc-200 font-medium">{userMemberships[0]?.clubName || userMemberships[0]?.club_name_snapshot || 'Skyline Robotics & AI Society'}</span>
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-300 pt-1">
-                      <span className="flex items-center gap-1 text-emerald-300">✓ Event Ticket Discounts (₹100 Member Pass)</span>
-                      <span className="flex items-center gap-1 text-emerald-300">✓ Merchandise Discounts (Save ₹200)</span>
-                      <span className="flex items-center gap-1 text-emerald-300">✓ Priority Registration</span>
-                      <span className="flex items-center gap-1 text-emerald-300">✓ Exclusive Club Activities</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-shrink-0 self-stretch md:self-auto justify-end">
-                    <button
-                      onClick={() => {
-                        const targetClubId = userMemberships[0]?.clubId || userMemberships[0]?.club_id || (typeof userMemberships[0]?.club === 'object' ? userMemberships[0]?.club?.id : userMemberships[0]?.club);
-                        const matchedClub = clubsList.find(c => c.id === targetClubId) || CAMPUS_CLUBS.find(c => c.id === targetClubId) || clubsList[0] || CAMPUS_CLUBS[0];
-                        setSelectedPlanForPurchase(membershipType === 'SEMESTER' ? 'Semester' : 'Annual');
-                        setSelectedClubForPurchase(matchedClub);
-                      }}
-                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                    >
-                      <RotateCw className="w-3.5 h-3.5" />
-                      <span>Renew Membership</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
-                        Not a Member
-                      </span>
-                      {membershipStatus === 'EXPIRED' && (
-                        <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                          Membership Expired
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">Unlock Premium Member Benefits</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Join a campus society to access discounted event tickets, exclusive merchandise savings, and certified leadership credits.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700 pt-1">
-                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Event Ticket Discounts (Save ₹100+)</span>
-                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Merchandise Discounts (Save ₹200)</span>
-                      <span className="flex items-center gap-1 text-emerald-700 font-semibold">✓ Exclusive Club Activities</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-shrink-0 self-stretch md:self-auto justify-end">
-                    <button
-                      onClick={() => handleTabSelect('membership')}
-                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>Purchase Membership</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 4 Crisp Key Metric Cards */}
+            {/* 4 Clean Student KPI Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Metric 1: Membership Standing */}
-              <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-slate-300 transition shadow-xs">
+              {/* Metric 1: Campus Events */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between hover:border-emerald-300 transition shadow-xs group">
                 <div>
                   <div className="flex justify-between items-center text-xs text-slate-500">
-                    <span>Membership Standing</span>
-                    <ShieldCheck className={`w-4 h-4 ${hasAnyClubMembership ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span className="font-medium text-slate-600">Upcoming Events</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
+                      <Calendar className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="text-lg font-semibold text-slate-900 mt-1">
-                    {hasAnyClubMembership ? 'Active Member' : 'Non-Member'}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {hasAnyClubMembership ? `${userMemberships.length} society dues paid` : 'Regular rates apply'}
-                  </p>
-                </div>
-                <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-xs">
-                  <button
-                    onClick={() => handleTabSelect('membership')}
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{hasAnyClubMembership ? 'Manage Clubs' : 'Join a Club'}</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Metric 2: Available Campus Events */}
-              <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-slate-300 transition shadow-xs">
-                <div>
-                  <div className="flex justify-between items-center text-xs text-slate-500">
-                    <span>Upcoming Events</span>
-                    <Calendar className="w-4 h-4 text-zinc-700" />
-                  </div>
-                  <div className="text-lg font-semibold text-slate-900 mt-1">
-                    {eventsList.length} Events
+                  <div className="text-2xl font-bold text-slate-900 mt-1">
+                    {eventsList.length}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Open for student registration
+                    Published & open for registration
                   </p>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-xs">
                   <button
                     onClick={() => handleTabSelect('events')}
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <span>Browse Events</span>
                     <ArrowRight className="w-3 h-3" />
@@ -1397,24 +1097,26 @@ export const MemberDashboard = () => {
                 </div>
               </div>
 
-              {/* Metric 3: Active Event Tickets */}
-              <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-slate-300 transition shadow-xs">
+              {/* Metric 2: Active Event Tickets */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between hover:border-emerald-300 transition shadow-xs group">
                 <div>
                   <div className="flex justify-between items-center text-xs text-slate-500">
-                    <span>My Tickets</span>
-                    <Ticket className="w-4 h-4 text-emerald-700" />
+                    <span className="font-medium text-slate-600">My Tickets</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
+                      <Ticket className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="text-lg font-semibold text-slate-900 mt-1">
-                    {ticketsList.length} Active Passes
+                  <div className="text-2xl font-bold text-slate-900 mt-1">
+                    {ticketsList.length}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Ready for gate scan
+                    {ticketsList.length === 1 ? '1 active gate pass' : `${ticketsList.length} active passes`}
                   </p>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-xs">
                   <button
                     onClick={() => handleTabSelect('tickets')}
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <span>View Passes</span>
                     <ArrowRight className="w-3 h-3" />
@@ -1422,26 +1124,55 @@ export const MemberDashboard = () => {
                 </div>
               </div>
 
-              {/* Metric 4: Volunteer Service Hours */}
-              <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between hover:border-slate-300 transition shadow-xs">
+              {/* Metric 3: Volunteer Roles */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between hover:border-emerald-300 transition shadow-xs group">
                 <div>
                   <div className="flex justify-between items-center text-xs text-slate-500">
-                    <span>Volunteer Hours</span>
-                    <HeartHandshake className="w-4 h-4 text-emerald-700" />
+                    <span className="font-medium text-slate-600">Volunteer Roles</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
+                      <HeartHandshake className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="text-lg font-semibold text-slate-900 mt-1">
-                    9.5 Hours
+                  <div className="text-2xl font-bold text-slate-900 mt-1">
+                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Certified on transcript
+                    {activeVolunteerWork.length} active • {volunteerApplications.length} applied
                   </p>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-xs">
                   <button
                     onClick={() => handleTabSelect('volunteer')}
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                    className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <span>Volunteer Hub</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Metric 4: Certificates Earned */}
+              <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col justify-between hover:border-emerald-300 transition shadow-xs group">
+                <div>
+                  <div className="flex justify-between items-center text-xs text-slate-500">
+                    <span className="font-medium text-slate-600">Certificates</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
+                      <Award className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-900 mt-1">
+                    {certificatesList.length}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Verified student credentials
+                  </p>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-xs">
+                  <button
+                    onClick={() => handleTabSelect('certificates')}
+                    className="text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>View Certificates</span>
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
@@ -1469,57 +1200,54 @@ export const MemberDashboard = () => {
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100">
-                    {eventsList.slice(0, 3).map((evt) => (
-                      <div key={evt.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
-                              {evt.category}
-                            </span>
-                            <span className="text-xs text-slate-500">{evt.clubName}</span>
-                          </div>
-                          <h3 className="text-sm font-semibold text-slate-900 leading-snug">
-                            {evt.title}
-                          </h3>
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5 text-slate-400" />
-                              {evt.date.split('•')[0]}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                              {evt.venue}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
-                          <div className="text-left sm:text-right">
-                            {isEligibleForMemberPrice() ? (
-                              <div>
-                                <span className="text-xs font-semibold text-emerald-700">{evt.memberPrice.split(' ')[0]}</span>
-                                <span className="text-[10px] text-slate-400 line-through ml-1.5">{evt.nonMemberPrice}</span>
-                                <span className="block text-[10px] text-emerald-600 font-medium">Member Rate</span>
-                              </div>
-                            ) : (
-                              <div>
-                                <span className="text-xs font-semibold text-slate-900">{evt.nonMemberPrice}</span>
-                                <span className="block text-[10px] text-slate-500">Member: {evt.memberPrice.split(' ')[0]}</span>
-                              </div>
-                            )}
+                  {eventsList.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-500">
+                      <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="font-semibold text-slate-700">No events published yet</p>
+                      <p className="text-slate-400 mt-0.5">Check back soon for upcoming campus gatherings and workshops.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {eventsList.slice(0, 3).map((evt) => (
+                        <div key={evt.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                                {evt.category}
+                              </span>
+                              <span className="text-xs text-slate-500">{evt.clubName}</span>
+                            </div>
+                            <h3 className="text-sm font-semibold text-slate-900 leading-snug">
+                              {evt.title}
+                            </h3>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                {evt.date?.split('•')[0] || evt.date}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                {evt.venue}
+                              </span>
+                            </div>
                           </div>
 
-                          <button
-                            onClick={() => setBuyTicketModalEvent(evt)}
-                            className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
-                          >
-                            Reserve
-                          </button>
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+                            <div className="text-left sm:text-right">
+                              <span className="text-xs font-semibold text-slate-900">{evt.nonMemberPrice || evt.memberPrice || 'Free'}</span>
+                            </div>
+
+                            <button
+                              onClick={() => setBuyTicketModalEvent(evt)}
+                              className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
+                            >
+                              Reserve
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* My Active Passes Preview */}
@@ -1646,23 +1374,36 @@ export const MemberDashboard = () => {
                 {/* Latest Notice */}
                 <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      {announcementsList[0].category}
+                    <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      Campus Notice
                     </span>
-                    <span className="text-[10px] text-slate-400">{announcementsList[0].publishedDate.split('•')[0]}</span>
+                    {announcementsList.length > 0 && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {announcementsList[0].category || 'Official'}
+                      </span>
+                    )}
                   </div>
-                  <h4 className="text-xs font-semibold text-slate-900 leading-snug">
-                    {announcementsList[0].title}
-                  </h4>
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                    {announcementsList[0].summary}
-                  </p>
-                  <button
-                    onClick={() => setSelectedAnnouncementModal(announcementsList[0])}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline block pt-1 cursor-pointer"
-                  >
-                    Read Full Notice →
-                  </button>
+                  {announcementsList.length > 0 ? (
+                    <>
+                      <div className="text-[10px] text-slate-400">{announcementsList[0].publishedDate?.split('•')[0] || 'Recent'}</div>
+                      <h4 className="text-xs font-semibold text-slate-900 leading-snug">
+                        {announcementsList[0].title}
+                      </h4>
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {announcementsList[0].summary}
+                      </p>
+                      <button
+                        onClick={() => setSelectedAnnouncementModal(announcementsList[0])}
+                        className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline block pt-1 cursor-pointer"
+                      >
+                        Read Full Notice →
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-500 py-2">
+                      No new announcements posted at this time. All official broadcasts will appear here.
+                    </p>
+                  )}
                 </div>
 
               </div>
@@ -1676,50 +1417,13 @@ export const MemberDashboard = () => {
         {activeTab === 'membership' && (
           <div className="space-y-6">
             <div className="pb-2 border-b border-slate-200">
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                Clubs & Memberships
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                Campus Clubs & Societies
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                Join campus societies, compare membership dues, and unlock verified member discounts.
+                Explore student organizations, technical chapters, and creative societies.
               </p>
             </div>
-
-            {/* Current Affiliation Status Banner */}
-            {hasAnyClubMembership ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center space-x-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-                  <div>
-                    <span className="font-semibold text-emerald-900 block">
-                      Active Member Privileges Unlocked
-                    </span>
-                    <span className="text-emerald-700">
-                      You are an enrolled member of: <strong>{userMemberships.map((m) => m.clubName).join(', ')}</strong>. You receive free passes ($0.00) or up to 75% subsidies across campus events!
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleTabSelect('events')}
-                  className="px-3 py-1.5 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-medium whitespace-nowrap transition cursor-pointer"
-                >
-                  View Discounted Events
-                </button>
-              </div>
-            ) : (
-              <div className="bg-zinc-900 text-white rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
-                <div className="flex items-center space-x-3">
-                  <AlertCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                  <div>
-                    <span className="font-semibold text-white block">
-                      Standard Student Rate Active (Non-Member)
-                    </span>
-                    <span className="text-zinc-300">
-                      You do not have an active club membership. Non-members pay regular admission prices ($15–$35). Enroll in a club below to unlock membered pricing!
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Clubs Catalog Filter Toolbar */}
             <div className="bg-white rounded-lg border border-slate-200 p-3.5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -1970,53 +1674,7 @@ export const MemberDashboard = () => {
                 </div>
               </div>
 
-              {/* Member Benefit Banner (Clean, light SaaS styling) */}
-              {hasAnyClubMembership ? (
-                <div className="bg-white rounded-xl border border-slate-200/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex-shrink-0">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-semibold text-slate-900 tracking-tight">Active Member Benefits Unlocked</h2>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Subsidized
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Your society standing unlocks <strong className="text-emerald-700 font-semibold">$0.00 Free admission</strong> or up to 75% discounts across all campus events.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0">
-                    <span className="text-xs bg-slate-50 px-3 py-1.5 rounded-lg font-medium text-slate-700 border border-slate-200">
-                      Total Unlocked Savings: <strong className="text-emerald-700 font-semibold">$78.00</strong>
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-slate-200/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex-shrink-0">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-slate-900 tracking-tight">Unlock 100% Free Campus Event Passes</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Students enrolled in any campus society get free passes ($0.00) or heavy subsidies. Join any club to activate discounts!
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleTabSelect('membership')}
-                    className="h-9 px-4 rounded-lg bg-zinc-900 hover:bg-black text-white text-xs font-semibold whitespace-nowrap transition flex items-center gap-1.5 shadow-2xs flex-shrink-0 cursor-pointer"
-                  >
-                    <span>Browse Clubs & Join</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
+
             </div>
 
             {/* Filter Toolbar (Chips + Search + Category Select) */}

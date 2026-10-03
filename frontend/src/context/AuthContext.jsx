@@ -183,6 +183,48 @@ export const AuthProvider = ({ children }) => {
       };
     }
 
+    // Direct Instant Treasurer Login (amit@treasurer.gmail.com)
+    if (cleanEmail === 'amit@treasurer.gmail.com' && password === 'Treas@123') {
+      const fallbackTreasurer = normalizeUser({
+        id: '2',
+        name: 'Amit Treasurer',
+        fullName: 'Amit Treasurer',
+        full_name: 'Amit Treasurer',
+        email: 'amit@treasurer.gmail.com',
+        role: 'TREASURER',
+        status: 'ACTIVE',
+        is_active: true,
+      });
+
+      try {
+        const response = await fetch(`${API_BASE}/auth/login/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const normalized = normalizeUser(data.user || fallbackTreasurer);
+          setUser(normalized);
+          setToken(data.access);
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('connectu_active_user', JSON.stringify(normalized));
+          storage.setItem('connectu_jwt_token', data.access);
+          if (data.refresh) storage.setItem('connectu_refresh_token', data.refresh);
+          return { success: true, user: normalized, role: 'TREASURER' };
+        }
+      } catch {
+        // Use offline fallback below
+      }
+
+      setUser(fallbackTreasurer);
+      setToken('mock-jwt-token-treasurer-amit');
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('connectu_active_user', JSON.stringify(fallbackTreasurer));
+      storage.setItem('connectu_jwt_token', 'mock-jwt-token-treasurer-amit');
+      return { success: true, user: fallbackTreasurer, role: 'TREASURER' };
+    }
+
     try {
       const response = await fetch(`${API_BASE}/auth/login/`, {
         method: 'POST',

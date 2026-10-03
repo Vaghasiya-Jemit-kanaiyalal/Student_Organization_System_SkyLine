@@ -181,6 +181,24 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email Settings (defaults to console for development)
+# Email Configuration (Reads from .env, falls back to console backend for local dev)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-DEFAULT_FROM_EMAIL = 'noreply@studentorg.edu'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 't')
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ('true', '1', 't')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@studentorg.edu')
+
+# Frontend Web Application URL for email action links
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+
+# Password Reset Token Timeout (in seconds, default: 86400 = 24 hours)
+PASSWORD_RESET_TIMEOUT = int(os.getenv('PASSWORD_RESET_TIMEOUT', 86400))
+
+# Membership Expiry Reminder Thresholds (configurable comma-separated days, default: 30, 7, 1)
+MEMBERSHIP_EXPIRY_REMINDER_DAYS = [
+    int(d.strip()) for d in os.getenv('MEMBERSHIP_EXPIRY_REMINDER_DAYS', '30,7,1').split(',') if d.strip().isdigit()
+]
+

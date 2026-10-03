@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
@@ -41,9 +43,13 @@ def api_root(request):
                 "announcements": request.build_absolute_uri("/api/announcements/"),
             },
             "finance": {
-                "finance_dashboard": request.build_absolute_uri("/api/finance/"),
+                "finance_dashboard": request.build_absolute_uri("/api/finance/dashboard/"),
+                "income": request.build_absolute_uri("/api/finance/income/"),
+                "expenses": request.build_absolute_uri("/api/finance/expenses/"),
                 "transactions": request.build_absolute_uri("/api/finance/transactions/"),
                 "reimbursements": request.build_absolute_uri("/api/finance/reimbursements/"),
+                "reports": request.build_absolute_uri("/api/finance/reports/"),
+                "record_payment": request.build_absolute_uri("/api/finance/payments/record/"),
             },
             "payments_and_merchandise": {
                 "razorpay_verify": request.build_absolute_uri("/api/payments/razorpay/verify/"),
@@ -89,9 +95,6 @@ urlpatterns = [
     path('api/finance/', include('finance.urls')),
     path('api/', include(payment_urlpatterns)),
 ]
-
-from django.conf import settings
-from django.conf.urls.static import static
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

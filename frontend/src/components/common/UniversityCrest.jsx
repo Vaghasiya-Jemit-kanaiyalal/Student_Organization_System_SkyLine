@@ -6,7 +6,20 @@ import React from 'react';
  * as well as legacy variants 'navy', 'gold', 'blue', 'white'.
  */
 export const UniversityCrest = ({ className = "w-12 h-12", variant = "skyline", color = "#1d4ed8" }) => {
-  if (variant === 'skyline') {
+  if (variant === 'skyline' || variant === 'official' || variant === 'white') {
+    return (
+      <img
+        src="/skyline-emblem.png"
+        alt="SkyLine Official Logo"
+        className={`${className} object-contain`}
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+    );
+  }
+
+  if (variant === 'shield') {
     return (
       <svg
         viewBox="0 0 100 100"
