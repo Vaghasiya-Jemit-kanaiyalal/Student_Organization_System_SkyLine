@@ -145,26 +145,6 @@ export const ScheduledAnnouncementsView = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-surface rounded-xl border border-border p-6 shadow-subtle flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="font-serif-academic text-2xl font-bold text-text-primary">
-            Scheduled Announcements
-          </h2>
-          <p className="text-xs text-text-secondary mt-0.5">
-            Manage announcements that are scheduled for future automated delivery ({scheduledList.length} in queue).
-          </p>
-        </div>
-
-        <button
-          onClick={onNavigateToCreate}
-          className="px-4 py-2.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-sm transition-campus flex items-center space-x-1.5"
-        >
-          <Plus className="w-4 h-4 text-accent" />
-          <span>+ Create Announcement</span>
-        </button>
-      </div>
-
       {/* Notification Toast */}
       {bannerFeedback && (
         <div
@@ -253,7 +233,7 @@ export const ScheduledAnnouncementsView = ({
 
                 {/* Title & Preview */}
                 <div>
-                  <h3 className="font-serif-academic text-lg font-bold text-text-primary leading-tight">
+                  <h3 className="text-base font-semibold text-text-primary leading-snug">
                     {item.title}
                   </h3>
                   <p className="text-xs text-text-secondary mt-1.5 line-clamp-3 leading-relaxed">
@@ -382,7 +362,7 @@ export const ScheduledAnnouncementsView = ({
       {confirmSendItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
           <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+            <h3 className="text-lg font-bold text-text-primary">
               Send this announcement now?
             </h3>
             <p className="text-xs text-text-secondary leading-relaxed">
@@ -418,7 +398,7 @@ export const ScheduledAnnouncementsView = ({
       {confirmCancelItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-xs">
           <div className="max-w-md w-full bg-surface border border-border rounded-xl shadow-elevated p-6 space-y-4 animate-fadeIn">
-            <h3 className="font-serif-academic text-lg font-bold text-text-primary">
+            <h3 className="text-lg font-bold text-text-primary">
               Cancel this scheduled announcement?
             </h3>
             <p className="text-xs text-text-secondary leading-relaxed">

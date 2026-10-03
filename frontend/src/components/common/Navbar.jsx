@@ -130,7 +130,7 @@ export const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2.5 group flex-shrink-0">
           <UniversityCrest className="w-8 h-8 sm:w-9 sm:h-9 transition-transform group-hover:scale-105" variant="navy" />
           <div className="flex flex-col text-left">
-            <span className="font-serif-academic text-lg sm:text-xl font-bold tracking-tight text-white leading-none group-hover:text-[#58A6FF]">
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-white leading-none group-hover:text-[#58A6FF]">
               ConnectU
             </span>
             <span className="text-[9px] sm:text-[10px] uppercase font-semibold tracking-wider text-[#98A2B3] mt-0.5">

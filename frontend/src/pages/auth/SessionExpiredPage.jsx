@@ -27,7 +27,7 @@ export const SessionExpiredPage = () => {
             SECURITY PROTOCOL • TIMEOUT
           </span>
 
-          <h1 className="font-serif-academic text-2xl font-bold text-text-primary">
+          <h1 className="text-2xl font-bold text-text-primary">
             Session Inactivity Timeout
           </h1>
 
