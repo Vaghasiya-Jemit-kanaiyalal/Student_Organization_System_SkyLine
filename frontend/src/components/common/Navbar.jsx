@@ -59,7 +59,7 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  // Student navigation items specified in prompt
+  // Student navigation items
   const studentNavTabs = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'membership', label: 'Clubs & Memberships', icon: Users },

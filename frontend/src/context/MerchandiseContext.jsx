@@ -147,6 +147,7 @@ export const MerchandiseProvider = ({ children }) => {
     }
   });
 
+  // Sync changes to localStorage
   useEffect(() => {
     try {
       localStorage.setItem('skyline_merchandise_products', JSON.stringify(products));
@@ -163,6 +164,32 @@ export const MerchandiseProvider = ({ children }) => {
     }
   }, [orders]);
 
+  // Live Cross-Tab Synchronization: immediately sync state when another tab modifies products or orders
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'skyline_merchandise_products' && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          setProducts(updated);
+        } catch (err) {
+          console.error('Failed to parse cross-tab products update', err);
+        }
+      }
+      if (e.key === 'skyline_merchandise_orders' && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          setOrders(updated);
+        } catch (err) {
+          console.error('Failed to parse cross-tab orders update', err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Helper to compute total remaining stock across all sizes for a product
   const getProductTotalStock = (product) => {
     if (!product || !product.sizeStock) return 0;
     return Object.values(product.sizeStock).reduce((sum, count) => sum + (Number(count) || 0), 0);

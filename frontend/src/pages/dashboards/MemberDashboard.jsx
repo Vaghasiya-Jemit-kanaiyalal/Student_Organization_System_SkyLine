@@ -43,8 +43,10 @@ import {
   Tag,
   Share2,
   ExternalLink,
-  Trash2
+  Trash2,
+  Package
 } from 'lucide-react';
+import { StudentMerchStore } from '../../components/merchandise/StudentMerchStore';
 
 export const MemberDashboard = () => {
   const { user, buyClubMembership, renewMembership, updateUserProfile } = useAuth();
@@ -1405,6 +1407,17 @@ export const MemberDashboard = () => {
                         <span>Apply for Volunteer Service</span>
                       </span>
                       <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleTabSelect('merchandise')}
+                      className="w-full px-3 py-2 rounded-md bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-200/80 text-xs font-medium text-emerald-900 transition flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-emerald-700" />
+                        <span>Order Hoodies & T-Shirts</span>
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-emerald-600" />
                     </button>
                   </div>
                 </div>
@@ -3098,6 +3111,16 @@ export const MemberDashboard = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 8: MERCHANDISE & APPAREL STORE                     */}
+        {/* ========================================================= */}
+        {(activeTab === 'merchandise' || activeTab === 'store' || activeTab === 'apparel') && (
+          <StudentMerchStore
+            studentProfile={studentProfile}
+            isClubMember={isEligibleForMemberPrice()}
+          />
         )}
 
       </div>
