@@ -103,7 +103,7 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand / Logo */}
         <Link to="/" className="flex items-center space-x-3 group">
-          <UniversityCrest className="w-9 h-9 transition-transform group-hover:scale-105" variant="burgundy" />
+          <UniversityCrest className="w-9 h-9 transition-transform group-hover:scale-105" variant="navy" />
           <div className="flex flex-col text-left">
             <span className="font-serif-academic text-xl font-bold tracking-tight text-primary leading-none group-hover:text-primary-hover">
               ConnectU
@@ -121,11 +121,10 @@ export const Navbar = () => {
               <>
                 <Link
                   to="/member/dashboard"
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${
-                    location.pathname.startsWith('/member')
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${location.pathname.startsWith('/member')
                       ? 'text-primary bg-primary-light font-semibold'
                       : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                  }`}
+                    }`}
                 >
                   Member Hub
                 </Link>
@@ -148,19 +147,18 @@ export const Navbar = () => {
               <>
                 <Link
                   to="/admin/dashboard"
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${
-                    location.pathname.startsWith('/admin')
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${location.pathname.startsWith('/admin')
                       ? 'text-primary bg-primary-light font-semibold'
                       : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                  }`}
+                    }`}
                 >
                   Organizer Console
                 </Link>
                 <Link
-                  to="/admin/dashboard?tab=members"
+                  to="/admin/members"
                   className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-primary hover:bg-ivory-100 rounded transition-campus"
                 >
-                  Roster
+                  Member Management
                 </Link>
                 <Link
                   to="/admin/dashboard?tab=announcements"
@@ -175,11 +173,10 @@ export const Navbar = () => {
               <>
                 <Link
                   to="/treasurer/dashboard"
-                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${
-                    location.pathname.startsWith('/treasurer')
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-campus ${location.pathname.startsWith('/treasurer')
                       ? 'text-primary bg-primary-light font-semibold'
                       : 'text-text-secondary hover:text-primary hover:bg-ivory-100'
-                  }`}
+                    }`}
                 >
                   Fiscal Ledger
                 </Link>
@@ -225,9 +222,8 @@ export const Navbar = () => {
                     </div>
                     <button
                       onClick={() => handleRoleSwitch('MEMBER')}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${
-                        user.role === 'MEMBER' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
-                      }`}
+                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${user.role === 'MEMBER' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
+                        }`}
                     >
                       <div className="flex flex-col">
                         <span>Student Member</span>
@@ -237,9 +233,8 @@ export const Navbar = () => {
                     </button>
                     <button
                       onClick={() => handleRoleSwitch('ADMIN')}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${
-                        user.role === 'ADMIN' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
-                      }`}
+                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${user.role === 'ADMIN' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
+                        }`}
                     >
                       <div className="flex flex-col">
                         <span>Club Admin / Organizer</span>
@@ -249,9 +244,8 @@ export const Navbar = () => {
                     </button>
                     <button
                       onClick={() => handleRoleSwitch('TREASURER')}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${
-                        user.role === 'TREASURER' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
-                      }`}
+                      className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-ivory-100 ${user.role === 'TREASURER' ? 'bg-primary-light/50 font-semibold text-primary' : 'text-text-primary'
+                        }`}
                     >
                       <div className="flex flex-col">
                         <span>Club Treasurer</span>
@@ -341,8 +335,8 @@ export const Navbar = () => {
                           user.role === 'ADMIN'
                             ? '/admin/dashboard'
                             : user.role === 'TREASURER'
-                            ? '/treasurer/dashboard'
-                            : '/member/dashboard'
+                              ? '/treasurer/dashboard'
+                              : '/member/dashboard'
                         }
                         onClick={() => setMenuOpen(false)}
                         className="px-3 py-2 flex items-center space-x-2 hover:bg-ivory-100 text-text-primary"

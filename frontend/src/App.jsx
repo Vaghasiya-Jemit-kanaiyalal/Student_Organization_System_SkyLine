@@ -18,6 +18,7 @@ import { SessionExpiredPage } from './pages/auth/SessionExpiredPage';
 import { MemberDashboard } from './pages/dashboards/MemberDashboard';
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
 import { TreasurerDashboard } from './pages/dashboards/TreasurerDashboard';
+import MemberManagementPage from './pages/admin/MemberManagementPage';
 
 // Index root router redirector
 const RootRedirector = () => {
@@ -36,7 +37,7 @@ const UniversityFooter = () => {
     <footer className="mt-auto bg-surface border-t border-border py-8 px-4 sm:px-6 lg:px-8 text-xs text-text-secondary">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center space-x-3">
-          <UniversityCrest className="w-8 h-8" variant="burgundy" />
+          <UniversityCrest className="w-8 h-8" variant="navy" />
           <div>
             <p className="font-serif-academic font-bold text-text-primary text-sm">
               ConnectU Student Organization System
@@ -100,6 +101,15 @@ export const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['ADMIN']}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/members"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <MemberManagementPage />
                   </ProtectedRoute>
                 }
               />
