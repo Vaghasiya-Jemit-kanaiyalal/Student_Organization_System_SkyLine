@@ -4,25 +4,26 @@
 
 @layer base {
   :root {
-    --color-primary: #1769E8;
-    --color-primary-hover: #0D5BD7;
-    --color-primary-navy: #0F2942;
-    --color-ivory: #F5F9FD;
-    --color-surface: #FFFFFF;
-    --color-surface-secondary: #EAF3FF;
-    --color-border: #D9E2EC;
-    --color-text-primary: #142033;
-    --color-text-secondary: #667085;
-    --color-text-muted: #98A2B3;
-    --color-accent: #58A6FF;
-    --color-success: #159947;
-    --color-warning: #A47735;
-    --color-error: #D92D20;
+    /* 3-Level Contrast System */
+    --level-1-navy: #0F2942;       /* Deep Navy Navigation & Brand Identity */
+    --level-2-canvas: #F4F5F7;     /* Very Light Cool Gray Page Background */
+    --level-3-surface: #FFFFFF;    /* Pure White Cards & Content Surfaces */
+    
+    --action-blue: #1557B0;        /* Controlled Medium Blue (Active tabs, buttons, links) */
+    --action-blue-hover: #104A96;
+    
+    --text-primary: #142033;       /* High-Readability Dark Navy Text */
+    --text-secondary: #4A5568;     /* Slate Body Text */
+    --text-muted: #8C97A8;
+    --border-color: #D9E2EC;
+    
+    --status-success: #159947;
+    --status-error: #D92D20;
   }
 
   body {
-    background-color: #F5F9FD;
-    color: #667085;
+    background-color: #F4F5F7 !important;
+    color: #4A5568;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-size: 15px;
     margin: 0;
@@ -37,54 +38,77 @@
     width: 100%;
   }
 
-  /* Playfair Display Academic Headings */
   .font-serif-academic {
     font-family: 'Playfair Display', serif;
     font-weight: 700;
   }
 
-  h1,
-  h2,
-  h3 {
+  h1, h2, h3 {
     font-family: 'Playfair Display', serif;
     color: #142033;
     font-weight: 700;
   }
 
-  label,
-  .form-label {
+  label, .form-label {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     color: #142033;
   }
 }
 
-/* Custom left hero background gradient */
+/* Level 1: Deep Navy Header, Top Ribbon, and Left Hero Section */
+.bg-primary, 
 .bg-gradient-to-b.from-primary.to-primary-hover,
 .hero-gradient-bg {
-  background: linear-gradient(135deg,
-      #0F2942 0%,
-      #123B60 55%,
-      #1769E8 100%) !important;
+  background: #0F2942 !important;
 }
 
-/* Primary Button Colors & Shadow */
-.btn-primary,
+/* Hero Section Subtle Gradient */
+.hero-gradient-bg,
+div.lg\:col-span-5.bg-gradient-to-b {
+  background: linear-gradient(
+    135deg,
+    #0F2942 0%,
+    #123552 50%,
+    #15466A 100%
+  ) !important;
+}
+
+/* Level 2: Very Light Cool Gray Page Background */
+.bg-ivory, .bg-ivory-100 {
+  background-color: #F4F5F7 !important;
+}
+
+/* Level 3: Pure White Content Surfaces & Form Inputs */
+.bg-surface, input, select, textarea {
+  background-color: #FFFFFF !important;
+  border-color: #D9E2EC;
+}
+
+/* Controlled Medium Blue: Active Tabs, Links, & Primary Buttons */
+.btn-primary, 
 button[type="submit"].bg-primary,
-.bg-primary {
-  background-color: #1769E8;
-  color: #FFFFFF;
-  border-radius: 9px;
-  font-weight: 600;
-  box-shadow: 0 6px 16px rgba(23, 105, 232, 0.22);
+button.bg-primary {
+  background-color: #1557B0 !important;
+  color: #FFFFFF !important;
+  border-radius: 9px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 6px 16px rgba(21, 87, 176, 0.18) !important;
 }
 
-.btn-primary:hover,
+.btn-primary:hover, 
 button[type="submit"].bg-primary:hover,
-.bg-primary:hover {
-  background-color: #0D5BD7;
+button.bg-primary:hover {
+  background-color: #104A96 !important;
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(23, 105, 232, 0.28);
+  box-shadow: 0 8px 20px rgba(16, 74, 150, 0.22) !important;
+}
+
+/* Active tab state */
+.tab-btn.active, .nav-link.active {
+  color: #1557B0 !important;
+  border-bottom: 2px solid #1557B0 !important;
+  font-weight: 600 !important;
 }
 
 /* Custom subtle scrollbar */
@@ -94,7 +118,7 @@ button[type="submit"].bg-primary:hover,
 }
 
 ::-webkit-scrollbar-track {
-  background: #EAF3FF;
+  background: #F4F5F7;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -103,15 +127,7 @@ button[type="submit"].bg-primary:hover,
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #58A6FF;
-}
-
-/* Campus Pattern background overlay */
-.bg-campus-pattern {
-  background-color: #F5F9FD;
-  background-image: radial-gradient(#0F2942 0.65px, transparent 0.65px), radial-gradient(#58A6FF 0.65px, #F5F9FD 0.65px);
-  background-size: 32px 32px;
-  background-position: 0 0, 16px 16px;
+  background: #15466A;
 }
 
 .transition-campus {
