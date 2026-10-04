@@ -78,6 +78,7 @@ const AppContent = () => {
   const authRoutes = [
     '/login',
     '/register',
+    '/signup',
     '/forgot-password',
     '/reset-password',
     '/verify-success',
@@ -98,6 +99,7 @@ const AppContent = () => {
           {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/signup" element={<Navigate to="/register" replace />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-success" element={<EmailVerificationSuccessPage />} />

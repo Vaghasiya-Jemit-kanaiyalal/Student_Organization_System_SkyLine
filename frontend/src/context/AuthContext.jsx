@@ -308,22 +308,36 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         let errorMsg = 'Registration failed. Please check the provided information.';
-        if (data.details) {
-          if (typeof data.details === 'string') {
-            errorMsg = data.details;
-          } else if (typeof data.details === 'object') {
-            const firstKey = Object.keys(data.details)[0];
-            const val = data.details[firstKey];
-            if (Array.isArray(val)) {
-              errorMsg = val[0];
-            } else if (typeof val === 'string') {
-              errorMsg = val;
+        const fieldErrors = {};
+        const errSource = data?.details || data?.errors || data;
+
+        if (typeof errSource === 'string') {
+          errorMsg = errSource;
+        } else if (typeof errSource === 'object' && errSource !== null) {
+          if (typeof errSource.detail === 'string') {
+            errorMsg = errSource.detail;
+          } else if (typeof errSource.message === 'string') {
+            errorMsg = errSource.message;
+          } else {
+            const messages = [];
+            for (const [key, val] of Object.entries(errSource)) {
+              if (['success', 'error', 'status_code'].includes(key)) continue;
+              const cleanKey = key === 'full_name' ? 'fullName' : key === 'student_id' ? 'studentId' : key;
+              const text = Array.isArray(val) ? val.join(' ') : String(val);
+              fieldErrors[cleanKey] = text;
+              const label = key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+              messages.push(`${label}: ${text}`);
+            }
+            if (messages.length > 0) {
+              errorMsg = messages.join(' • ');
             }
           }
         }
+
         return {
           success: false,
-          error: errorMsg
+          error: errorMsg,
+          fieldErrors
         };
       }
 

@@ -44,8 +44,8 @@ export const RegisterPage = () => {
 
     if (!studentId.trim()) {
       errors.studentId = 'University Student ID is required.';
-    } else if (!/^STU-[0-9]{4}-[0-9]{3,5}$/i.test(studentId.trim()) && studentId.trim().length < 5) {
-      errors.studentId = 'Enter standard student ID (e.g. STU-2026-1234).';
+    } else if (studentId.trim().length < 3) {
+      errors.studentId = 'Please enter a valid student ID (min. 3 characters).';
     }
 
     if (!email.trim()) {
@@ -56,8 +56,8 @@ export const RegisterPage = () => {
 
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters.';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.';
     }
 
     if (!confirmPassword) {
@@ -99,6 +99,9 @@ export const RegisterPage = () => {
         });
       } else {
         setErrorMessage(result.error || 'Failed to complete registration.');
+        if (result.fieldErrors && Object.keys(result.fieldErrors).length > 0) {
+          setFieldErrors((prev) => ({ ...prev, ...result.fieldErrors }));
+        }
       }
     } catch {
       setErrorMessage('A registration system error occurred. Please try again.');
@@ -146,7 +149,16 @@ export const RegisterPage = () => {
         {errorMessage && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-fadeIn">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
-            <div className="flex-1 leading-relaxed">{errorMessage}</div>
+            <div className="flex-1 leading-relaxed">
+              <span>{errorMessage}</span>
+              {errorMessage.toLowerCase().includes('already exists') && (
+                <div className="mt-1.5">
+                  <Link to="/login" className="font-semibold text-emerald-800 hover:underline inline-flex items-center gap-1">
+                    Sign in to your existing account <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
