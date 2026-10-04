@@ -13,12 +13,6 @@ import { AdminVolunteerControl } from '../../components/volunteers/AdminVoluntee
 import { EventQrScannerModal } from '../../components/scanner/EventQrScannerModal';
 import { MerchandiseQrScannerModal } from '../../components/scanner/MerchandiseQrScannerModal';
 import {
-  CLUB_MEMBERS_ADMIN,
-  CAMPUS_EVENTS,
-  ANNOUNCEMENTS,
-  MERCHANDISE_ITEMS
-} from '../../data/mockData';
-import {
   LayoutDashboard,
   Users,
   Calendar,

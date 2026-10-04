@@ -84,50 +84,7 @@ const DEFAULT_PRODUCTS = [
   }
 ];
 
-const DEFAULT_ORDERS = [
-  {
-    id: 'ORD-2026-901',
-    productId: 'mch-101',
-    productName: 'Skyline SSA Heavyweight Crest Hoodie',
-    productType: 'Hoodie',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
-    size: 'M',
-    quantity: 1,
-    unitPrice: 800.00,
-    totalPrice: 800.00,
-    memberId: 'usr-member-001',
-    memberName: 'Sophia Montgomery',
-    studentId: 'STU-2026-8842',
-    memberEmail: 'student@university.edu',
-    paymentStatus: 'PAID',
-    paymentMethod: 'Student ID Account (Bursar)',
-    paymentDate: '2026-10-01 14:32',
-    fulfillmentStatus: 'READY_FOR_PICKUP',
-    orderDate: 'Oct 01, 2026 • 2:32 PM',
-    notes: 'Order placed with Member Discount (Saved ₹200)'
-  },
-  {
-    id: 'ORD-2026-902',
-    productId: 'mch-102',
-    productName: 'Skyline Club Signature Cotton T-Shirt',
-    productType: 'T-Shirt',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
-    size: 'L',
-    quantity: 2,
-    unitPrice: 350.00,
-    totalPrice: 700.00,
-    memberId: 'mem-105',
-    memberName: 'Julian Chen',
-    studentId: 'STU-2026-9021',
-    memberEmail: 'julian.c@university.edu',
-    paymentStatus: 'PAID',
-    paymentMethod: 'Credit / Debit Card',
-    paymentDate: '2026-10-02 09:15',
-    fulfillmentStatus: 'COLLECTED',
-    orderDate: 'Oct 02, 2026 • 9:15 AM',
-    notes: 'Picked up at Student Union desk'
-  }
-];
+const DEFAULT_ORDERS = [];
 
 export const MerchandiseProvider = ({ children }) => {
   const [products, setProducts] = useState(() => {
@@ -142,7 +99,13 @@ export const MerchandiseProvider = ({ children }) => {
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('skyline_merchandise_orders');
-      return saved ? JSON.parse(saved) : DEFAULT_ORDERS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(o => o.id !== 'ORD-2026-901' && o.id !== 'ORD-2026-902');
+        }
+      }
+      return DEFAULT_ORDERS;
     } catch {
       return DEFAULT_ORDERS;
     }

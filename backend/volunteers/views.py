@@ -52,6 +52,8 @@ class EventListCreateView(generics.ListCreateAPIView):
         if vol_req is not None:
             if vol_req.lower() in ['true', '1', 'yes']:
                 queryset = queryset.filter(volunteers_required=True)
+                if user.role != 'ADMIN' and not user.is_superuser:
+                    queryset = queryset.filter(date__gt=timezone.now().date())
             elif vol_req.lower() in ['false', '0', 'no']:
                 queryset = queryset.filter(volunteers_required=False)
 
@@ -562,6 +564,21 @@ class TicketBuyView(APIView):
 
         # Check membership status
         user = request.user
+        # Prevent duplicate registrations for the same event
+        existing_ticket = event.tickets.filter(
+            student=user,
+            status=Ticket.Status.CONFIRMED
+        ).first()
+        if existing_ticket:
+            return Response(
+                {
+                    'error': f'You are already registered for "{event.title}". Duplicate registrations are not allowed.',
+                    'already_registered': True,
+                    'ticket_id': existing_ticket.ticket_id
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         is_member = (
             getattr(user, 'membership_status', 'NONE') == 'ACTIVE'
             or getattr(user, 'is_active_member', False)

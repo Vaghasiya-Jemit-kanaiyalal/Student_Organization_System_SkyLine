@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 from accounts.serializers import UserSerializer
 from .models import Event, VolunteerApplication, VolunteerAssignment, Certificate, Announcement, Ticket
@@ -126,6 +127,8 @@ class ApplyVolunteerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This event is not accepting volunteer applications.")
         if event.status not in [Event.Status.PUBLISHED, 'Published']:
             raise serializers.ValidationError("Volunteer applications are only open for published events.")
+        if event.date and event.date <= timezone.now().date():
+            raise serializers.ValidationError("Volunteer applications are closed on the day of the event.")
         return event
 
     def validate(self, attrs):

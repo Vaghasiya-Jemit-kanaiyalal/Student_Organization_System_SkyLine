@@ -445,6 +445,13 @@ class Ticket(models.Model):
         ordering = ['-created_at']
         verbose_name = _('Event Ticket')
         verbose_name_plural = _('Event Tickets')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['student', 'event'],
+                condition=models.Q(status='Confirmed'),
+                name='unique_confirmed_ticket_per_student_event'
+            )
+        ]
 
     def get_verification_url(self):
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173').rstrip('/')

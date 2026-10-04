@@ -399,6 +399,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('connectu_active_user');
     localStorage.removeItem('connectu_jwt_token');
     localStorage.removeItem('connectu_refresh_token');
+    try {
+      localStorage.removeItem('skyline_my_tickets_v1');
+    } catch (e) {}
     sessionStorage.removeItem('connectu_active_user');
     sessionStorage.removeItem('connectu_jwt_token');
     sessionStorage.removeItem('connectu_refresh_token');

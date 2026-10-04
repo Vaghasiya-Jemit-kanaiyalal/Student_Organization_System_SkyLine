@@ -73,6 +73,52 @@ class VolunteerFlowTests(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_member_cannot_apply_on_same_event_day(self):
+        same_day_event = Event.objects.create(
+            title='Same Day Event',
+            description='Event happening today.',
+            date=timezone.now().date(),
+            venue='Auditorium B',
+            volunteers_required=True,
+            status=Event.Status.PUBLISHED,
+            created_by=self.admin
+        )
+        refresh = RefreshToken.for_user(self.member)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        url = reverse('volunteer-apply')
+        data = {
+            'event': same_day_event.id,
+            'preferred_role': 'Registration Desk',
+            'reason': 'Want to help today.'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("closed on the day of the event", str(response.data))
+
+    def test_student_volunteers_filter_excludes_same_day_event(self):
+        same_day_event = Event.objects.create(
+            title='Same Day Volunteer Event',
+            description='Happening today.',
+            date=timezone.now().date(),
+            venue='Campus Quad',
+            volunteers_required=True,
+            status=Event.Status.PUBLISHED,
+            created_by=self.admin
+        )
+        refresh = RefreshToken.for_user(self.member)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+
+        url = reverse('event-list-create') + '?volunteers_required=true'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data)
+        event_ids = [e['id'] for e in results]
+        # Future event should be included
+        self.assertIn(self.event.id, event_ids)
+        # Same-day event must NOT be visible to student
+        self.assertNotIn(same_day_event.id, event_ids)
+
     def test_treasurer_cannot_apply_as_volunteer(self):
         refresh = RefreshToken.for_user(self.treasurer)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')

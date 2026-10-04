@@ -53,20 +53,36 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Compute live KPI metrics
+  // Student's own private orders
+  const userOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchEmail = Boolean(
+        studentEmail &&
+        order.memberEmail &&
+        order.memberEmail.toLowerCase() === studentEmail.toLowerCase()
+      );
+      const matchId = Boolean(
+        (user?.id && (order.memberId === user.id || order.userId === user.id || order.student_id === user.id)) ||
+        (studentId && String(order.studentId).toLowerCase() === String(studentId).toLowerCase())
+      );
+      return matchEmail || matchId;
+    });
+  }, [orders, studentEmail, studentId, user?.id]);
+
+  // Compute live KPI metrics for student
   const totalRevenue = useMemo(() => {
-    return orders
+    return userOrders
       .filter((o) => o.paymentStatus === 'PAID')
       .reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
-  }, [orders]);
+  }, [userOrders]);
 
   const totalStockUnits = useMemo(() => {
     return products.reduce((acc, item) => acc + getProductTotalStock(item), 0);
   }, [products, getProductTotalStock]);
 
   const pendingCollectionOrders = useMemo(() => {
-    return orders.filter((o) => o.paymentStatus === 'PENDING');
-  }, [orders]);
+    return userOrders.filter((o) => o.paymentStatus === 'PENDING' || o.fulfillmentStatus === 'READY_FOR_PICKUP');
+  }, [userOrders]);
 
   const pendingCollectionsAmount = useMemo(() => {
     return pendingCollectionOrders.reduce((sum, o) => sum + (parseFloat(o.totalPrice) || 0), 0);
@@ -89,12 +105,12 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
 
   // Filtered orders
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
+    return userOrders.filter((order) => {
       const matchesPayment =
         orderPaymentFilter === 'ALL' || order.paymentStatus === orderPaymentFilter;
       return matchesPayment;
     });
-  }, [orders, orderPaymentFilter]);
+  }, [userOrders, orderPaymentFilter]);
 
   // Price calculation helper
   const getProductPrice = (basePrice) => {
@@ -244,11 +260,11 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
 
       {/* 4 KPI Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* KPI 1: Recorded Sales Revenue */}
+        {/* KPI 1: Recorded Purchases */}
         <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Recorded Sales Revenue
+              My Total Purchases
             </span>
             <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
@@ -258,7 +274,7 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
             ${totalRevenue.toFixed(2)}
           </p>
           <span className="text-[11px] text-emerald-700 font-medium mt-1">
-            ✓ Deposited to Club Treasury
+            ✓ Confirmed Member Purchases
           </span>
         </div>
 
@@ -284,17 +300,17 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
         <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Total Online Orders
+              My Apparel Orders
             </span>
             <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <p className="text-xl sm:text-2xl font-bold text-zinc-900 font-mono mt-1.5">
-            {orders.length} Orders
+            {userOrders.length} Orders
           </p>
           <span className="text-[11px] text-slate-500 mt-1">
-            {orders.filter((o) => o.paymentStatus === 'PAID').length} Paid • {pendingCollectionOrders.length} Pending
+            {userOrders.filter((o) => o.paymentStatus === 'PAID').length} Paid • {pendingCollectionOrders.length} Pending
           </span>
         </div>
 

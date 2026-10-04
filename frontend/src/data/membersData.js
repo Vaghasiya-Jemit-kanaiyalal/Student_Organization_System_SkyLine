@@ -1,5 +1,5 @@
 /**
- * ConnectU Member Management Data Module
+ * Skyline Member Management Data Module
  * Clean, structured records for All Members, Renewals, and Member Details Modal
  */
 

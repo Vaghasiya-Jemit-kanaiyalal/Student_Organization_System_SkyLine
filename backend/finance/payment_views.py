@@ -69,6 +69,21 @@ class EventCreatePaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Prevent duplicate tickets for same event
+        already_booked = event.tickets.filter(
+            student=user,
+            status=Ticket.Status.CONFIRMED
+        ).first()
+        if already_booked:
+            return Response(
+                {
+                    "error": f"You are already registered for '{event.title}'. Duplicate registrations are not permitted.",
+                    "already_registered": True,
+                    "ticket_id": already_booked.ticket_id
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Determine price authoritatively on backend based on student membership status
         is_member = (
             getattr(user, 'membership_status', 'NONE') == 'ACTIVE'
@@ -368,6 +383,18 @@ class RazorpayPaymentVerifyView(APIView):
                 event_id = payment.metadata.get('event_id')
                 tier = payment.metadata.get('tier', 'Standard Pass')
                 event = Event.objects.select_for_update().get(pk=event_id)
+
+                # Prevent duplicate tickets for same event
+                already_booked = event.tickets.filter(
+                    student=user,
+                    status=Ticket.Status.CONFIRMED
+                ).exists()
+                if already_booked:
+                    payment.status = Payment.Status.FAILED
+                    payment.save(update_fields=['status'])
+                    return Response({
+                        "error": f"You are already registered for '{event.title}'. Duplicate registrations are not permitted."
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
                 # Generate secure verification URL for event admission
                 ticket_uuid = uuid.uuid4()

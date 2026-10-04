@@ -53,6 +53,12 @@ import {
 } from 'lucide-react';
 import { StudentMerchStore } from '../../components/merchandise/StudentMerchStore';
 
+const getUserTicketStorageKey = (u) => {
+  if (!u) return null;
+  const identifier = u.email || u.id || u.studentId || u.student_id;
+  return identifier ? `skyline_my_tickets_${identifier}` : null;
+};
+
 export const MemberDashboard = () => {
   const { user, buyClubMembership, renewMembership, updateUserProfile } = useAuth();
   const { products, getProductPricing, placeOrder, getProductTotalStock } = useMerchandise();
@@ -219,19 +225,19 @@ export const MemberDashboard = () => {
 
   // Student Profile State
   const [studentProfile, setStudentProfile] = useState(() => ({
-    name: user?.name || user?.fullName || 'Rohan Sharma',
-    studentId: user?.studentId || user?.student_id || 'STU-2026-905',
-    email: user?.email || 'rohan.sharma@studentorg.edu',
-    phone: user?.phone || '+1 (555) 234-8910',
+    name: user?.name || user?.fullName || user?.full_name || 'Student',
+    studentId: user?.studentId || user?.student_id || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
     department: user?.department || 'Computer Science & Software Engineering',
-    semester: user?.semester || 'Semester 4 • 2026',
+    semester: user?.semester || 'Semester 1 • 2026',
     membershipStatus: membershipStatus,
     membershipType: isMember ? (membershipType === 'SEMESTER' ? 'Semester' : 'Annual') : 'None',
     membershipBadge: membershipBadge,
     membershipStartDate: user?.membership_start_date || user?.membershipStartDate || (isMember ? '2026-09-01' : 'N/A'),
     membershipEndDate: user?.membership_end_date || user?.membershipEndDate || (isMember ? '2027-08-31' : 'N/A'),
     avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-    bio: 'Undergraduate student passionate about robotics, software architecture, and campus leadership.'
+    bio: 'Campus student member.'
   }));
 
   // Sync profile when user changes
@@ -244,7 +250,7 @@ export const MemberDashboard = () => {
 
       setStudentProfile((prev) => ({
         ...prev,
-        name: user.name || user.fullName || prev.name,
+        name: user.name || user.fullName || user.full_name || prev.name,
         studentId: user.studentId || user.student_id || prev.studentId,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
@@ -266,21 +272,63 @@ export const MemberDashboard = () => {
   // Events State
   const [eventsList, setEventsList] = useState([]);
 
-  // Tickets State (empty by default until reserved on server)
-  const [ticketsList, setTicketsList] = useState([]);
+  // Tickets State with user-scoped persistence
+  const [ticketsList, setTicketsList] = useState(() => {
+    try {
+      localStorage.removeItem('skyline_my_tickets_v1');
+      const key = getUserTicketStorageKey(user);
+      if (key) {
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed reading saved tickets:', e);
+    }
+    return [];
+  });
 
-  // Sync ticketsList to localStorage
+  // Sync ticketsList to user-scoped localStorage
   useEffect(() => {
+    const key = getUserTicketStorageKey(user);
+    if (!key) return;
     try {
       if (ticketsList.length > 0) {
-        localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(ticketsList));
+        localStorage.setItem(key, JSON.stringify(ticketsList));
       } else {
-        localStorage.removeItem('skyline_my_tickets_v1');
+        localStorage.removeItem(key);
       }
     } catch (e) {
       console.warn('Failed saving tickets:', e);
     }
-  }, [ticketsList]);
+  }, [ticketsList, user?.email, user?.id]);
+
+  // Immediately clear and reset all private user data when switching logged-in accounts
+  useEffect(() => {
+    try {
+      localStorage.removeItem('skyline_my_tickets_v1');
+    } catch (e) {}
+
+    const key = getUserTicketStorageKey(user);
+    if (key) {
+      try {
+        const saved = localStorage.getItem(key);
+        setTicketsList(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        setTicketsList([]);
+      }
+    } else {
+      setTicketsList([]);
+    }
+
+    setVolunteerApplications([]);
+    setActiveVolunteerWork([]);
+    setCertificatesList([]);
+    setUserTransactions([]);
+    setMerchandiseOrders([]);
+  }, [user?.id, user?.email]);
 
   // Volunteer Applications & Assignments State
   const [volunteerApplications, setVolunteerApplications] = useState([]);
@@ -465,69 +513,61 @@ export const MemberDashboard = () => {
 
         if (appsRes) {
           const rawApps = Array.isArray(appsRes) ? appsRes : appsRes?.results || [];
-          if (rawApps.length > 0) {
-            const mappedApps = rawApps.map((a) => ({
-              id: a.id,
-              eventName: a.event_details?.title || `Event #${a.event}`,
-              roleApplied: a.preferred_role,
-              preferred_role: a.preferred_role,
-              appliedDate: new Date(a.applied_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-              status: a.status,
-              feedback: a.admin_feedback || (a.status === 'Approved' ? 'Application Approved. Assignment active.' : a.status === 'Pending' ? 'Application received and under review.' : 'Application declined.'),
-            }));
-            setVolunteerApplications(mappedApps);
-          }
+          const mappedApps = rawApps.map((a) => ({
+            id: a.id,
+            eventName: a.event_details?.title || `Event #${a.event}`,
+            roleApplied: a.preferred_role,
+            preferred_role: a.preferred_role,
+            appliedDate: new Date(a.applied_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            status: a.status,
+            feedback: a.admin_feedback || (a.status === 'Approved' ? 'Application Approved. Assignment active.' : a.status === 'Pending' ? 'Application received and under review.' : 'Application declined.'),
+          }));
+          setVolunteerApplications(mappedApps);
         }
 
         if (activeRes) {
           const rawActive = Array.isArray(activeRes) ? activeRes : activeRes?.results || [];
-          if (rawActive.length > 0) {
-            const mappedActive = rawActive.map((item) => ({
-              id: item.id,
-              event: item.event_details?.title || `Event #${item.event}`,
-              assignedRole: item.assigned_role,
-              duration: item.duration || '4 Hours',
-              status: item.status || 'Active',
-              notes: item.notes,
-              approvedDate: new Date(item.approved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-            }));
-            setActiveVolunteerWork(mappedActive);
-          }
+          const mappedActive = rawActive.map((item) => ({
+            id: item.id,
+            event: item.event_details?.title || `Event #${item.event}`,
+            assignedRole: item.assigned_role,
+            duration: item.duration || '4 Hours',
+            status: item.status || 'Active',
+            notes: item.notes,
+            approvedDate: new Date(item.approved_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+          }));
+          setActiveVolunteerWork(mappedActive);
         }
 
         if (certsRes) {
           const rawCerts = Array.isArray(certsRes) ? certsRes : certsRes?.results || [];
-          if (rawCerts.length > 0) {
-            const mappedCerts = rawCerts.map((c) => ({
-              id: c.certificate_id,
-              title: `${c.volunteer_role} Certificate of Service`,
-              eventName: c.event_name || c.event_title || c.event_details?.title || 'Campus Event',
-              volunteerRole: c.volunteer_role,
-              studentName: c.student_name || studentProfile.name,
-              duration: c.duration,
-              issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-              authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
-              credentialHash: c.verification_hash || `sha256-${String(c.certificate_id || '').toLowerCase()}`,
-            }));
-            setCertificatesList(mappedCerts);
-          }
+          const mappedCerts = rawCerts.map((c) => ({
+            id: c.certificate_id,
+            title: `${c.volunteer_role} Certificate of Service`,
+            eventName: c.event_name || c.event_title || c.event_details?.title || 'Campus Event',
+            volunteerRole: c.volunteer_role,
+            studentName: c.student_name || studentProfile.name,
+            duration: c.duration,
+            issueDate: new Date(c.issue_date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            authorizedSigner: 'Dr. Alexander Vance, Faculty Sponsor',
+            credentialHash: c.verification_hash || `sha256-${String(c.certificate_id || '').toLowerCase()}`,
+          }));
+          setCertificatesList(mappedCerts);
         }
 
         if (announcementsRes) {
           const rawAnc = Array.isArray(announcementsRes) ? announcementsRes : announcementsRes?.results || [];
-          if (rawAnc.length > 0) {
-            const mappedAnc = rawAnc.map((anc) => ({
-              id: anc.id,
-              title: anc.title,
-              category: anc.category || 'General',
-              publishedDate: anc.publishedDate || anc.sentDate || (anc.created_at ? new Date(anc.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-              author: anc.author || 'Office of Student Affairs',
-              summary: anc.summary || (anc.content ? (anc.content.length > 180 ? anc.content.slice(0, 180) + '...' : anc.content) : ''),
-              fullContent: anc.fullContent || anc.content || '',
-              priority: anc.priority || 'Normal',
-            }));
-            setAnnouncementsList(mappedAnc);
-          }
+          const mappedAnc = rawAnc.map((anc) => ({
+            id: anc.id,
+            title: anc.title,
+            category: anc.category || 'General',
+            publishedDate: anc.publishedDate || anc.sentDate || (anc.created_at ? new Date(anc.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+            author: anc.author || 'Office of Student Affairs',
+            summary: anc.summary || (anc.content ? (anc.content.length > 180 ? anc.content.slice(0, 180) + '...' : anc.content) : ''),
+            fullContent: anc.fullContent || anc.content || '',
+            priority: anc.priority || 'Normal',
+          }));
+          setAnnouncementsList(mappedAnc);
         }
 
         if (ticketsRes !== null && ticketsRes !== undefined) {
@@ -535,6 +575,9 @@ export const MemberDashboard = () => {
           const serverMapped = rawTickets.map((t) => ({
             id: t.ticket_id || t.id,
             ticket_id: t.ticket_id || t.id,
+            event: t.event?.id || t.event,
+            eventId: t.event?.id || t.event,
+            event_id: t.event?.id || t.event,
             eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
             date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
             venue: t.venue || t.event_details?.venue || 'Campus Center',
@@ -545,7 +588,7 @@ export const MemberDashboard = () => {
             status: t.status || 'Confirmed',
             tier: t.tier || 'Member Pass',
             category: t.category || t.event_details?.event_type || 'Campus Event',
-            qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
+            qrCodeData: t.qrCodeData || t.qr_code_data || (t.qr_token || '') || `CONNECTU-${t.event?.id || t.event}-${studentProfile.studentId}`,
             qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
             qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
             image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
@@ -554,10 +597,14 @@ export const MemberDashboard = () => {
 
           setTicketsList(serverMapped);
           try {
-            if (serverMapped.length === 0) {
-              localStorage.removeItem('skyline_my_tickets_v1');
-            } else {
-              localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(serverMapped));
+            localStorage.removeItem('skyline_my_tickets_v1');
+            const key = getUserTicketStorageKey(user);
+            if (key) {
+              if (serverMapped.length === 0) {
+                localStorage.removeItem(key);
+              } else {
+                localStorage.setItem(key, JSON.stringify(serverMapped));
+              }
             }
           } catch (e) {
             console.warn('Storage sync err:', e);
@@ -571,7 +618,7 @@ export const MemberDashboard = () => {
     fetchMemberData();
     loadMerchandiseOrders();
     loadUserTransactions();
-  }, [studentProfile.name]);
+  }, [user?.id, user?.email]);
 
   // Handle Photo Upload
   const handleAvatarFileChange = (e) => {
@@ -596,17 +643,84 @@ export const MemberDashboard = () => {
     reader.readAsDataURL(file);
   };
 
+  // Helper to check if an event is actively open for volunteer applications
+  // Volunteer applications are NOT available on the day of the event or in the past
+  const isVolunteerOpportunityOpen = (evt) => {
+    if (!evt) return false;
+    const hasVolunteers = Boolean(evt.volunteers_required || evt.volunteersRequired);
+    if (!hasVolunteers) return false;
+
+    const dateStr = evt.rawDate || evt.date;
+    if (dateStr) {
+      try {
+        let evtYear, evtMonth, evtDay;
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+          const parts = dateStr.slice(0, 10).split('-');
+          evtYear = parseInt(parts[0], 10);
+          evtMonth = parseInt(parts[1], 10) - 1;
+          evtDay = parseInt(parts[2], 10);
+        } else {
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return true;
+          evtYear = d.getFullYear();
+          evtMonth = d.getMonth();
+          evtDay = d.getDate();
+        }
+
+        const today = new Date();
+        const eventDateOnly = new Date(evtYear, evtMonth, evtDay, 0, 0, 0, 0);
+        const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+
+        // If event is on or before today, volunteer opportunity is closed
+        if (eventDateOnly <= todayDateOnly) {
+          return false;
+        }
+      } catch (e) {
+        console.warn('Error checking volunteer event date:', e);
+      }
+    }
+    return true;
+  };
+
   // Open Volunteer Modal with role prefill
   const openVolunteerApplication = (evt) => {
+    if (!isVolunteerOpportunityOpen(evt)) {
+      showToast('Volunteer applications are closed on the day of the event.', 'warning');
+      return;
+    }
     setApplyVolunteerModalEvent(evt);
     const availableRoles = evt.roles_list || evt.volunteer_roles_required || [];
     setVolunteerPreferredRole(availableRoles[0] || 'Registration Desk');
     setVolunteerMotivation('');
     setVolunteerExperience('');
   };
+  // Check if current student already registered for an event
+  const isEventRegistered = (eventId, eventTitle) => {
+    if (!eventId && !eventTitle) return false;
+    return ticketsList.some((tck) => {
+      if (tck.status === 'Cancelled') return false;
+      const tckEventId = tck.event?.id || tck.eventId || tck.event_id || (typeof tck.event === 'number' ? tck.event : null);
+      if (eventId && tckEventId && String(tckEventId) === String(eventId)) {
+        return true;
+      }
+      const tckTitle = (tck.eventTitle || tck.event_details?.title || (typeof tck.event === 'string' ? tck.event : '') || '').toLowerCase().trim();
+      const targetTitle = String(eventTitle || '').toLowerCase().trim();
+      if (targetTitle && tckTitle && (tckTitle === targetTitle || tckTitle.includes(targetTitle) || targetTitle.includes(tckTitle))) {
+        return true;
+      }
+      return false;
+    });
+  };
+
   const handleBuyTicketSubmit = (e) => {
     e.preventDefault();
     if (!buyTicketModalEvent) return;
+
+    if (isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title)) {
+      alert(`You already have a confirmed admission ticket for "${buyTicketModalEvent.title}". Each student is allowed only one pass per event.`);
+      setBuyTicketModalEvent(null);
+      return;
+    }
 
     const isMemberEligible = isEligibleForMemberPrice();
     const finalPricePaid = isMemberEligible ? buyTicketModalEvent.memberPrice : buyTicketModalEvent.nonMemberPrice;
@@ -1095,7 +1209,7 @@ export const MemberDashboard = () => {
                     </div>
                   </div>
                   <div className="text-2xl font-bold text-slate-900 mt-1">
-                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
+                    {eventsList.filter(isVolunteerOpportunityOpen).length}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {activeVolunteerWork.length} active • {volunteerApplications.length} applied
@@ -1198,12 +1312,22 @@ export const MemberDashboard = () => {
                               <span className="text-xs font-semibold text-slate-900">{evt.nonMemberPrice || evt.memberPrice || 'Free'}</span>
                             </div>
 
-                            <button
-                              onClick={() => setBuyTicketModalEvent(evt)}
-                              className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
-                            >
-                              Reserve
-                            </button>
+                            {isEventRegistered(evt.id, evt.title) ? (
+                              <button
+                                onClick={() => handleTabSelect('tickets')}
+                                className="px-3 py-1.5 rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Booked</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setBuyTicketModalEvent(evt)}
+                                className="px-3.5 py-1.5 rounded-md bg-zinc-900 hover:bg-black text-white text-xs font-semibold transition shadow-2xs cursor-pointer"
+                              >
+                                Reserve
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1699,7 +1823,7 @@ export const MemberDashboard = () => {
             {filteredEvents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEvents.map(evt => {
-                  const hasVolunteers = evt.volunteers_required || evt.volunteersRequired;
+                  const hasVolunteers = isVolunteerOpportunityOpen(evt);
                   return (
                     <div
                       key={evt.id}
@@ -1810,13 +1934,24 @@ export const MemberDashboard = () => {
                           >
                             View Details
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setBuyTicketModalEvent(evt)}
-                            className="flex-1 py-1.5 px-3 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition text-center"
-                          >
-                            Buy Ticket
-                          </button>
+                          {isEventRegistered(evt.id, evt.title) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTabSelect('tickets')}
+                              className="flex-1 py-1.5 px-3 rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Registered (View Pass)</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setBuyTicketModalEvent(evt)}
+                              className="flex-1 py-1.5 px-3 rounded bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs transition text-center cursor-pointer"
+                            >
+                              Buy Ticket
+                            </button>
+                          )}
                         </div>
 
                         {/* Apply as Volunteer Button if volunteers_required */}
@@ -2210,7 +2345,7 @@ export const MemberDashboard = () => {
                 >
                   <span>1. Opportunities</span>
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${volunteerSubTab === 'opportunities' ? 'bg-white/20 text-white' : 'bg-canvas text-text-muted'}`}>
-                    {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length}
+                    {eventsList.filter(isVolunteerOpportunityOpen).length}
                   </span>
                 </button>
 
@@ -2258,10 +2393,10 @@ export const MemberDashboard = () => {
                   </span>
                 </div>
 
-                {eventsList.filter(e => e.volunteers_required || e.volunteersRequired).length > 0 ? (
+                {eventsList.filter(isVolunteerOpportunityOpen).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {eventsList
-                      .filter(e => e.volunteers_required || e.volunteersRequired)
+                      .filter(isVolunteerOpportunityOpen)
                       .map(opp => {
                         const roles = opp.roles_list || opp.volunteer_roles_required || ['Registration Desk', 'Hospitality'];
                         return (
@@ -3652,6 +3787,16 @@ export const MemberDashboard = () => {
             </div>
 
             <form onSubmit={handleBuyTicketSubmit} className="space-y-3">
+              {isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title) && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Already Registered</p>
+                    <p className="text-[11px] text-amber-800">You already hold an active admission pass for this event. Each student is limited to one pass per event.</p>
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] text-slate-500">
                 A verified QR admission ticket will be generated into your "My Tickets" tab.
               </p>
@@ -3664,13 +3809,27 @@ export const MemberDashboard = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className={`flex-1 h-9 rounded-lg text-white text-xs font-semibold transition flex items-center justify-center cursor-pointer shadow-2xs ${isEligibleForMemberPrice() ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-zinc-900 hover:bg-black'
-                    }`}
-                >
-                  {isEligibleForMemberPrice() ? 'Confirm (Member Rate)' : 'Confirm & Purchase'}
-                </button>
+                {isEventRegistered(buyTicketModalEvent.id, buyTicketModalEvent.title) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuyTicketModalEvent(null);
+                      handleTabSelect('tickets');
+                    }}
+                    className="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>View Confirmed Pass</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className={`flex-1 h-9 rounded-lg text-white text-xs font-semibold transition flex items-center justify-center cursor-pointer shadow-2xs ${isEligibleForMemberPrice() ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-zinc-900 hover:bg-black'
+                      }`}
+                  >
+                    {isEligibleForMemberPrice() ? 'Confirm (Member Rate)' : 'Confirm & Purchase'}
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -3739,7 +3898,7 @@ export const MemberDashboard = () => {
             </div>
 
             {/* Volunteer Opportunity Info if required */}
-            {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+            {isVolunteerOpportunityOpen(viewEventDetailsModal) && (
               <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
                 <div className="flex items-center gap-1.5 text-primary font-bold">
                   <HeartHandshake className="w-4 h-4" />
@@ -3759,7 +3918,7 @@ export const MemberDashboard = () => {
               >
                 Close
               </button>
-              {(viewEventDetailsModal.volunteers_required || viewEventDetailsModal.volunteersRequired) && (
+              {isVolunteerOpportunityOpen(viewEventDetailsModal) && (
                 <button
                   type="button"
                   onClick={() => {
@@ -3772,17 +3931,31 @@ export const MemberDashboard = () => {
                   <HeartHandshake className="w-3.5 h-3.5" /> Apply as Volunteer
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  const evt = viewEventDetailsModal;
-                  setViewEventDetailsModal(null);
-                  setBuyTicketModalEvent(evt);
-                }}
-                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-xs"
-              >
-                Buy Ticket
-              </button>
+              {isEventRegistered(viewEventDetailsModal.id, viewEventDetailsModal.title) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewEventDetailsModal(null);
+                    handleTabSelect('tickets');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                  <span>Already Registered • View Pass</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const evt = viewEventDetailsModal;
+                    setViewEventDetailsModal(null);
+                    setBuyTicketModalEvent(evt);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold shadow-xs cursor-pointer"
+                >
+                  Buy Ticket
+                </button>
+              )}
             </div>
           </div>
         </div>
