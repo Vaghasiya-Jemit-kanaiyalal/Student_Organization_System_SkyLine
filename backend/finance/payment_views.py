@@ -28,6 +28,12 @@ from .qr_utils import generate_qr_image_file
 from .pdf_utils import generate_ticket_pdf, generate_merchandise_pdf
 from .payment_service import get_payment_service
 
+from django.conf import settings
+from accounts.services.email_service import (
+    send_event_payment_success_email,
+    send_merchandise_payment_success_email
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -388,6 +394,39 @@ class RazorpayPaymentVerifyView(APIView):
                 pdf_file = generate_ticket_pdf(ticket)
                 ticket.pdf_file.save(f"{ticket.ticket_id}.pdf", pdf_file, save=False)
                 ticket.save()
+                payment.ticket = ticket
+                payment.status = Payment.Status.SUCCESS
+                payment.save(update_fields=['ticket', 'status'])
+
+                # Record in Finance General Ledger
+                Transaction.objects.create(
+                    title=f"Event Ticket - {event.title} ({tier})",
+                    amount=payment.amount,
+                    transaction_type=Transaction.Type.INCOME,
+                    category=Transaction.Category.EVENT_TICKET,
+                    reference_type=Transaction.ReferenceType.EVENT_TICKET,
+                    reference_id=ticket.ticket_id,
+                    party_name=user.full_name or 'Student Member',
+                    description=f"Ticket #{ticket.ticket_id} via Online Payment {razorpay_payment_id or payment.razorpay_payment_id or payment.transaction_id}",
+                    date=timezone.now().date(),
+                    recorded_by=user
+                )
+
+                # Dispatch official event ticket confirmation email
+                try:
+                    send_event_payment_success_email(
+                        user=user,
+                        event_name=event.title,
+                        event_date=str(event.date),
+                        event_time=getattr(event, 'time_display', '10:00 AM') or '10:00 AM',
+                        event_venue=getattr(event, 'venue', '') or getattr(event, 'location', '') or 'Skyline University Campus',
+                        ticket_id=ticket.ticket_id,
+                        amount_paid=str(payment.amount),
+                        payment_id=razorpay_payment_id or payment.razorpay_payment_id or str(payment.id),
+                        ticket_url=f"{frontend_url}/ticket/{ticket.ticket_uuid}"
+                    )
+                except Exception as email_err:
+                    logger.error(f"Failed to dispatch event ticket confirmation email: {email_err}")
 
                 return Response({
                     'success': True,
@@ -431,6 +470,43 @@ class RazorpayPaymentVerifyView(APIView):
                 pdf_file = generate_merchandise_pdf(order)
                 order.pdf_file.save(f"{order.order_id}.pdf", pdf_file, save=False)
                 order.save()
+                payment.merchandise_order = order
+                payment.status = Payment.Status.SUCCESS
+                payment.save(update_fields=['merchandise_order', 'status'])
+
+                # Record in Finance General Ledger
+                Transaction.objects.create(
+                    title=f"Merchandise Order - {product.name if product else 'Merchandise'} ({order.variant})",
+                    amount=payment.amount,
+                    transaction_type=Transaction.Type.INCOME,
+                    category=Transaction.Category.MERCHANDISE,
+                    reference_type=Transaction.ReferenceType.MERCHANDISE,
+                    reference_id=order.order_id,
+                    party_name=user.full_name or 'Student Customer',
+                    description=f"Order #{order.order_id} ({order.quantity}x {order.variant}) via Online Payment {razorpay_payment_id or payment.razorpay_payment_id or payment.transaction_id}",
+                    date=timezone.now().date(),
+                    recorded_by=user
+                )
+
+                # Dispatch official merchandise order confirmation email
+                try:
+                    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+                    product_name = product.name if product else 'Skyline Official Merchandise'
+                    image_url = product.image if product and product.image else ''
+                    send_merchandise_payment_success_email(
+                        user=user,
+                        order_id=order.order_id,
+                        item_name=product_name,
+                        amount_paid=str(payment.amount),
+                        quantity=order.quantity,
+                        variant=order.variant,
+                        image_url=image_url,
+                        payment_id=razorpay_payment_id or payment.razorpay_payment_id or str(payment.id),
+                        collection_status=order.collection_status,
+                        order_url=f"{frontend_url}/member/dashboard?tab=merchandise"
+                    )
+                except Exception as email_err:
+                    logger.error(f"Failed to dispatch merchandise confirmation email: {email_err}")
 
                 return Response({
                     'success': True,

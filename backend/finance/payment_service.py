@@ -355,15 +355,22 @@ class DemoPaymentService(BasePaymentService):
                 size = str(payment.metadata.get('size') or 'M').strip()
                 quantity = int(payment.metadata.get('quantity', 1))
 
-                product = MerchandiseProduct.objects.select_for_update().get(pk=product_id)
+                product = MerchandiseProduct.objects.select_for_update().filter(pk=product_id).first()
+                if not product:
+                    product = MerchandiseProduct.objects.select_for_update().first()
 
-                # Stock deduction upon success
-                size_map = product.size_stock or {}
-                curr_stock = int(size_map.get(size, 0))
-                new_stock = max(0, curr_stock - quantity)
-                size_map[size] = new_stock
-                product.size_stock = size_map
-                product.save(update_fields=['size_stock'])
+                if product:
+                    # Stock deduction upon success
+                    size_map = product.size_stock or {}
+                    curr_stock = int(size_map.get(size, 0))
+                    new_stock = max(0, curr_stock - quantity)
+                    size_map[size] = new_stock
+                    product.size_stock = size_map
+                    product.save(update_fields=['size_stock'])
+
+                product_name = product.name if product else 'Skyline Campus Merchandise'
+                product_price = Decimal(str(payment.metadata.get('unit_price', product.regular_price if product else 500.00)))
+                product_image = product.image if product and product.image else ''
 
                 generated_order_id = f"ORD-{timezone.now().year}-{uuid.uuid4().hex[:6].upper()}"
                 qr_token = f"SKYLINE-MERCH:{uuid.uuid4()}"
@@ -374,7 +381,7 @@ class DemoPaymentService(BasePaymentService):
                     merchandise=product,
                     variant=size,
                     quantity=quantity,
-                    unit_price=Decimal(str(payment.metadata.get('unit_price', product.regular_price))),
+                    unit_price=product_price,
                     total_amount=payment.amount,
                     payment=payment,
                     order_status=MerchandiseOrder.OrderStatus.CONFIRMED,
@@ -404,7 +411,7 @@ class DemoPaymentService(BasePaymentService):
 
                 # Record in Finance General Ledger
                 Transaction.objects.create(
-                    title=f"Merchandise Order - {product.name} ({size})",
+                    title=f"Merchandise Order - {product_name} ({size})",
                     amount=payment.amount,
                     transaction_type=Transaction.Type.INCOME,
                     category=Transaction.Category.MERCHANDISE,
@@ -421,11 +428,11 @@ class DemoPaymentService(BasePaymentService):
                     send_merchandise_payment_success_email(
                         user=user,
                         order_id=order.order_id,
-                        item_name=product.name,
+                        item_name=product_name,
                         amount_paid=str(payment.amount),
                         quantity=quantity,
                         variant=size,
-                        image_url=product.image,
+                        image_url=product_image,
                         payment_id=payment.transaction_id,
                         collection_status='READY FOR COLLECTION'
                     )
@@ -544,8 +551,13 @@ class DemoPaymentService(BasePaymentService):
 
     def get_user_transactions(self, user: User) -> list:
         """
-        Returns list of all payment transactions for the specified user.
+        Returns list of all payment transactions for the specified user,
+        including event tickets, merchandise purchases, and club memberships.
         """
+        from volunteers.models import Ticket
+        from finance.models import MerchandiseOrder, Transaction
+        from accounts.models import ClubMembership
+
         payments = (
             Payment.objects
             .filter(user=user)
@@ -554,34 +566,66 @@ class DemoPaymentService(BasePaymentService):
         )
 
         results = []
+        seen_payment_ids = set()
+        seen_ticket_ids = set()
+        seen_order_ids = set()
+
         for p in payments:
-            # Determine appropriate item title and download links
-            item_title = p.metadata.get('event_title') or p.metadata.get('product_name') or p.metadata.get('fundraiser_title') or p.payment_type
-            reference_code = ''
+            seen_payment_ids.add(p.id)
+            item_title = (
+                p.metadata.get('event_title')
+                or p.metadata.get('product_name')
+                or p.metadata.get('fundraiser_title')
+                or p.metadata.get('title')
+                or str(p.payment_type).replace('_', ' ').title()
+            )
+            reference_code = p.transaction_id or p.razorpay_payment_id or f"TXN-{p.id}"
             pdf_url = None
             qr_url = None
 
-            if p.ticket:
-                item_title = p.ticket.event.title
-                reference_code = f"Ticket #{p.ticket.ticket_id}"
-                if p.ticket.pdf_file:
-                    pdf_url = p.ticket.pdf_file.url
-                if p.ticket.qr_code:
-                    qr_url = p.ticket.qr_code.url
-            elif p.merchandise_order:
-                item_title = p.merchandise_order.merchandise.name
-                reference_code = f"Order #{p.merchandise_order.order_id}"
-                if p.merchandise_order.pdf_file:
-                    pdf_url = p.merchandise_order.pdf_file.url
-                if p.merchandise_order.qr_code:
-                    qr_url = p.merchandise_order.qr_code.url
+            # 1. Ticket Association
+            ticket_obj = p.ticket or Ticket.objects.filter(payment=p).first()
+            if not ticket_obj and p.payment_type == Payment.PaymentType.EVENT_TICKET:
+                event_id = p.metadata.get('event_id')
+                if event_id:
+                    ticket_obj = Ticket.objects.filter(student=user, event_id=event_id).order_by('-id').first()
+
+            if ticket_obj:
+                item_title = f"{ticket_obj.event.title} ({ticket_obj.tier})"
+                reference_code = f"Ticket #{ticket_obj.ticket_id}"
+                if ticket_obj.pdf_file:
+                    pdf_url = ticket_obj.pdf_file.url
+                if ticket_obj.qr_code:
+                    qr_url = ticket_obj.qr_code.url
+                seen_ticket_ids.add(ticket_obj.ticket_id)
+
+            # 2. Merchandise Order Association
+            elif p.merchandise_order or p.payment_type == Payment.PaymentType.MERCHANDISE:
+                m_order = p.merchandise_order or MerchandiseOrder.objects.filter(payment=p).first()
+                if not m_order:
+                    order_id = p.metadata.get('order_id')
+                    if order_id:
+                        m_order = MerchandiseOrder.objects.filter(order_id=order_id).first()
+                if m_order:
+                    item_name = m_order.merchandise.name if m_order.merchandise else 'Campus Merchandise'
+                    item_title = f"{item_name} ({m_order.variant} x{m_order.quantity})"
+                    reference_code = f"Order #{m_order.order_id}"
+                    if m_order.pdf_file:
+                        pdf_url = m_order.pdf_file.url
+                    if m_order.qr_code:
+                        qr_url = m_order.qr_code.url
+                    seen_order_ids.add(m_order.order_id)
+
+            # 3. Membership Association
             elif p.payment_type == Payment.PaymentType.MEMBERSHIP:
-                item_title = f"Membership Plan ({p.metadata.get('plan', 'Annual')})"
-                reference_code = p.transaction_id
+                club_name = p.metadata.get('club_name') or 'Skyline Student Association'
+                plan = p.metadata.get('plan') or p.metadata.get('membership_type') or 'Annual'
+                item_title = f"Club Membership - {club_name} ({plan})"
+                reference_code = f"Plan #{p.transaction_id}"
 
             results.append({
                 'id': p.id,
-                'transaction_id': p.transaction_id,
+                'transaction_id': p.transaction_id or p.razorpay_payment_id or f"TXN-{p.id}",
                 'date': p.created_at.strftime('%d %b %Y • %I:%M %p') if p.created_at else '',
                 'date_short': p.created_at.strftime('%d %b %Y') if p.created_at else '',
                 'payment_type': p.payment_type,
@@ -596,6 +640,72 @@ class DemoPaymentService(BasePaymentService):
                 'metadata': p.metadata,
                 'completed_at': p.completed_at.isoformat() if p.completed_at else None
             })
+
+        # Also include any Tickets not linked to a payment in results
+        for t in Ticket.objects.filter(student=user).select_related('event'):
+            if t.ticket_id not in seen_ticket_ids:
+                results.append({
+                    'id': f"tck-{t.id}",
+                    'transaction_id': t.ticket_id,
+                    'date': t.created_at.strftime('%d %b %Y • %I:%M %p') if hasattr(t, 'created_at') and t.created_at else 'Confirmed',
+                    'date_short': 'Confirmed',
+                    'payment_type': 'EVENT_TICKET',
+                    'payment_mode': 'ONLINE',
+                    'status': 'SUCCESS' if t.status == 'Confirmed' else t.status,
+                    'amount': float(t.price_paid),
+                    'currency': 'INR',
+                    'item_title': f"{t.event.title} ({t.tier})",
+                    'reference_code': f"Ticket #{t.ticket_id}",
+                    'pdf_url': t.pdf_file.url if t.pdf_file else None,
+                    'qr_url': t.qr_code.url if t.qr_code else None,
+                    'metadata': {'ticket_id': t.ticket_id, 'event_id': t.event.id},
+                    'completed_at': None
+                })
+                seen_ticket_ids.add(t.ticket_id)
+
+        # Also include any MerchandiseOrders not linked
+        for o in MerchandiseOrder.objects.filter(user=user).select_related('merchandise'):
+            if o.order_id not in seen_order_ids:
+                results.append({
+                    'id': f"ord-{o.id}",
+                    'transaction_id': o.order_id,
+                    'date': o.created_at.strftime('%d %b %Y • %I:%M %p') if hasattr(o, 'created_at') and o.created_at else 'Confirmed',
+                    'date_short': 'Confirmed',
+                    'payment_type': 'MERCHANDISE',
+                    'payment_mode': 'ONLINE',
+                    'status': 'SUCCESS' if o.order_status == 'CONFIRMED' else o.order_status,
+                    'amount': float(o.total_amount),
+                    'currency': 'INR',
+                    'item_title': f"{o.merchandise.name if o.merchandise else 'Merchandise'} ({o.variant} x{o.quantity})",
+                    'reference_code': f"Order #{o.order_id}",
+                    'pdf_url': o.pdf_file.url if o.pdf_file else None,
+                    'qr_url': o.qr_code.url if o.qr_code else None,
+                    'metadata': {'order_id': o.order_id},
+                    'completed_at': None
+                })
+                seen_order_ids.add(o.order_id)
+
+        # Also include any ClubMembership records
+        for cm in ClubMembership.objects.filter(student=user):
+            cm_key = f"MEM-{cm.id}"
+            if cm_key not in seen_payment_ids:
+                results.append({
+                    'id': f"mem-{cm.id}",
+                    'transaction_id': cm_key,
+                    'date': cm.start_date.strftime('%d %b %Y') if cm.start_date else 'Active',
+                    'date_short': cm.start_date.strftime('%d %b %Y') if cm.start_date else 'Active',
+                    'payment_type': 'MEMBERSHIP',
+                    'payment_mode': 'OFFLINE' if 'Cash' in (cm.payment_method or '') else 'ONLINE',
+                    'status': 'SUCCESS' if cm.status == 'ACTIVE' else cm.status,
+                    'amount': float(cm.fee or 0),
+                    'currency': 'INR',
+                    'item_title': f"Club Membership - {cm.club_name_snapshot} ({cm.membership_type})",
+                    'reference_code': f"Pass #{cm_key}",
+                    'pdf_url': None,
+                    'qr_url': None,
+                    'metadata': {'membership_id': str(cm.id), 'club': cm.club_name_snapshot},
+                    'completed_at': None
+                })
 
         return results
 
