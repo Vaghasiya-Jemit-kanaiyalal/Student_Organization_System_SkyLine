@@ -164,6 +164,42 @@ export const MemberDashboard = () => {
     const tab = params.get('tab');
     if (tab) {
       setActiveTab(tab);
+      if (tab === 'transactions') {
+        loadUserTransactions();
+      } else if (tab === 'merchandise') {
+        loadMerchandiseOrders();
+      } else if (tab === 'tickets') {
+        ticketsApi.getMyTickets().then((res) => {
+          if (res !== null && res !== undefined) {
+            const raw = Array.isArray(res) ? res : res?.results || [];
+            const mapped = raw.map((t) => ({
+              id: t.ticket_id || t.id,
+              ticket_id: t.ticket_id || t.id,
+              eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
+              date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
+              venue: t.venue || t.event_details?.venue || 'Campus Center',
+              seat: t.seat || 'Member Pass • Row B, Seat #15',
+              gate: t.gate || 'Main Entrance (Gate 1)',
+              pricePaid: t.pricePaid || (Number(t.price_paid) === 0 ? '₹0.00 (Member Pass)' : `₹${Number(t.price_paid).toFixed(2)}`),
+              purchaseDate: t.purchaseDate || (t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+              status: t.status || 'Confirmed',
+              tier: t.tier || 'Member Pass',
+              category: t.category || t.event_details?.event_type || 'Campus Event',
+              qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
+              qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
+              qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
+              image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
+              transferredTo: t.transferredTo || t.transferred_to || ''
+            }));
+            setTicketsList(mapped);
+            if (mapped.length === 0) {
+              localStorage.removeItem('skyline_my_tickets_v1');
+            } else {
+              localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(mapped));
+            }
+          }
+        }).catch(() => null);
+      }
     } else {
       setActiveTab('overview');
     }
@@ -230,24 +266,17 @@ export const MemberDashboard = () => {
   // Events State
   const [eventsList, setEventsList] = useState([]);
 
-  // Tickets State with localStorage persistence (empty by default until reserved)
-  const [ticketsList, setTicketsList] = useState(() => {
-    try {
-      const saved = localStorage.getItem('skyline_my_tickets_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed reading saved tickets:', e);
-    }
-    return [];
-  });
+  // Tickets State (empty by default until reserved on server)
+  const [ticketsList, setTicketsList] = useState([]);
 
   // Sync ticketsList to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(ticketsList));
+      if (ticketsList.length > 0) {
+        localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(ticketsList));
+      } else {
+        localStorage.removeItem('skyline_my_tickets_v1');
+      }
     } catch (e) {
       console.warn('Failed saving tickets:', e);
     }
@@ -501,34 +530,37 @@ export const MemberDashboard = () => {
           }
         }
 
-        if (ticketsRes) {
+        if (ticketsRes !== null && ticketsRes !== undefined) {
           const rawTickets = Array.isArray(ticketsRes) ? ticketsRes : ticketsRes?.results || [];
-          if (rawTickets.length > 0) {
-            const serverMapped = rawTickets.map((t) => ({
-              id: t.ticket_id || t.id,
-              ticket_id: t.ticket_id || t.id,
-              eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
-              date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
-              venue: t.venue || t.event_details?.venue || 'Campus Center',
-              seat: t.seat || 'Member Pass • Row B, Seat #15',
-              gate: t.gate || 'Main Entrance (Gate 1)',
-              pricePaid: t.pricePaid || (Number(t.price_paid) === 0 ? '₹0.00 (Member Pass)' : `₹${Number(t.price_paid).toFixed(2)}`),
-              purchaseDate: t.purchaseDate || (t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
-              status: t.status || 'Confirmed',
-              tier: t.tier || 'Member Pass',
-              category: t.category || t.event_details?.event_type || 'Campus Event',
-              qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
-              qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
-              qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
-              image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
-              transferredTo: t.transferredTo || t.transferred_to || ''
-            }));
+          const serverMapped = rawTickets.map((t) => ({
+            id: t.ticket_id || t.id,
+            ticket_id: t.ticket_id || t.id,
+            eventTitle: t.eventTitle || t.event_details?.title || 'Campus Event',
+            date: t.date || (t.event_details?.date ? `${new Date(t.event_details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}` : 'TBD'),
+            venue: t.venue || t.event_details?.venue || 'Campus Center',
+            seat: t.seat || 'Member Pass • Row B, Seat #15',
+            gate: t.gate || 'Main Entrance (Gate 1)',
+            pricePaid: t.pricePaid || (Number(t.price_paid) === 0 ? '₹0.00 (Member Pass)' : `₹${Number(t.price_paid).toFixed(2)}`),
+            purchaseDate: t.purchaseDate || (t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Recent'),
+            status: t.status || 'Confirmed',
+            tier: t.tier || 'Member Pass',
+            category: t.category || t.event_details?.event_type || 'Campus Event',
+            qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
+            qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
+            qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
+            image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
+            transferredTo: t.transferredTo || t.transferred_to || ''
+          }));
 
-            setTicketsList((prev) => {
-              const serverIds = new Set(serverMapped.map((s) => s.id));
-              const filteredPrev = prev.filter((p) => !serverIds.has(p.id));
-              return [...serverMapped, ...filteredPrev];
-            });
+          setTicketsList(serverMapped);
+          try {
+            if (serverMapped.length === 0) {
+              localStorage.removeItem('skyline_my_tickets_v1');
+            } else {
+              localStorage.setItem('skyline_my_tickets_v1', JSON.stringify(serverMapped));
+            }
+          } catch (e) {
+            console.warn('Storage sync err:', e);
           }
         }
       } catch (err) {
@@ -3372,6 +3404,7 @@ export const MemberDashboard = () => {
           <StudentMerchStore
             studentProfile={studentProfile}
             isClubMember={isEligibleForMemberPrice()}
+            onOpenPayment={setActiveDemoPayment}
           />
         )}
 

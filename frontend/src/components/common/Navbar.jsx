@@ -62,11 +62,11 @@ export const Navbar = () => {
   // Student navigation items
   const studentNavTabs = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'membership', label: 'Campus Clubs', icon: Users },
+    { id: 'membership', label: 'Campus Clubs', shortLabel: 'Clubs', icon: Users },
     { id: 'events', label: 'Events', icon: Calendar },
     { id: 'merchandise', label: 'Merchandise', icon: ShoppingBag },
-    { id: 'tickets', label: 'My Tickets', icon: Ticket },
-    { id: 'transactions', label: 'My Transactions', icon: CreditCard },
+    { id: 'tickets', label: 'My Tickets', shortLabel: 'Tickets', icon: Ticket },
+    { id: 'transactions', label: 'My Transactions', shortLabel: 'Transactions', icon: CreditCard },
     { id: 'volunteer', label: 'Volunteer', icon: HeartHandshake },
     { id: 'certificates', label: 'Certificates', icon: Award },
     { id: 'announcements', label: 'Announcements', icon: Megaphone }
@@ -126,10 +126,10 @@ export const Navbar = () => {
       }`}
       ref={menuRef}
     >
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-15 flex items-center justify-between gap-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* LEFT: Brand Logo, Name, Subtitle */}
-        <Link to="/" className="flex items-center space-x-2.5 group flex-shrink-0">
+        <Link to="/" className="flex items-center space-x-3 group shrink-0">
           <UniversityCrest className="w-8 h-8 text-white transition-opacity group-hover:opacity-90" variant="white" />
           <div className="flex flex-col text-left">
             <span className="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
@@ -141,44 +141,49 @@ export const Navbar = () => {
           </div>
         </Link>
 
-        {/* CENTER: Main Navigation */}
+        {/* CENTER: Main Navigation (Single-Line Guaranteed Pill Bar) */}
         {isAuthenticated && user && (
-          <nav className="hidden lg:flex items-center justify-center space-x-1 flex-1 px-2">
-            {currentTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isTabActive = location.pathname.startsWith(currentBasePath) && activeTab === tab.id;
+          <div className="hidden lg:flex items-center justify-center flex-1 min-w-0 mx-2 xl:mx-4">
+            <nav className="flex items-center flex-nowrap whitespace-nowrap overflow-x-auto no-scrollbar py-1 px-1.5 rounded-xl bg-zinc-900/70 border border-zinc-800/80 backdrop-blur-md shadow-inner gap-0.5 xl:gap-1 max-w-full">
+              {currentTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isTabActive = location.pathname.startsWith(currentBasePath) && activeTab === tab.id;
 
-              const activeClass = isGreenTheme
-                ? 'bg-emerald-600 text-white shadow-xs font-semibold'
-                : 'bg-[#1D70B8] text-white shadow-xs font-semibold';
+                const activeClass = isGreenTheme
+                  ? 'bg-emerald-600 text-white shadow-xs font-semibold ring-1 ring-emerald-500/50'
+                  : 'bg-[#1D70B8] text-white shadow-xs font-semibold ring-1 ring-blue-500/50';
 
-              const inactiveClass = isGreenTheme
-                ? 'text-zinc-300 hover:text-white hover:bg-white/10'
-                : 'text-slate-300 hover:text-white hover:bg-white/10';
+                const inactiveClass = isGreenTheme
+                  ? 'text-zinc-300 hover:text-white hover:bg-white/10'
+                  : 'text-slate-300 hover:text-white hover:bg-white/10';
 
-              return (
-                <Link
-                  key={tab.id}
-                  to={`${currentBasePath}?tab=${tab.id}`}
-                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-                    isTabActive ? activeClass : inactiveClass
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isTabActive ? 'text-white' : isGreenTheme ? 'text-zinc-400' : 'text-slate-400'}`} />
-                  <span>{tab.label}</span>
-                  {tab.badge !== undefined && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
-                      {tab.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+                return (
+                  <Link
+                    key={tab.id}
+                    to={`${currentBasePath}?tab=${tab.id}`}
+                    className={`shrink-0 flex items-center space-x-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      isTabActive ? activeClass : inactiveClass
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isTabActive ? 'text-white' : isGreenTheme ? 'text-zinc-400' : 'text-slate-400'}`} />
+                    <span className={tab.shortLabel ? 'hidden 2xl:inline' : ''}>{tab.label}</span>
+                    {tab.shortLabel && (
+                      <span className="inline 2xl:hidden">{tab.shortLabel}</span>
+                    )}
+                    {tab.badge !== undefined && (
+                      <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-white">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         )}
 
         {/* RIGHT: User Profile & Actions */}
-        <div className="flex items-center space-x-2.5 flex-shrink-0">
+        <div className="flex items-center space-x-3 shrink-0 ml-auto">
           {/* Admin Treasurer Quick Action */}
           {isAuthenticated && user?.role === 'ADMIN' && (
             <button

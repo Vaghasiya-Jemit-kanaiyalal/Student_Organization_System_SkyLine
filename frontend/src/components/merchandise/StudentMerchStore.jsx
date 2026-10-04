@@ -21,7 +21,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export const StudentMerchStore = ({ studentProfile, isClubMember = false }) => {
+export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpenPayment }) => {
   const { user } = useAuth();
   const {
     products,
@@ -135,6 +135,27 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false }) => {
 
     const priceInfo = getProductPrice(orderingProduct.price);
     const unitPrice = priceInfo.final;
+    const totalPrice = unitPrice * Number(orderQuantity);
+
+    if (onOpenPayment) {
+      const prod = orderingProduct;
+      setOrderingProduct(null);
+      onOpenPayment({
+        payment_type: 'MERCHANDISE',
+        title: prod.name,
+        subtitle: `Size: ${selectedSize} • Quantity: ${orderQuantity}`,
+        amount: totalPrice,
+        productId: prod.id,
+        size: selectedSize,
+        quantity: Number(orderQuantity),
+        details: {
+          quantity: Number(orderQuantity),
+          size: selectedSize
+        }
+      });
+      return;
+    }
+
     const paymentStatus = paymentMethod.includes('Cash') ? 'PENDING' : 'PAID';
 
     const res = placeOrder({
