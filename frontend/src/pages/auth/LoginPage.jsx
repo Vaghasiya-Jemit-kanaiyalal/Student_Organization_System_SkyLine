@@ -206,6 +206,54 @@ export const LoginPage = () => {
           </div>
         )}
 
+        {/* Quick Demo Login Credentials Bar */}
+        <div className="mb-4 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+          <p className="text-[10.5px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 text-center">
+            Quick 1-Click Demo Accounts (Password: Jay@123)
+          </p>
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('jemitvaghasiya07@gmail.com');
+                setPassword('Jay@123');
+                setErrorMessage('');
+                setFieldErrors({});
+              }}
+              className="py-1 px-1.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[11px] font-medium text-slate-700 hover:text-emerald-800 transition shadow-2xs text-center cursor-pointer truncate"
+              title="Student: jemitvaghasiya07@gmail.com"
+            >
+              🎓 Student
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('jay12@gmail.com');
+                setPassword('Jay@123');
+                setErrorMessage('');
+                setFieldErrors({});
+              }}
+              className="py-1 px-1.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[11px] font-medium text-slate-700 hover:text-emerald-800 transition shadow-2xs text-center cursor-pointer truncate"
+              title="Admin: jay12@gmail.com"
+            >
+              🛡️ Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('treasurer@treasurer.gmail.com');
+                setPassword('Jay@123');
+                setErrorMessage('');
+                setFieldErrors({});
+              }}
+              className="py-1 px-1.5 rounded-md bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-[11px] font-medium text-slate-700 hover:text-emerald-800 transition shadow-2xs text-center cursor-pointer truncate"
+              title="Treasurer: treasurer@treasurer.gmail.com"
+            >
+              💰 Treasurer
+            </button>
+          </div>
+        </div>
+
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
           {/* University Email Address */}
