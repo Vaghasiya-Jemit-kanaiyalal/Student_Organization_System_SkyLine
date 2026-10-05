@@ -8,6 +8,7 @@ import { openRazorpayCheckout } from '../../utils/razorpay';
 import { DemoPaymentModal } from '../../components/common/DemoPaymentModal';
 import { EventQrScannerModal } from '../../components/scanner/EventQrScannerModal';
 import { MerchandiseQrScannerModal } from '../../components/scanner/MerchandiseQrScannerModal';
+import { resolveMerchImage, getMerchImageFallback } from '../../utils/imageHelper';
 import { CAMPUS_CLUBS } from '../../data/clubsData';
 import {
   LayoutDashboard,
@@ -191,7 +192,7 @@ export const MemberDashboard = () => {
               status: t.status || 'Confirmed',
               tier: t.tier || 'Member Pass',
               category: t.category || t.event_details?.event_type || 'Campus Event',
-              qrCodeData: t.qrCodeData || t.qr_code_data || `CONNECTU-${t.event}-${studentProfile.studentId}`,
+              qrCodeData: t.qrCodeData || t.qr_code_data || `SKYLINE-${t.event}-${studentProfile.studentId}`,
               qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
               qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
               image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
@@ -267,7 +268,7 @@ export const MemberDashboard = () => {
   }, [user]);
 
   // Campus Clubs State
-  const [clubsList, setClubsList] = useState([]);
+  const [clubsList, setClubsList] = useState(CAMPUS_CLUBS);
 
   // Events State
   const [eventsList, setEventsList] = useState([]);
@@ -452,7 +453,11 @@ export const MemberDashboard = () => {
           const rawClubs = Array.isArray(clubsRes) ? clubsRes : clubsRes?.results || [];
           if (rawClubs.length > 0) {
             const mappedClubs = rawClubs.map((c) => {
-              const matchedFallback = CAMPUS_CLUBS.find((fc) => String(fc.id) === String(c.id) || fc.name.toLowerCase() === c.name.toLowerCase()) || {};
+              const matchedFallback = CAMPUS_CLUBS.find((fc) => String(fc.id) === String(c.id) || fc.name.toLowerCase() === c.name.toLowerCase() || (fc.name.toLowerCase().includes('robotics') && c.name.toLowerCase().includes('robotics')) || (fc.name.toLowerCase().includes('business') && c.name.toLowerCase().includes('business'))) || {};
+              const roboticsLink = 'https://www.lxt.ai/ai-glossary/robotics/';
+              const businessLink = 'https://www.linkedin.com/pulse/business-basics-beginners-guide-world-dedxf';
+              const resolvedLink = c.website_url || c.link || matchedFallback.link || (c.name?.toLowerCase().includes('robotics') ? roboticsLink : (c.name?.toLowerCase().includes('business') ? businessLink : ''));
+
               return {
                 ...matchedFallback,
                 id: c.id,
@@ -465,7 +470,9 @@ export const MemberDashboard = () => {
                 semesterFee: c.semester_fee !== undefined ? Number(c.semester_fee) : (matchedFallback.semesterFee || 299),
                 annualFee: c.annual_fee !== undefined ? Number(c.annual_fee) : (matchedFallback.annualFee || 499),
                 image: c.image || matchedFallback.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=600&q=80',
-                availableSeats: c.capacity || matchedFallback.availableSeats || 30
+                availableSeats: c.capacity || matchedFallback.availableSeats || 30,
+                link: resolvedLink,
+                website_url: resolvedLink
               };
             });
             setClubsList(mappedClubs);
@@ -588,7 +595,7 @@ export const MemberDashboard = () => {
             status: t.status || 'Confirmed',
             tier: t.tier || 'Member Pass',
             category: t.category || t.event_details?.event_type || 'Campus Event',
-            qrCodeData: t.qrCodeData || t.qr_code_data || (t.qr_token || '') || `CONNECTU-${t.event?.id || t.event}-${studentProfile.studentId}`,
+            qrCodeData: t.qrCodeData || t.qr_code_data || (t.qr_token || '') || `SKYLINE-${t.event?.id || t.event}-${studentProfile.studentId}`,
             qr_token: t.qr_token || t.qrToken || t.qrCodeData || t.qr_code_data,
             qr_code: t.qr_code || t.qrUrl || t.qr_code_url,
             image: t.image || t.event_details?.image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=700&q=80',
@@ -1588,7 +1595,20 @@ export const MemberDashboard = () => {
                         <div>
                           <div className="flex items-center justify-between gap-1">
                             <h3 className="text-sm font-semibold text-slate-900 leading-snug">
-                              {club.name}
+                              {club.link ? (
+                                <a
+                                  href={club.link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:text-emerald-700 hover:underline inline-flex items-center gap-1.5 group"
+                                  title="Open official resource guide"
+                                >
+                                  <span>{club.name}</span>
+                                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                </a>
+                              ) : (
+                                club.name
+                              )}
                             </h3>
                             {isEnrolled && (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 flex-shrink-0">
@@ -1655,6 +1675,18 @@ export const MemberDashboard = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {club.link && (
+                          <a
+                            href={club.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-emerald-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1 shadow-2xs group"
+                            title="Visit official club resource page"
+                          >
+                            <span>Resource</span>
+                            <ExternalLink className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                          </a>
+                        )}
                         {isEnrolled ? (
                           <button
                             onClick={() => {
@@ -2875,9 +2907,12 @@ export const MemberDashboard = () => {
                         {/* Product Poster Image */}
                         <div className="relative h-56 bg-slate-100 overflow-hidden">
                           <img
-                            src={product.image}
+                            src={resolveMerchImage(product.image, product.type, product.name)}
                             alt={product.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            onError={(e) => {
+                              e.target.src = getMerchImageFallback(product.type, product.name);
+                            }}
                           />
                           {/* Top-left: Category / Type */}
                           <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
@@ -4560,9 +4595,12 @@ export const MemberDashboard = () => {
                         <div className="space-y-3">
                           <div className="h-64 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
                             <img
-                              src={selectedProductDetails.image}
+                              src={resolveMerchImage(selectedProductDetails.image, selectedProductDetails.type, selectedProductDetails.name)}
                               alt={selectedProductDetails.name}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = getMerchImageFallback(selectedProductDetails.type, selectedProductDetails.name);
+                              }}
                             />
                           </div>
 

@@ -36,6 +36,7 @@ class ClubSerializer(serializers.ModelSerializer):
             'available_spots',
             'total_spots',
             'benefits',
+            'website_url',
             'is_active',
             'created_at',
         ]

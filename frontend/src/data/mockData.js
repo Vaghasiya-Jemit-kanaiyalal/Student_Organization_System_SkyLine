@@ -156,7 +156,7 @@ export const MERCHANDISE_ITEMS = [
     sizes: ['S', 'M', 'L', 'XL'],
     inStock: 45,
     tag: 'Official Heritage',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=400&q=80'
+    image: 'https://www.nextdirect.com/in/en/style/su663457/f70396'
   },
   {
     id: 'mch-2',

@@ -17,6 +17,8 @@ export const CAMPUS_CLUBS = [
     memberCount: 92,
     image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=700&q=80',
     accentColor: '#0F2942',
+    link: 'https://www.lxt.ai/ai-glossary/robotics/',
+    website_url: 'https://www.lxt.ai/ai-glossary/robotics/',
     benefits: [
       '100% Free VIP admission to Annual Robotics Showcase (Save $15)',
       'Subsidized entry to Web3 & Cloud Hackathons (Save $15)',
@@ -67,6 +69,8 @@ export const CAMPUS_CLUBS = [
     memberCount: 62,
     image: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=700&q=80',
     accentColor: '#123552',
+    link: 'https://www.linkedin.com/pulse/business-basics-beginners-guide-world-dedxf',
+    website_url: 'https://www.linkedin.com/pulse/business-basics-beginners-guide-world-dedxf',
     benefits: [
       'Free admission to Career & Industry Networking Night (Save $10)',
       'Access to Bloomberg Terminals & Mock Trading competitions',

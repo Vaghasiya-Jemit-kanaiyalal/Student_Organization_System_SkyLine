@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useMerchandise } from '../../context/MerchandiseContext';
 import { useAuth } from '../../context/AuthContext';
+import { resolveMerchImage, getMerchImageFallback } from '../../utils/imageHelper';
 import {
   ShoppingBag,
   Plus,
@@ -426,12 +427,11 @@ export const StudentMerchStore = ({ studentProfile, isClubMember = false, onOpen
                       <td className="py-2.5 px-3.5">
                         <div className="flex items-center space-x-3">
                           <img
-                            src={item.image}
+                            src={resolveMerchImage(item.image, item.type, item.name)}
                             alt={item.name}
                             className="w-10 h-10 rounded-md object-cover border border-slate-200 flex-shrink-0"
                             onError={(e) => {
-                              e.target.src =
-                                'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80';
+                              e.target.src = getMerchImageFallback(item.type, item.name);
                             }}
                           />
                           <div>

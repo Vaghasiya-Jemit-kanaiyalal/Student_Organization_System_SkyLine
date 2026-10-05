@@ -253,6 +253,7 @@ class Club(models.Model):
     available_spots = models.PositiveIntegerField(_('available spots'), default=35)
     total_spots = models.PositiveIntegerField(_('total spots'), default=150)
     benefits = models.JSONField(_('member benefits list'), default=list, blank=True)
+    website_url = models.URLField(_('club resource link'), max_length=500, blank=True, default='')
     is_active = models.BooleanField(_('is active'), default=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)
 

@@ -6,6 +6,7 @@ import { FinanceProvider } from './context/FinanceContext';
 import { FundraiserProvider } from './context/FundraiserContext';
 import { TreasurerProvider } from './context/TreasurerContext';
 import { Navbar } from './components/common/Navbar';
+import { Footer } from './components/common/Footer';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { UniversityCrest } from './components/common/UniversityCrest';
 
@@ -37,40 +38,7 @@ const RootRedirector = () => {
   return <Navigate to="/member/dashboard" replace />;
 };
 
-// University Footer
-const UniversityFooter = () => {
-  return (
-    <footer className="mt-auto bg-surface border-t border-border py-8 px-4 sm:px-6 lg:px-8 text-xs text-text-secondary">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center space-x-3">
-          <UniversityCrest className="w-8 h-8" variant="navy" />
-          <div>
-            <p className="font-bold text-text-primary text-sm">
-              ConnectU Student Organization System
-            </p>
-            <p className="text-[11px] text-text-muted">
-              Division of Student Affairs & Campus Life • Academic Year 2026–2027
-            </p>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-6 text-[11px]">
-          <span className="text-text-muted">University Honor Code</span>
-          <span className="text-border">•</span>
-          <span className="text-text-muted">FERPA Compliance</span>
-          <span className="text-border">•</span>
-          <span className="text-text-muted">Bursar Office Accounting</span>
-          <span className="text-border">•</span>
-          <span className="text-accent font-semibold">Institutional Security Verified</span>
-        </div>
-
-        <div className="text-right text-[11px] text-text-muted">
-          <span>Classical Campus Theme • Deep Burgundy & Warm Ivory</span>
-        </div>
-      </div>
-    </footer>
-  );
-};
 
 // Main App Layout that conditionally hides Navbar and Footer on public auth pages
 const AppContent = () => {
@@ -151,7 +119,7 @@ const AppContent = () => {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </main>
-      {!isAuthRoute && <UniversityFooter />}
+      {!isAuthRoute && <Footer />}
     </div>
   );
 };

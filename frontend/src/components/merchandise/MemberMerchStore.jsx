@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMerchandise } from '../../context/MerchandiseContext';
 import { useAuth } from '../../context/AuthContext';
+import { resolveMerchImage, getMerchImageFallback } from '../../utils/imageHelper';
 import {
   ShoppingBag,
   CheckCircle2,
@@ -252,12 +253,11 @@ export const MemberMerchStore = () => {
                     {/* Product Image */}
                     <div className="relative h-48 bg-ivory-200 overflow-hidden">
                       <img
-                        src={item.image}
+                        src={resolveMerchImage(item.image, item.type, item.name)}
                         alt={item.name}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         onError={(e) => {
-                          e.target.src =
-                            'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80';
+                          e.target.src = getMerchImageFallback(item.type, item.name);
                         }}
                       />
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -522,9 +522,12 @@ export const MemberMerchStore = () => {
               {/* Product preview */}
               <div className="flex items-center space-x-3.5 p-3 rounded-xl bg-ivory-100 border border-border">
                 <img
-                  src={selectedProduct.image}
+                  src={resolveMerchImage(selectedProduct.image, selectedProduct.type, selectedProduct.name)}
                   alt={selectedProduct.name}
                   className="w-16 h-16 rounded-lg object-cover border border-border flex-shrink-0"
+                  onError={(e) => {
+                    e.target.src = getMerchImageFallback(selectedProduct.type, selectedProduct.name);
+                  }}
                 />
                 <div>
                   <p className="text-xs font-semibold text-text-primary">

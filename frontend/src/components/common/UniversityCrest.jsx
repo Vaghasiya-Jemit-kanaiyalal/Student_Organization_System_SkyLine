@@ -121,7 +121,7 @@ export const UniversityCrest = ({ className = "w-12 h-12", variant = "skyline", 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="ConnectU University Crest"
+      aria-label="Skyline University Crest"
     >
       {/* Outer Shield Border */}
       <path

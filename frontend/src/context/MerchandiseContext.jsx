@@ -15,7 +15,7 @@ const DEFAULT_PRODUCTS = [
     price: 1000.00,
     tag: 'Official Skyline',
     description: 'Collegiate heavyweight fleece hoodie with embroidered Skyline Student Association crest, warm front pouch pocket, and ribbed cuffs.',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80',
+    image: 'https://www.nextdirect.com/in/en/style/su663457/f70396',
     sizeStock: {
       'S': 12,
       'M': 24,
@@ -34,7 +34,7 @@ const DEFAULT_PRODUCTS = [
     price: 500.00,
     tag: 'Bestseller',
     description: '100% ring-spun organic cotton breathable T-shirt featuring the Skyline modern club emblem on the chest and athletic fit.',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
+    image: 'https://dribbble.com/tags/t-shirt-desing',
     sizeStock: {
       'XS': 6,
       'S': 20,
@@ -54,7 +54,7 @@ const DEFAULT_PRODUCTS = [
     price: 1200.00,
     tag: 'New Release',
     description: 'Performance stretch thermal zip-up hoodie with Skyline Association badge, zippered phone pocket, and athletic drawstrings.',
-    image: 'https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=600&q=80',
+    image: 'https://www.amazon.in/TOGS-TERRE-Stylish-Sweatshirt-Motivation/dp/B0DMFM1YDH',
     sizeStock: {
       'S': 8,
       'M': 16,
@@ -73,7 +73,7 @@ const DEFAULT_PRODUCTS = [
     price: 600.00,
     tag: 'Heritage Edition',
     description: 'Retro washed collegiate tee with distressed Skyline Student Association typography and ultra-soft pre-shrunk cotton.',
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=600&q=80',
+    image: 'https://www.tradeindia.com/products/mens-sports-t-shirts-9392133.html',
     sizeStock: {
       'S': 14,
       'M': 28,
@@ -90,7 +90,30 @@ export const MerchandiseProvider = ({ children }) => {
   const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem('skyline_merchandise_products');
-      return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((p) => {
+            const pId = String(p.id || '');
+            const pName = String(p.name || '').toLowerCase();
+
+            if (pId === 'mch-103' || pName.includes('athletic')) {
+              return { ...p, image: 'https://www.amazon.in/TOGS-TERRE-Stylish-Sweatshirt-Motivation/dp/B0DMFM1YDH' };
+            }
+            if (pId === 'mch-104' || pName.includes('vintage')) {
+              return { ...p, image: 'https://www.tradeindia.com/products/mens-sports-t-shirts-9392133.html' };
+            }
+            if (pId === 'mch-101' || pName.includes('hoodie')) {
+              return { ...p, image: 'https://www.nextdirect.com/in/en/style/su663457/f70396' };
+            }
+            if (pId === 'mch-102' || pName.includes('t-shirt') || pName.includes('tshirt')) {
+              return { ...p, image: 'https://dribbble.com/tags/t-shirt-desing' };
+            }
+            return p;
+          });
+        }
+      }
+      return DEFAULT_PRODUCTS;
     } catch {
       return DEFAULT_PRODUCTS;
     }
