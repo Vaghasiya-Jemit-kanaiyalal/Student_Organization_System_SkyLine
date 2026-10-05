@@ -101,7 +101,7 @@ graph TD
 
 | Capability / Feature | Student / Member | Club Admin | Treasurer |
 |---|:---:|:---:|:---:|
-| **Self-Registration & Profile** | ✅ | ✅ | ✅ |
+| **Self-Registration & Profile** | ✅ | ❌ | ✅ |
 | **Join Clubs & Purchase Memberships** | ✅ | ❌ | ❌ |
 | **Browse Events & Buy Tickets (Member Discount)** | ✅ | ✅ | ✅ |
 | **Download PDF Tickets & Access QR Pass** | ✅ | ✅ | ✅ |
@@ -117,7 +117,7 @@ graph TD
 | **Financial Dashboard & Cashflow Summary** | ❌ | ✅ | ✅ |
 | **Ledger Management (Record Income / Expense / Refunds)** | ❌ | ✅ | ✅ |
 | **Review & Approve Reimbursement Claims** | ❌ | ✅ | ✅ |
-| **Camera QR Scanner (Tickets & Merch Pickup)** | ❌ | ✅ | ✅ |
+| **Camera QR Scanner (Tickets & Merch Pickup)** | ❌ | ✅ | ✅(Volunteers also) |
 
 ---
 
@@ -273,56 +273,7 @@ The project includes pre-seeded demo accounts with varied roles and permissions.
 | **Treasurer** | `amit@treasurer.gmail.com` | `Treas@123` | Access to financial ledger, cashflow dashboard & reimbursement approvals |
 | **Treasurer (Alt)** | `treasurer@treasurer.gmail.com` | `Jay@123` | Pre-configured treasurer account |
 | **Student Member** | `student@university.edu` | `password123` | Active annual membership, discounted event tickets & merch |
-| **Student (Alt)** | `yug@gmail.com` | `Yug@123` | Registered student with verified club membership |
 
----
-
-## 📡 Key API Endpoints
-
-### 🔑 Authentication (`/api/auth/`)
-- `POST /api/auth/register/` — Self-register a new Student account.
-- `POST /api/auth/login/` — Authenticate credentials and obtain JWT Access & Refresh tokens.
-- `POST /api/auth/token/refresh/` — Obtain a refreshed access token.
-- `POST /api/auth/logout/` — Invalidate and blacklist the current refresh token.
-- `GET /api/auth/me/` — Retrieve the authenticated user's profile and membership status.
-- `POST /api/auth/change-password/` — Update user account password.
-- `POST /api/auth/forgot-password/` — Request password reset email with secure token.
-- `POST /api/auth/reset-password/` — Confirm password reset with `uidb64` and `token`.
-
-### 🛡️ Admin Management (`/api/admin/`)
-- `GET /api/admin/members/` — Search and paginate organization members.
-- `POST /api/admin/members/<id>/renew/` — Extend or renew student membership duration.
-- `POST /api/admin/members/<id>/discard/` — Revoke or discard student membership status.
-- `POST /api/admin/create-treasurer/` — Appoint and provision a new Treasurer account.
-- `GET /api/admin/volunteers/` — Review volunteer applications across all events.
-- `POST /api/admin/volunteers/<id>/approve/` — Approve volunteer application and create assignment.
-- `POST /api/admin/volunteers/<id>/reject/` — Reject volunteer application with feedback.
-
-### 🎪 Events & Volunteers (`/api/`)
-- `GET /api/events/` — List active campus events with ticket prices & volunteer requirements.
-- `POST /api/events/` — Create a new event (*Admin only*).
-- `GET /api/tickets/my-tickets/` — Retrieve all event tickets booked by the current student.
-- `GET /api/tickets/<ticket_id>/pdf/` — Download dynamic ReportLab PDF ticket pass.
-- `POST /api/tickets/verify-qr/` — Verify ticket validity via QR payload data (*Admin/Treasurer*).
-- `POST /api/tickets/<ticket_id>/check-in/` — Mark ticket as admitted/checked in at the venue gate.
-- `POST /api/volunteers/apply/` — Submit application for an event volunteer position.
-- `GET /api/certificates/my-certificates/` — View issued volunteer certificates with verification hashes.
-- `GET /api/announcements/` — List campus announcements and broadcasts.
-
-### 💳 Finance & Merchandise (`/api/finance/` & `/api/`)
-- `GET /api/finance/dashboard/` — Total income, expenses, cashflow balance, and recent ledger entries.
-- `GET /api/finance/transactions/` — Filter and view organization financial ledger entries.
-- `POST /api/finance/transactions/` — Manually record income or expense transaction.
-- `POST /api/finance/transactions/<id>/refund/` — Issue a financial refund and record adjustment.
-- `GET /api/finance/reimbursements/` — List reimbursement claims with receipt URLs.
-- `POST /api/finance/reimbursements/` — Submit reimbursement expense claim with invoice attachment.
-- `POST /api/finance/reimbursements/<id>/approve/` — Approve claim (*Treasurer/Admin*).
-- `POST /api/finance/reimbursements/<id>/mark-paid/` — Mark claim paid (auto-posts expense to ledger).
-- `GET /api/merchandise/products/` — Browse apparel catalog and size-wise stock.
-- `GET /api/merchandise/orders/` — List orders and access pickup QR collection passes.
-- `POST /api/merchandise/orders/verify-qr/` — Scan QR pass and mark merchandise as collected.
-
-*(For exhaustive endpoint schemas and payload specifications, see [backend/API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md)).*
 
 ---
 
@@ -361,8 +312,6 @@ npm run lint
 | `DB_HOST` | Database host address | `localhost` |
 | `DB_PORT` | Database connection port | `5432` |
 | `FRONTEND_URL` | Client origin allowed by CORS & used in QR links | `http://localhost:5173` |
-| `RAZORPAY_KEY_ID` | Razorpay Gateway public API key | `rzp_test_...` |
-| `RAZORPAY_KEY_SECRET` | Razorpay Gateway secret | `...` |
 
 ---
 
@@ -377,7 +326,3 @@ Contributions, feature requests, and bug reports are always welcome!
 5. Open a Pull Request
 
 ---
-
-## 📄 License
-
-This project is licensed under the **MIT License** — feel free to modify and adapt it for your student organization or university campus.
